@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Documento** | Especificação de casos de uso |
-| **Sistema** | ERP Loja 1.1.0 |
+| **Sistema** | ERP Loja 1.2.0 |
 | **Atores** | Administrador, Operador (usuário comum), Banco, Administradora de CIOT (Pamcard), Provedor TEF, Resend, Fornecedor (XML) |
 
 ```mermaid

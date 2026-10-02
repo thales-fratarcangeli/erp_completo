@@ -18,6 +18,7 @@ de testes a partir do código (não edite à mão).
 | 11 | [Glossário](11-glossario.md) | Termos fiscais, bancários, logísticos e técnicos | Todos |
 | 12 ⚙ | [Manual do usuário](12-manual-do-usuario.md) | Mesmo conteúdo do botão "?" de cada tela | Usuários |
 | 13 | [Histórico de solicitações](13-historico-de-solicitacoes.md) | Todas as mensagens do product owner, literais, e o atendimento de cada uma | Todos |
+| 14 | [Testes exploratórios](14-testes-exploratorios.md) | Falhas encontradas por agentes simulando usuários, correções, pendências e sugestões de usabilidade | Todos |
 | — | [Decisões de arquitetura (ADR)](adr/) | 18 decisões registradas | Desenvolvimento |
 
 Na raiz do repositório: [README](../README.md), [CHANGELOG](../CHANGELOG.md), [CONTRIBUTING](../CONTRIBUTING.md), [SECURITY](../SECURITY.md).

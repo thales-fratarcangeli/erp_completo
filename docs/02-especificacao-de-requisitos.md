@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Documento** | Especificação de requisitos (estrutura inspirada na ISO/IEC/IEEE 29148) |
-| **Sistema** | ERP Loja 1.1.0 (banco v11) |
+| **Sistema** | ERP Loja 1.2.0 (banco v12) |
 | **Status** | Vigente |
 | **Convenções** | RF = requisito funcional; RNF = não funcional; RI = interface externa; prioridade **E** (essencial), **I** (importante), **D** (desejável); RN = regra de negócio ([04](04-regras-de-negocio.md)); UC = caso de uso ([03](03-casos-de-uso.md)) |
 
@@ -41,6 +41,11 @@ Conforme o [documento de visão](01-documento-de-visao.md), seção 5. Itens for
 | RF-SIS-08 | Cada função deve ter um único ponto de entrada no menu (sem telas redundantes). | E | — |
 | RF-SIS-09 | Deve fazer backup diário automático e permitir backup manual e troca de banco. | I | RN-BD-04 |
 | RF-SIS-10 | Deve gerar dados fictícios de demonstração sob demanda (somente administrador, com backup prévio). | D | — |
+| RF-SIS-11 | As telas do menu devem abrir no espaço à direita do menu, em abas, sem janelas soltas. | E | RN-NAV-01..03 |
+| RF-SIS-12 | Toda ação deve gerar registro de log em banco SQLite separado, consultável por administradores. | E | RN-LOG |
+| RF-SIS-13 | Na primeira execução, deve criar um atalho na área de trabalho. | I | RN-INS |
+| RF-SIS-14 | O primeiro acesso com a senha padrão deve exigir a troca da senha. | E | RN-USU |
+| RF-SIS-15 | A tela inicial e o localizador devem oferecer as telas usadas por último. | D | RN-NAV |
 
 ### 3.2 Cadastros
 
@@ -146,6 +151,11 @@ Conforme o [documento de visão](01-documento-de-visao.md), seção 5. Itens for
 | RF-SIS-02/03 | RN-BD-01..03 | UC-01 | "legado v1", "banco v4 com dados", "banco novo", "banco lembrado" |
 | RF-SIS-04 | RN-USU-06 | UC-02 | "código enviado", "código errado", "código expirado", "5 tentativas" |
 | RF-SIS-06/07 | — | UC-14 | "toda tela aberta tem tópico", "o ? de cada tela abre só…", "buscar 'boleto'…" |
+| RF-SIS-11 | RN-NAV | UC-14 | "a tela abre embutida…", "[Sistema] …abas…", teste de interface ("embutida: PDV…") |
+| RF-SIS-12 | RN-LOG | — | "log gravado em banco separado", "venda gera log de dados", "gravação desfeita…", "[Sistema] …log…" |
+| RF-SIS-13 | RN-INS | UC-01 | "atalho .lnk do Windows criado" |
+| RF-SIS-14/15 | RN-USU, RN-NAV | UC-02, UC-14 | "[Interface] primeiro acesso…", "[Interface] …continuar de onde parou…" |
+| Cenários de uso | todas | todos | 69 cenários `[Área]` (ver [14](14-testes-exploratorios.md)) |
 | RF-CAD-01/02 | RN-CAD-01/02 | UC-11 | "clientes e fornecedores viraram pessoas", "validação de CPF/CNPJ" |
 | RF-VEN-01..04 | RN-VEN, RN-TEF | UC-03 | "total da venda", "desconto acima de 10%", "crédito disponível", "TEF simulador" |
 | RF-VEN-06 | RN-PED | UC-04 | "orçamento…", "aprovar orçamento…", "faturar…" |

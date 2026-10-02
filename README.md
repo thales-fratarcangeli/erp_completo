@@ -36,7 +36,7 @@ O executável pronto fica na página de [Releases](../../releases) do repositór
 | Logística | Veículos, motoristas, fretes e **CIOT** (Pamcard) |
 | Fiscal | NF-e/NFC-e com CFOP automático, ICMS/IPI/PIS/COFINS e **IBS/CBS/IS** da reforma tributária; chave de acesso e DANFE (sem transmissão à SEFAZ) |
 | Gestão | Painel gerencial com comparação ao período anterior; relatórios exportáveis |
-| Sistema | Cadastro único de pessoas, configurações centralizadas, usuários com recuperação de senha (Resend), backups, migrations, impressoras (Windows/ESC/POS), localizador de telas (Ctrl+K), ajuda em cada tela (**?**/F1), dados de demonstração |
+| Sistema | Telas em abas à direita do menu, "continuar de onde parou", localizador de telas (Ctrl+K), ajuda em cada tela (**?**/F1), log de atividades em banco separado, cadastro único de pessoas, configurações centralizadas, usuários com recuperação de senha (Resend), backups, migrations, impressoras (Windows/ESC/POS), atalho na área de trabalho, dados de demonstração |
 
 ## Documentação
 
@@ -49,6 +49,7 @@ O executável pronto fica na página de [Releases](../../releases) do repositór
 | [Implantação e operação](docs/09-implantacao-e-operacao.md) | Implantação e suporte |
 | [Falhas e resoluções](docs/10-falhas-e-resolucoes.md) | Suporte e desenvolvimento |
 | [Arquitetura](docs/05-arquitetura.md) e [ADRs](docs/adr/) | Desenvolvimento |
+| [Testes exploratórios](docs/14-testes-exploratorios.md) e [Histórico de solicitações](docs/13-historico-de-solicitacoes.md) | Todos |
 | [Como contribuir](CONTRIBUTING.md) · [Segurança](SECURITY.md) · [Histórico](CHANGELOG.md) | Desenvolvimento |
 
 ## Desenvolvimento
@@ -70,6 +71,7 @@ ErpLoja/              aplicação
   UI/                 componentes visuais, navegação, ajuda, animações
   Recursos/           logo
 testes/ErpLoja.Testes bateria de testes de ponta a ponta (+ geração de documentação)
+  Cenarios/           cenários de uso: simulam pessoas operando as telas
 testes/interface      teste de interface por UI Automation
 docs/                 documentação de engenharia
 ferramentas/          script que gera a logo

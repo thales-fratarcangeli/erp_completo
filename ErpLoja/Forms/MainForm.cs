@@ -18,6 +18,20 @@ public class MainForm : Form
     readonly Panel palco = new() { Dock = DockStyle.Fill, BackColor = Ui.Fundo };
     readonly Control inicio;
     Form? ativa;
+    // tela inicial: telas usadas por último ("continuar de onde parou")
+    readonly Label tituloRecentes = new()
+    {
+        Text = "Continuar de onde parou",
+        AutoSize = true,
+        Font = new Font("Segoe UI Semibold", 10F),
+        ForeColor = Color.FromArgb(107, 114, 128),
+        Anchor = AnchorStyles.None,
+        Margin = new Padding(0, 28, 0, 6),
+    };
+    readonly FlowLayoutPanel recentes = new() { AutoSize = true, WrapContents = true, MaximumSize = new Size(780, 0), Anchor = AnchorStyles.None, BackColor = Color.White };
+    // menu lateral: item de cada tela, para destacar a que está em primeiro plano
+    readonly Dictionary<string, Button> itensMenu = new();
+    string? chaveAtiva;
     readonly FlowLayoutPanel menu = new()
     {
         Dock = DockStyle.Left,
@@ -104,6 +118,7 @@ public class MainForm : Form
         {
             AtualizarCabecalho();
             AtualizarAjuda();
+            AtualizarRecentes();
         };
         ConfiguracoesForm.ParametrosSalvos += AtualizarCabecalho;
         Disposed += (_, _) => ConfiguracoesForm.ParametrosSalvos -= AtualizarCabecalho;
@@ -153,7 +168,7 @@ public class MainForm : Form
         buscar.Font = new Font("Segoe UI", 12F);
         buscar.ForeColor = Color.FromArgb(107, 114, 128);
         buscar.Anchor = AnchorStyles.None;
-        centro.Controls.AddRange([logo, saudacao, dica, buscar]);
+        centro.Controls.AddRange([logo, saudacao, dica, buscar, tituloRecentes, recentes]);
         area.Controls.Add(centro, 0, 1);
         return area;
     }
@@ -181,7 +196,8 @@ public class MainForm : Form
         b.Paint += (_, e) =>
         {
             using var pincel = new SolidBrush(cor);
-            e.Graphics.FillRectangle(pincel, 10, 9, largura, b.Height - 18);
+            var ativo = chaveAtiva != null && b.Tag as string == chaveAtiva;
+            e.Graphics.FillRectangle(pincel, 10, ativo ? 5 : 9, ativo ? 6 : largura, b.Height - (ativo ? 10 : 18));
         };
         b.MouseEnter += (_, _) => Animacao.Executar(b, 150, p => { largura = 3 + 3 * (float)p; b.Invalidate(); });
         b.MouseLeave += (_, _) => Animacao.Executar(b, 150, p => { largura = 6 - 3 * (float)p; b.Invalidate(); });
@@ -218,6 +234,8 @@ public class MainForm : Form
         foreach (var t in telas)
         {
             var b = ItemMenu(t.Titulo, modulo.Cor, t.Atalho);
+            b.Tag = t.Chave;
+            itensMenu[t.Chave] = b;
             b.Click += (_, _) => Abrir(t);
             itens.Controls.Add(b);
         }
@@ -291,7 +309,7 @@ public class MainForm : Form
         }
         if (tela.Acao is { } acao)
         {
-            Log.Registrar(Log.Tela, "Abriu " + tela.Titulo, tela: tela.Titulo);
+            Log.Registrar(Log.Tela, "Abriu " + tela.Titulo, tela.Chave, tela: tela.Titulo);
             acao(this);
             return;
         }
@@ -341,7 +359,7 @@ public class MainForm : Form
         abas.Controls.Add(aba);
         palco.Controls.Add(f);
         f.Show();
-        Log.Registrar(Log.Tela, "Abriu " + f.Text, tela: f.Text);
+        Log.Registrar(Log.Tela, "Abriu " + f.Text, tela.Chave, tela: f.Text);
         Ativar(f);
     }
 
@@ -358,6 +376,7 @@ public class MainForm : Form
         f.Visible = true;
         f.BringToFront();
         Log.TelaAtual = f.Text;
+        MarcarMenu(abertos.FirstOrDefault(kv => kv.Value == f).Key);
         AtualizarCabecalho();
         AtualizarAjuda();
         // foco no controle que a tela escolheu (ex.: código do produto no PDV) ou no primeiro da ordem de tabulação
@@ -382,9 +401,56 @@ public class MainForm : Form
         inicio.Visible = true;
         inicio.BringToFront();
         Log.TelaAtual = "";
+        MarcarMenu(null);
+        AtualizarRecentes();
         AtualizarCabecalho();
         AtualizarAjuda();
     }
+
+    /// <summary>O item do menu da tela em primeiro plano fica em negrito, branco e com a marca de cor cheia.</summary>
+    void MarcarMenu(string? chave)
+    {
+        chaveAtiva = chave;
+        foreach (var (k, b) in itensMenu)
+        {
+            var ativo = k == chave;
+            b.Font = ativo ? Ui.FonteNegrito : Ui.Fonte;
+            b.ForeColor = ativo ? Color.White : Color.FromArgb(229, 231, 235);
+            b.Invalidate();
+        }
+    }
+
+    /// <summary>Atalhos para as telas usadas por último (vêm do log de atividades), com a cor da área de cada uma.</summary>
+    void AtualizarRecentes()
+    {
+        recentes.SuspendLayout();
+        foreach (Control c in recentes.Controls.Cast<Control>().ToList())
+            c.Dispose();
+        foreach (var tela in Navegacao.Recentes())
+        {
+            var cor = Navegacao.ModuloDe(tela.Modulo).Cor;
+            var b = Ui.Botao("     " + tela.Titulo, (_, _) => Abrir(tela));
+            b.Margin = new Padding(4);
+            b.MinimumSize = new Size(170, 38);
+            b.TextAlign = ContentAlignment.MiddleLeft;
+            b.Paint += (_, e) =>
+            {
+                e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                using var ponto = new SolidBrush(cor);
+                e.Graphics.FillEllipse(ponto, 12, b.Height / 2 - 4, 8, 8);
+            };
+            new ToolTip().SetToolTip(b, $"{tela.Modulo} · abrir {tela.Titulo}" + (tela.Atalho != Keys.None ? $" ({Ui.NomeAtalho(tela.Atalho)})" : ""));
+            recentes.Controls.Add(b);
+        }
+        tituloRecentes.Visible = recentes.Visible = recentes.Controls.Count > 0;
+        recentes.ResumeLayout();
+    }
+
+    /// <summary>Telas mostradas em "Continuar de onde parou" (para testes).</summary>
+    public IReadOnlyList<string> AtalhosRecentes => recentes.Controls.OfType<Button>().Select(b => b.Text.Trim()).ToList();
+
+    /// <summary>Chave da tela destacada no menu lateral (para testes).</summary>
+    public string? TelaDestacadaNoMenu => chaveAtiva;
 
     /// <summary>Aba de uma tela aberta: ponto na cor do módulo, título e botão de fechar; a aba ativa ganha sublinhado animado.</summary>
     sealed class Aba : Panel

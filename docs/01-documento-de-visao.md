@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Documento** | Visão do produto |
-| **Sistema** | ERP Loja 1.1.0 |
+| **Sistema** | ERP Loja 1.2.0 |
 | **Status** | Vigente |
 | **Público** | Proprietário do produto, equipe de desenvolvimento, implantação e suporte |
 

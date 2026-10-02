@@ -86,9 +86,15 @@ public class LocalizarTelaForm : Form
 
     void Atualizar()
     {
-        resultados = string.IsNullOrWhiteSpace(busca.Text)
-            ? Navegacao.Telas().Where(t => Sessao.Admin || !t.SoAdmin).Select(t => (t, 0, "")).ToList()
-            : Navegacao.Buscar(busca.Text, Sessao.Admin);
+        if (string.IsNullOrWhiteSpace(busca.Text))
+        {
+            // sem texto: as telas usadas por último vêm primeiro, depois todas as outras
+            var recentes = Navegacao.Recentes();
+            resultados = recentes.Select(t => (t, 0, "Usada recentemente")).ToList();
+            resultados.AddRange(Navegacao.Telas().Where(t => (Sessao.Admin || !t.SoAdmin) && !recentes.Contains(t)).Select(t => (t, 0, "")));
+        }
+        else
+            resultados = Navegacao.Buscar(busca.Text, Sessao.Admin);
         // o próprio localizador não aparece na lista (escolhê-lo só reabriria esta janela)
         resultados.RemoveAll(r => r.Tela.Chave == nameof(LocalizarTelaForm));
         lista.BeginUpdate();

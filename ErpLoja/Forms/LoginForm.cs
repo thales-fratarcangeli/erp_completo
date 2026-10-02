@@ -14,7 +14,7 @@ public static class LoginForm
 
         var admin = Db.Query("SELECT senha FROM usuarios WHERE username = 'admin'");
         if (admin.Rows.Count > 0 && Senhas.Verificar("admin", Ui.Txt(admin.Rows[0]["senha"])))
-            d.Nota("Primeiro acesso: usuário admin, senha admin (troque em Configurações > Minha conta).");
+            d.Nota("Primeiro acesso: usuário admin, senha admin. Ao entrar, o sistema pede uma senha nova.");
         d.Link("Esqueci minha senha", () =>
         {
             using var r = new RecuperarSenhaForm(usuario.Text.Trim());
@@ -48,6 +48,41 @@ public static class LoginForm
             return true;
         };
 
-        return d.ShowDialog() == DialogResult.OK;
+        if (d.ShowDialog() != DialogResult.OK)
+            return false;
+        // senha padrão (admin) ou igual ao username: qualquer um adivinha — exige uma senha nova antes de entrar
+        var senhaFraca = senha.Text == "admin" || string.Equals(senha.Text, usuario.Text.Trim(), StringComparison.OrdinalIgnoreCase);
+        return !senhaFraca || TrocarSenhaFraca(senha.Text, usuario.Text.Trim());
+    }
+
+    /// <summary>Primeiro acesso com a senha padrão: a pessoa escolhe uma senha nova para continuar.</summary>
+    static bool TrocarSenhaFraca(string atual, string username)
+    {
+        using var d = new Dialogo("Troque a senha padrão", "login", "Salvar e entrar") { StartPosition = FormStartPosition.CenterScreen };
+        d.Nota("Por segurança, escolha uma senha nova antes de começar. A senha atual é a padrão (ou igual ao username) e qualquer pessoa poderia adivinhá-la.");
+        var nova = d.Adicionar("Nova senha:", new TextBox { UseSystemPasswordChar = true });
+        var confirmacao = d.Adicionar("Repita a nova senha:", new TextBox { UseSystemPasswordChar = true });
+        d.Validar = () =>
+        {
+            string? erro = nova.Text.Length < 4 ? "A nova senha deve ter pelo menos 4 caracteres."
+                : nova.Text == atual || nova.Text == "admin" || string.Equals(nova.Text, username, StringComparison.OrdinalIgnoreCase)
+                    ? "Escolha uma senha diferente da padrão e do username."
+                : nova.Text != confirmacao.Text ? "As duas senhas digitadas são diferentes."
+                : null;
+            if (erro is null)
+                return true;
+            Ui.Erro(erro);
+            nova.Focus();
+            return false;
+        };
+        if (d.ShowDialog() != DialogResult.OK)
+        {
+            Log.Registrar(Log.Acesso, "Entrada cancelada: senha padrão não trocada", tela: "Acesso");
+            return false;
+        }
+        Db.Exec("UPDATE usuarios SET senha = @p0 WHERE id = @p1", Senhas.Hash(nova.Text), Sessao.UsuarioId);
+        Log.Registrar(Log.Acesso, "Senha padrão trocada no primeiro acesso", tela: "Acesso");
+        Ui.Feito("Senha alterada. Bem-vindo(a)!");
+        return true;
     }
 }

@@ -208,6 +208,7 @@ Base legal: EC 132/2023 e LC 214/2025 (IBS, CBS e Imposto Seletivo). Valores pad
 | RN-USU-05 | Banco novo vem com admin/admin; a tela de entrada avisa enquanto a senha não for trocada. |
 | RN-USU-06 | **Recuperação de senha**: código de 6 dígitos (gerador criptográfico) enviado ao e-mail pelo Resend; válido 15 min; 5 tentativas; um novo pedido invalida os anteriores; uso único; nova senha com ≥ 4 caracteres; e-mail exibido mascarado. |
 | RN-USU-07 | O sistema nunca fica sem administrador ativo: o último não pode ser inativado, rebaixado nem excluído. Ninguém inativa o próprio usuário nem tira o próprio acesso de administrador. Senha do cadastro com ≥ 4 caracteres. |
+| RN-USU-08 | Entrar com a senha padrão (`admin`) ou com senha igual ao username exige escolher uma senha nova (mín. 4 caracteres, diferente da padrão e do username, digitada duas vezes) antes de usar o sistema; sem trocar, não entra. |
 
 ## Banco de dados (RN-BD)
 
@@ -240,6 +241,7 @@ Base legal: EC 132/2023 e LC 214/2025 (IBS, CBS e Imposto Seletivo). Valores pad
 | RN-NAV-04 | Cada tela tem o seu "?" (e F1) com a explicação **apenas daquela tela**; o "?" da janela principal aparece só na tela inicial. |
 | RN-NAV-05 | O PDV tem fundo branco e é operado pelo teclado; as teclas de função do PDV têm prioridade sobre os atalhos gerais enquanto ele está em primeiro plano. |
 | RN-NAV-06 | Cada função existe em um único lugar do menu (ver [ADR-0007](adr/0007-navegacao-fonte-unica.md)); telas de administrador não aparecem para usuários comuns. |
+| RN-NAV-07 | A tela inicial mostra até 6 telas usadas por último pelo usuário ("Continuar de onde parou", lidas do log); o localizador vazio lista essas telas primeiro. O menu lateral destaca a tela em primeiro plano. |
 
 ## Instalação (RN-INS)
 

@@ -196,6 +196,38 @@ public static class Log
         return dt;
     }
 
+    /// <summary>Chaves das telas abertas mais recentemente pelo usuário (sem repetir), da mais nova para a mais antiga.</summary>
+    public static List<string> TelasRecentes(long? usuarioId, int quantidade)
+    {
+        var lista = new List<string>();
+        if (usuarioId is null || !File.Exists(Caminho))
+            return lista;
+        try
+        {
+            lock (trava)
+            {
+                using var c = Abrir();
+                using var cmd = c.CreateCommand();
+                cmd.CommandText = """
+                    SELECT detalhe FROM log
+                    WHERE categoria = @c AND usuario_id = @u AND acao LIKE 'Abriu %' AND detalhe <> ''
+                    GROUP BY detalhe ORDER BY MAX(id) DESC LIMIT @n
+                    """;
+                cmd.Parameters.AddWithValue("@c", Tela);
+                cmd.Parameters.AddWithValue("@u", usuarioId);
+                cmd.Parameters.AddWithValue("@n", quantidade);
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                    lista.Add(r.GetString(0));
+            }
+        }
+        catch
+        {
+            // sem recentes: a tela inicial e o localizador funcionam normalmente
+        }
+        return lista;
+    }
+
     public static string[] Usuarios()
     {
         if (!File.Exists(Caminho))

@@ -106,6 +106,20 @@ try {
     $edits[0].GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).SetValue('admin')
     $edits[1].GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).SetValue('admin')
     Botao $login 'Entrar'
+    # primeiro acesso com a senha padrão: o sistema exige uma senha nova antes de entrar
+    $fimTroca = (Get-Date).AddSeconds(8)
+    while ((Get-Date) -lt $fimTroca) {
+        $troca = (Janelas) | Where-Object { $_.Current.Name -eq 'Troque a senha padrão' } | Select-Object -First 1
+        if ($null -ne $troca) {
+            $senhas = $troca.FindAll($Escopo::Descendants, (New-Object System.Windows.Automation.PropertyCondition($AE::ControlTypeProperty, [System.Windows.Automation.ControlType]::Edit)))
+            foreach ($s in $senhas) { $s.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).SetValue('teste1234') }
+            Botao $troca 'Salvar e entrar'
+            $log.Add('senha padrão trocada no primeiro acesso')
+            break
+        }
+        if ((Janelas) | Where-Object { $_.Current.Name -like 'ERP Loja - [B-Z]*' }) { break }
+        Start-Sleep -Milliseconds 300
+    }
     $principal = Esperar 'ERP Loja - [B-Z]*'
     $log.Add('login ok: ' + $principal.Current.Name)
 

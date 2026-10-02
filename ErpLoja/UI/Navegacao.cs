@@ -87,6 +87,13 @@ public static class Navegacao
             Acao: dono => LocalizarTelaForm.Executar(dono), Atalho: Keys.Control | Keys.K),
     ];
 
+    /// <summary>Telas usadas por último pelo usuário logado (pelo log de atividades), respeitando o perfil.</summary>
+    public static List<Tela> Recentes(int quantidade = 6)
+    {
+        var telas = Telas().Where(t => (Sessao.Admin || !t.SoAdmin) && t.Chave != nameof(LocalizarTelaForm)).ToDictionary(t => t.Chave);
+        return Log.TelasRecentes(Sessao.UsuarioId, quantidade + 2).Where(telas.ContainsKey).Select(c => telas[c]).Take(quantidade).ToList();
+    }
+
     public static Modulo ModuloDe(string nome) => Modulos.FirstOrDefault(m => m.Nome == nome) ?? Modulos[^1];
 
     /// <summary>Cor do módulo de uma tela, pela chave de ajuda (Ui.Estilizar usa para a faixa da janela).</summary>

@@ -21,6 +21,10 @@ As telas abrem no espaço à direita do menu, sem janelas soltas. Cada tela aber
 - Ao sair com uma venda em andamento no PDV, o sistema pergunta antes; respondendo Não, o PDV volta para a frente.
 Janelas de edição (ex.: editar um pedido) e confirmações continuam aparecendo por cima, porque precisam de uma resposta antes de continuar.
 
+### Continuar de onde parou
+Na tela inicial aparecem as telas que você usou por último, cada uma com o ponto da cor da sua área: um clique abre. No Buscar tela (Ctrl+K), com a busca vazia, elas também vêm primeiro.
+No menu lateral, a tela que está em primeiro plano fica destacada (em negrito, com a marca de cor cheia).
+
 ### Tela inicial
 Aparece quando nenhuma tela está aberta. Fica limpa de propósito: use o menu ou a busca. Indicadores e gráficos ficam em Gestão > Painel gerencial (F5).
 
@@ -53,6 +57,9 @@ Bancos de versões anteriores são atualizados automaticamente (migrations), com
 ## Acesso ao sistema
 
 Informe seu username e senha.
+
+### Primeiro acesso
+Com a senha padrão (admin) — ou com a senha igual ao username — o sistema pede uma senha nova antes de entrar (mínimo de 4 caracteres, digitada duas vezes). Sem trocar, não entra: qualquer pessoa poderia adivinhar a senha padrão.
 
 ### Esqueci minha senha
 Clique em "Esqueci minha senha": o sistema envia um código de 6 dígitos para o e-mail cadastrado no seu usuário. O código vale 15 minutos e aceita até 5 tentativas.

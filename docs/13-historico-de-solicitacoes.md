@@ -29,6 +29,10 @@ As mensagens estão transcritas **exatamente como foram escritas** (inclusive ab
 | 17 | 02/10/2026 00:37 | quado abre a tela pra colocar admin e fazer login tem que clicar em ok quando aparece o po… |
 | 18 | 02/10/2026 00:38 | depois que tu terminar, desliga meu pc. tchau |
 | 19 | 02/10/2026 00:38 | e manda pro github antes de desligar |
+| 20 | 02/10/2026 07:44 | Primeiro, faz um comando e executa para desligar o computador automaticamente daqui duas h… |
+| 21 | 02/10/2026 07:45 | vou sair aqui tchau |
+| 22 | 02/10/2026 12:12 | continua |
+| 23 | 02/10/2026 12:46 | continua |
 
 ## 1. 01/10/2026 20:55
 
@@ -174,10 +178,34 @@ Respostas às perguntas feitas pelo assistente:
 
 > depois que tu terminar, desliga meu pc. tchau
 
-**Atendimento:** Ao final do trabalho: envio de tudo ao GitHub e desligamento do computador.
+**Atendimento:** Pedido substituído pelo da mensagem 20 (desligamento agendado). Todo o trabalho concluído antes do desligamento foi enviado ao GitHub.
 
 ## 19. 02/10/2026 00:38
 
 > e manda pro github antes de desligar
 
-**Atendimento:** Envio ao GitHub feito antes do desligamento.
+**Atendimento:** Commits enviados ao GitHub antes do desligamento das 09:45 (documentação, histórico, regras e as primeiras melhorias de interface).
+
+## 20. 02/10/2026 07:44
+
+> Primeiro, faz um comando e executa para desligar o computador automaticamente daqui duas horas. E depois continua o que você estava fazendo anteriormente.
+
+**Atendimento:** Executado `shutdown /s /t 7200` às 07:45 (desligamento às 09:45). Antes disso: documentação enviada ao GitHub e agentes de teste relançados com prazo e commits frequentes (a primeira rodada tinha parado por limite de uso).
+
+## 21. 02/10/2026 07:45
+
+> vou sair aqui tchau
+
+**Atendimento:** Trabalho seguiu sem supervisão. Quatro agentes concluíram antes das 09:45, mas só o de Produção/Logística chegou a ser integrado (localmente) antes do desligamento; Vendas e Financeiro pararam de novo por limite de uso. Nada se perdeu: cada agente havia commitado no próprio branch, integrado depois.
+
+## 22. 02/10/2026 12:12
+
+> continua
+
+**Atendimento:** Retomada após o computador ser religado: os dois agentes interrompidos pelo limite de uso (Vendas e Financeiro) foram retomados e concluídos.
+
+## 23. 02/10/2026 12:46
+
+> continua
+
+**Atendimento:** Integração dos seis agentes (72 falhas corrigidas, 69 cenários, 898 verificações aprovadas), revisão de interface (continuar de onde parou, menu com a tela ativa, troca obrigatória da senha padrão), versão 1.2.0 publicada, `dist` atualizado e tudo enviado ao GitHub.
