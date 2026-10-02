@@ -1,0 +1,269 @@
+using System.Text;
+
+namespace ErpLoja.UI;
+
+/// <summary>Estilo visual e utilitários comuns das telas.</summary>
+public static class Ui
+{
+    public static readonly Font Fonte = new("Segoe UI", 10F);
+    public static readonly Font FonteNegrito = new("Segoe UI Semibold", 10F);
+    public static readonly Font FonteTitulo = new("Segoe UI Semibold", 16F);
+    public static readonly Color Primaria = Color.FromArgb(37, 99, 235);
+    public static readonly Color Fundo = Color.FromArgb(243, 244, 246);
+    public static readonly Color Perigo = Color.FromArgb(220, 38, 38);
+    public static readonly Color Alerta = Color.FromArgb(217, 119, 6);
+    public static readonly Color Sucesso = Color.FromArgb(22, 163, 74);
+
+    static Icon? icone;
+
+    /// <summary>Ícone do sistema (Recursos/logo.ico embutido no executável).</summary>
+    public static Icon Icone => icone ??= CarregarIcone();
+
+    static Icon CarregarIcone()
+    {
+        using var s = typeof(Ui).Assembly.GetManifestResourceStream("ErpLoja.logo.ico");
+        return s is null ? SystemIcons.Application : new Icon(s);
+    }
+
+    public static Image Logo(int tamanho)
+    {
+        using var s = typeof(Ui).Assembly.GetManifestResourceStream("ErpLoja.logo.png");
+        if (s is null)
+            return new Bitmap(tamanho, tamanho);
+        using var original = Image.FromStream(s);
+        return new Bitmap(original, tamanho, tamanho);
+    }
+
+    /// <summary>Aparência padrão + ícone + botão de ajuda "?" (e F1). ajuda = chave do tópico (padrão: nome da classe).</summary>
+    public static void Estilizar(Form f, string titulo, int largura, int altura, string? ajuda = null)
+    {
+        f.Text = titulo;
+        f.Font = Fonte;
+        f.BackColor = Fundo;
+        f.Icon = Icone;
+        f.StartPosition = FormStartPosition.CenterScreen;
+        f.Size = new Size(largura, altura);
+        f.MinimumSize = new Size(Math.Min(largura, 800), Math.Min(altura, 500));
+        f.KeyPreview = true;
+        Ajuda.Instalar(f, ajuda ?? f.GetType().Name);
+    }
+
+    public static DataGridView Grid(bool somenteLeitura = true)
+    {
+        var g = new DataGridView
+        {
+            Dock = DockStyle.Fill,
+            ReadOnly = somenteLeitura,
+            AllowUserToAddRows = false,
+            AllowUserToDeleteRows = false,
+            AllowUserToResizeRows = false,
+            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+            MultiSelect = false,
+            RowHeadersVisible = false,
+            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+            BackgroundColor = Color.White,
+            BorderStyle = BorderStyle.None,
+            EnableHeadersVisualStyles = false,
+            ColumnHeadersHeight = 34,
+            ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing,
+        };
+        g.RowTemplate.Height = 28;
+        g.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(229, 231, 235);
+        g.ColumnHeadersDefaultCellStyle.Font = FonteNegrito;
+        g.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(249, 250, 251);
+        g.DefaultCellStyle.SelectionBackColor = Color.FromArgb(191, 219, 254);
+        g.DefaultCellStyle.SelectionForeColor = Color.Black;
+        g.DataBindingComplete += (_, _) => FormatarColunas(g);
+        g.DataError += (_, e) => { e.ThrowException = false; Erro("Valor inválido."); };
+        return g;
+    }
+
+    static void FormatarColunas(DataGridView g)
+    {
+        foreach (DataGridViewColumn c in g.Columns)
+        {
+            if (c.DataPropertyName == "id")
+                c.Visible = false;
+            var t = c.ValueType;
+            if (t == typeof(double) || t == typeof(decimal))
+            {
+                c.DefaultCellStyle.Format = "N2";
+                c.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            }
+            else if (t == typeof(long) || t == typeof(int))
+                c.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+        }
+    }
+
+    /// <summary>Pinta a coluna "Situação" conforme o valor (VENCIDA, PAGA, BAIXO...).</summary>
+    public static void ColorirSituacao(DataGridView g)
+    {
+        g.CellFormatting += (_, e) =>
+        {
+            if (e.RowIndex < 0 || e.CellStyle is null || g.Columns[e.ColumnIndex].DataPropertyName != "Situação")
+                return;
+            e.CellStyle.ForeColor = Txt(e.Value) switch
+            {
+                "VENCIDA" or "VENCIDO" or "SEM ESTOQUE" or "RECUSADO" => Perigo,
+                "BAIXO" or "DIGITADA" => Alerta,
+                "PAGA" or "OK" or "APROVADO" or "FATURADO" or "RECEBIDO" or "EMITIDA" => Sucesso,
+                "CANCELADA" or "CANCELADO" => Color.Gray,
+                _ => e.CellStyle.ForeColor,
+            };
+        };
+    }
+
+    public static Button Botao(string texto, EventHandler? clique = null, bool primario = false)
+    {
+        var b = new Button
+        {
+            Text = texto,
+            AutoSize = true,
+            MinimumSize = new Size(100, 34),
+            FlatStyle = FlatStyle.Flat,
+            Cursor = Cursors.Hand,
+            Padding = new Padding(8, 0, 8, 0),
+            Margin = new Padding(4),
+            BackColor = primario ? Primaria : Color.White,
+            ForeColor = primario ? Color.White : Color.Black,
+            UseVisualStyleBackColor = false,
+        };
+        b.FlatAppearance.BorderColor = primario ? Primaria : Color.FromArgb(209, 213, 219);
+        if (clique != null)
+            b.Click += clique;
+        return b;
+    }
+
+    public static string NomeAtalho(Keys k) =>
+        ((k & Keys.Control) != 0 ? "Ctrl+" : "") + (k & Keys.KeyCode);
+
+    public static Label Rotulo(string texto) =>
+        new() { Text = texto, AutoSize = true, Margin = new Padding(6, 11, 2, 0) };
+
+    /// <summary>Barra de ferramentas. A barra do topo reserva espaço à direita para o botão "?".</summary>
+    public static FlowLayoutPanel Barra(DockStyle dock = DockStyle.Top) => new()
+    {
+        Dock = dock,
+        AutoSize = true,
+        AutoSizeMode = AutoSizeMode.GrowAndShrink,
+        Padding = dock == DockStyle.Top ? new Padding(6, 6, 52, 6) : new Padding(6),
+        WrapContents = true,
+        BackColor = Color.White,
+    };
+
+    public static NumericUpDown Numero(int casas = 2, decimal maximo = 999_999_999m, decimal minimo = 0) => new()
+    {
+        DecimalPlaces = casas,
+        Maximum = maximo,
+        Minimum = minimo,
+        ThousandsSeparator = true,
+        Width = 110,
+        TextAlign = HorizontalAlignment.Right,
+        Margin = new Padding(4, 7, 4, 4),
+    };
+
+    public static DateTimePicker Data(DateTime? valor = null) => new()
+    {
+        Format = DateTimePickerFormat.Short,
+        Width = 120,
+        Value = valor ?? DateTime.Today,
+        Margin = new Padding(4, 7, 4, 4),
+    };
+
+    public static ComboBox Combo(int largura = 220) => new()
+    {
+        DropDownStyle = ComboBoxStyle.DropDownList,
+        Width = largura,
+        Margin = new Padding(4, 7, 4, 4),
+    };
+
+    /// <summary>Liga o combo a uma consulta "SELECT id, nome ...". itemVazio adiciona uma opção sem valor no topo.</summary>
+    public static void Preencher(ComboBox cb, DataTable dt, string? itemVazio = null)
+    {
+        if (itemVazio != null)
+        {
+            var r = dt.NewRow();
+            r[1] = itemVazio;
+            dt.Rows.InsertAt(r, 0);
+        }
+        cb.DisplayMember = dt.Columns[1].ColumnName;
+        cb.ValueMember = dt.Columns[0].ColumnName;
+        cb.DataSource = dt;
+    }
+
+    public static long? Id(ComboBox cb) => cb.SelectedValue switch
+    {
+        long l => l,
+        int i => i,
+        _ => null,
+    };
+
+    public static void Selecionar(ComboBox cb, object? id)
+    {
+        if (id is null or DBNull)
+        {
+            if (cb.Items.Count > 0)
+                cb.SelectedIndex = 0;
+        }
+        else
+            cb.SelectedValue = Convert.ToInt64(id);
+    }
+
+    public static DataRowView? Linha(DataGridView g) =>
+        g.SelectedRows.Count > 0 ? g.SelectedRows[0].DataBoundItem as DataRowView : null;
+
+    public static long? IdLinha(DataGridView g) =>
+        Linha(g) is DataRowView r && r.Row.Table.Columns.Contains("id") && r["id"] is not DBNull
+            ? Convert.ToInt64(r["id"])
+            : null;
+
+    /// <summary>Filtra as linhas da grade procurando o texto em todas as colunas de texto.</summary>
+    public static void Filtrar(DataGridView g, string texto)
+    {
+        if (g.DataSource is not DataTable dt)
+            return;
+        var t = new string(texto.Where(ch => ch is not ('[' or ']' or '*' or '%')).ToArray()).Trim().Replace("'", "''");
+        dt.DefaultView.RowFilter = t.Length == 0
+            ? ""
+            : string.Join(" OR ", dt.Columns.Cast<DataColumn>()
+                .Where(c => c.DataType == typeof(string))
+                .Select(c => $"[{c.ColumnName}] LIKE '%{t}%'"));
+    }
+
+    public static decimal Dec(object? v) => v is null or DBNull ? 0m : Convert.ToDecimal(v);
+    public static string Txt(object? v) => v is null or DBNull ? "" : Convert.ToString(v) ?? "";
+    public static string Moeda(decimal v) => v.ToString("C2");
+
+    public static void Erro(string m) => MessageBox.Show(m, "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+    public static void Info(string m) => MessageBox.Show(m, "ERP Loja", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    public static bool Confirmar(string m) =>
+        MessageBox.Show(m, "Confirmação", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes;
+
+    public static void ExportarCsv(DataGridView g, string nome)
+    {
+        if (g.DataSource is not DataTable dt || dt.DefaultView.Count == 0)
+        {
+            Erro("Não há dados para exportar.");
+            return;
+        }
+        using var dlg = new SaveFileDialog
+        {
+            Filter = "Planilha CSV (*.csv)|*.csv",
+            FileName = $"{nome}_{DateTime.Now:yyyyMMdd_HHmm}.csv",
+        };
+        if (dlg.ShowDialog() != DialogResult.OK)
+            return;
+
+        var colunas = dt.Columns.Cast<DataColumn>().Where(c => c.ColumnName != "id").ToList();
+        var sb = new StringBuilder();
+        sb.AppendLine(string.Join(";", colunas.Select(c => Csv(c.ColumnName))));
+        foreach (DataRowView r in dt.DefaultView)
+            sb.AppendLine(string.Join(";", colunas.Select(c =>
+                Csv(r[c.ColumnName] is double d ? d.ToString("0.00") : Txt(r[c.ColumnName])))));
+        File.WriteAllText(dlg.FileName, sb.ToString(), new UTF8Encoding(true));
+        Info("Arquivo exportado:\n" + dlg.FileName);
+    }
+
+    static string Csv(string s) =>
+        s.Contains(';') || s.Contains('"') || s.Contains('\n') ? "\"" + s.Replace("\"", "\"\"") + "\"" : s;
+}

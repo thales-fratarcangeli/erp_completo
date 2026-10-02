@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>ErpLoja</RootNamespace>
+    <AssemblyName>ErpLoja</AssemblyName>
+    <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
+    <Product>ERP Loja</Product>
+    <Version>1.0.0</Version>
+    <ApplicationIcon>Recursos\logo.ico</ApplicationIcon>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SatelliteResourceLanguages>pt-BR</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <!-- Publicação: um único .exe que roda sem precisar instalar o .NET -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Recursos\logo.ico" LogicalName="ErpLoja.logo.ico" />
+    <EmbeddedResource Include="Recursos\logo.png" LogicalName="ErpLoja.logo.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ErpLoja.Testes" />
+  </ItemGroup>
+
+</Project>

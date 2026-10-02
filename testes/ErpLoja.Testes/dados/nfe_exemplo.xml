@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+  <NFe>
+    <infNFe Id="NFe35261012345678000195550010000045671123456786" versao="4.00">
+      <ide><cUF>35</cUF><natOp>VENDA DE MERCADORIA</natOp><mod>55</mod><serie>1</serie><nNF>4567</nNF>
+        <dhEmi>2026-09-28T10:15:00-03:00</dhEmi><tpNF>1</tpNF></ide>
+      <emit><CNPJ>12345678000195</CNPJ><xNome>ATACADAO DE ALIMENTOS LTDA</xNome>
+        <enderEmit><xLgr>Rua das Flores</xLgr><nro>100</nro><xBairro>Centro</xBairro><xMun>Campinas</xMun><UF>SP</UF><fone>1932321000</fone></enderEmit>
+        <IE>123456789110</IE><CRT>3</CRT></emit>
+      <det nItem="1">
+        <prod><cProd>A-77</cProd><cEAN>78900011</cEAN><xProd>ARROZ TIPO 1 5KG</xProd><NCM>10063021</NCM><CFOP>6102</CFOP>
+          <uCom>FD</uCom><qCom>2.0000</qCom><vUnCom>120.0000000000</vUnCom><vProd>240.00</vProd><cEANTrib>SEM GTIN</cEANTrib>
+          <vFrete>10.00</vFrete><vDesc>0.00</vDesc></prod>
+        <imposto><ICMS><ICMS00><orig>0</orig><CST>00</CST><vBC>250.00</vBC><pICMS>12.00</pICMS><vICMS>30.00</vICMS></ICMS00></ICMS>
+          <IPI><cEnq>999</cEnq><IPITrib><CST>50</CST><vBC>240.00</vBC><pIPI>5.00</pIPI><vIPI>12.00</vIPI></IPITrib></IPI></imposto>
+      </det>
+      <det nItem="2">
+        <prod><cProd>B-12</cProd><cEAN>7891234567895</cEAN><xProd>OLEO DE SOJA 900ML</xProd><NCM>15079011</NCM><CFOP>6102</CFOP>
+          <uCom>UN</uCom><qCom>24.0000</qCom><vUnCom>7.5000000000</vUnCom><vProd>180.00</vProd><cEANTrib>7891234567895</cEANTrib>
+          <vDesc>6.00</vDesc></prod>
+        <imposto><ICMS><ICMS00><orig>0</orig><CST>00</CST><vBC>174.00</vBC><pICMS>12.00</pICMS><vICMS>20.88</vICMS></ICMS00></ICMS></imposto>
+      </det>
+      <total><ICMSTot><vBC>424.00</vBC><vICMS>50.88</vICMS><vProd>420.00</vProd><vFrete>10.00</vFrete><vDesc>6.00</vDesc>
+        <vIPI>12.00</vIPI><vPIS>0</vPIS><vCOFINS>0</vCOFINS><vNF>436.00</vNF></ICMSTot></total>
+      <cobr><dup><nDup>001</nDup><dVenc>2026-10-28</dVenc><vDup>218.00</vDup></dup><dup><nDup>002</nDup><dVenc>2026-11-27</dVenc><vDup>218.00</vDup></dup></cobr>
+    </infNFe>
+  </NFe>
+  <protNFe><infProt><chNFe>35261012345678000195550010000045671123456786</chNFe></infProt></protNFe>
+</nfeProc>

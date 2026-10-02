@@ -1,0 +1,18 @@
+# build
+bin/
+obj/
+dist/
+*.user
+.vs/
+
+# bancos de dados e backups (contêm dados da loja: nunca versionar)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+backups/
+# exceção: banco de exemplo de versão antiga, usado pelos testes de migração
+!testes/ErpLoja.Testes/dados/banco_v1.db
+
+# arquivos locais
+aq.txt

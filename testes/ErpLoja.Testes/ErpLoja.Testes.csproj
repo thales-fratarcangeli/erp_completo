@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Bateria de testes de ponta a ponta: regras de negócio, migrations, banco, e-mail e abertura de todas as telas.
+       Executar na raiz do repositório: dotnet run, com o projeto testes/ErpLoja.Testes (código de saída = número de falhas) -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\ErpLoja\ErpLoja.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="dados\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
