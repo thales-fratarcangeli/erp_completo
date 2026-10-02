@@ -238,6 +238,7 @@ public static class Ajuda
 
             ## Frete
             - Modalidade: frota própria ou contratado. Informe transportador, motorista, veículo, rota, carga e valores (frete, pedágio, adiantamento).
+            - Peso acima da capacidade cadastrada do veículo pede confirmação ao salvar.
             - Situação: ABERTO → EM TRÂNSITO → ENTREGUE (ou CANCELADO).
             - Gerar contas a pagar: adiantamento (na data do frete) e saldo (na previsão de entrega) para o transportador, uma única vez. Depois disso, valores e transportador ficam travados no editor. Frete cancelado ou sem valor não gera contas.
 

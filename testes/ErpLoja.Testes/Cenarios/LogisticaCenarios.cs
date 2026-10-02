@@ -295,3 +295,61 @@ public class LogisticaCadastraVeiculo : ICenario
         f.Close();
     }
 }
+
+/// <summary>
+/// Editor do frete: (1) regressão — editar um frete cujo veículo foi desativado depois apagava o veículo ao salvar;
+/// (2) carga acima da capacidade do veículo pede confirmação (respondendo Não, o diálogo continua aberto para corrigir).
+/// </summary>
+public class LogisticaEditorFrete : ICenario
+{
+    public string Area => "Logística";
+
+    public void Executar(Usuario u)
+    {
+        var frete = LogisticaUtil.Frete(LogisticaUtil.Tac(), 1000);
+        var vei = LogisticaUtil.Veiculo("JTA4B56");
+        Db.Exec("UPDATE veiculos SET ativo = 0 WHERE id = @p0", vei);
+
+        var f = u.AbrirTela("FretesForm");
+        var grade = Usuario.Achar<DataGridView>(f);
+        ProducaoLogisticaUtil.SelecionarLinha(grade, frete);
+        u.QuandoAbrirJanela($"Frete nº {frete}", d =>
+        {
+            ProducaoLogisticaUtil.CampoApos<TextBox>(d, "Observações").Text = "Coletar após as 14h";
+            u.Clicar(d, "Salvar");
+        });
+        u.Clicar(f, "Abrir / editar");
+        Usuario.Esperar(300);
+        u.ConferirJanelas();
+        u.Ok(Ui.Txt(Db.Scalar("SELECT observacoes FROM fretes WHERE id = @p0", frete)) == "Coletar após as 14h"
+             && Db.Scalar("SELECT veiculo_id FROM fretes WHERE id = @p0", frete) is long v && v == vei,
+            "editar o frete mantém o veículo mesmo depois de desativado");
+
+        var van = LogisticaUtil.Veiculo("FBP1A23"); // 1.500 kg
+        var antes = ProducaoLogisticaUtil.Dec("SELECT COUNT(*) FROM fretes");
+        var abertoDepoisDoNao = false;
+        u.QuandoAbrirJanela("Novo frete", d =>
+        {
+            ProducaoLogisticaUtil.CampoApos<ComboBox>(d, "Modalidade").SelectedItem = "PROPRIO";
+            Ui.Selecionar(ProducaoLogisticaUtil.CampoApos<ComboBox>(d, "Veículo"), van);
+            ProducaoLogisticaUtil.CampoApos<TextBox>(d, "Destino (cidade)").Text = "Santos";
+            ProducaoLogisticaUtil.CampoApos<ComboBox>(d, "Destino (UF)").SelectedItem = "SP";
+            var peso = ProducaoLogisticaUtil.CampoApos<NumericUpDown>(d, "Peso");
+            peso.Value = 5000;
+            u.RespostasConfirmacao.Enqueue(false);
+            u.Clicar(d, "Salvar");
+            abertoDepoisDoNao = d.DialogResult != DialogResult.OK;
+            peso.Value = 1200;
+            u.Clicar(d, "Salvar");
+        });
+        u.Clicar(f, "Novo frete");
+        Usuario.Esperar(300);
+        u.ConferirJanelas();
+        u.Ok(u.Viu("CONFIRMAR", "capacidade do veículo (1.500 kg)") && abertoDepoisDoNao, "carga acima da capacidade pergunta; Não mantém o diálogo aberto");
+        u.Ok(ProducaoLogisticaUtil.Dec("SELECT COUNT(*) FROM fretes") == antes + 1
+             && ProducaoLogisticaUtil.Dec("SELECT peso_kg FROM fretes ORDER BY id DESC LIMIT 1") == 1200
+             && LogisticaUtil.Ciot(Convert.ToInt64(Db.Scalar("SELECT MAX(id) FROM fretes"))) == "NAO_SE_APLICA",
+            "frete de frota própria salvo com o peso corrigido e sem CIOT");
+        f.Close();
+    }
+}

@@ -199,11 +199,13 @@ public static class FreteEditor
         modalidade.Items.AddRange(["CONTRATADO", "PROPRIO"]);
         modalidade.SelectedItem = f is null ? "CONTRATADO" : Ui.Txt(f["modalidade"]);
         var transportador = d.Adicionar("Transportador:", Ui.Combo());
-        Ui.Preencher(transportador, Db.Query("SELECT id, nome || COALESCE(' (' || cpf_cnpj || ')', '') FROM pessoas WHERE eh_transportador = 1 AND ativo = 1 ORDER BY nome"), "(nenhum)");
+        // os já gravados no frete entram mesmo se foram desativados depois (senão salvar apagaria o vínculo sem aviso)
+        object? Atual(string coluna) => f?[coluna] is long v ? v : null;
+        Ui.Preencher(transportador, Db.Query("SELECT id, nome || COALESCE(' (' || cpf_cnpj || ')', '') FROM pessoas WHERE (eh_transportador = 1 AND ativo = 1) OR id = @p0 ORDER BY nome", Atual("transportador_id")), "(nenhum)");
         var motorista = d.Adicionar("Motorista:", Ui.Combo());
-        Ui.Preencher(motorista, Db.Query("SELECT id, nome FROM pessoas WHERE eh_motorista = 1 AND ativo = 1 ORDER BY nome"), "(nenhum)");
+        Ui.Preencher(motorista, Db.Query("SELECT id, nome FROM pessoas WHERE (eh_motorista = 1 AND ativo = 1) OR id = @p0 ORDER BY nome", Atual("motorista_id")), "(nenhum)");
         var veiculo = d.Adicionar("Veículo:", Ui.Combo());
-        Ui.Preencher(veiculo, Db.Query("SELECT id, placa || ' - ' || tipo || COALESCE(' ' || marca_modelo, '') FROM veiculos WHERE ativo = 1 ORDER BY placa"), "(nenhum)");
+        Ui.Preencher(veiculo, Db.Query("SELECT id, placa || ' - ' || tipo || COALESCE(' ' || marca_modelo, '') FROM veiculos WHERE ativo = 1 OR id = @p0 ORDER BY placa", Atual("veiculo_id")), "(nenhum)");
         var origem = d.Adicionar("Origem (cidade):", new TextBox { Text = f is null ? Db.Config("cidade") : Ui.Txt(f["origem_cidade"]) });
         var origemUf = d.Adicionar("Origem (UF):", Ui.Combo(80));
         var destino = d.Adicionar("Destino (cidade):", new TextBox { Text = f is null ? "" : Ui.Txt(f["destino_cidade"]) });
@@ -263,6 +265,10 @@ public static class FreteEditor
         {
             if (modalidade.Text == "CONTRATADO" && Ui.Id(transportador) is null) { Ui.Erro("Frete contratado precisa do transportador."); return false; }
             if (adiantamento.Value > valor.Value) { Ui.Erro("O adiantamento não pode ser maior que o frete."); return false; }
+            if (Ui.Id(veiculo) is long vei && Ui.Dec(Db.Scalar("SELECT capacidade_kg FROM veiculos WHERE id = @p0", vei)) is > 0 and var capacidade
+                && peso.Value > capacidade
+                && !Ui.Confirmar($"O peso da carga ({peso.Value:N0} kg) passa da capacidade do veículo ({capacidade:N0} kg). Salvar assim mesmo?"))
+                return false;
             return true;
         };
         if (d.ShowDialog(dono) != DialogResult.OK)
