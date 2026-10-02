@@ -1,6 +1,6 @@
 # Modelo de dados
 
-> Gerado automaticamente a partir do esquema real do banco (versão 11) pela bateria de testes. Não edite à mão.
+> Gerado automaticamente a partir do esquema real do banco (versão 12) pela bateria de testes. Não edite à mão.
 > Para alterar o banco, crie uma migração (ver [arquitetura](05-arquitetura.md#migrations)).
 
 Convenções: datas com hora em texto `yyyy-MM-dd HH:mm:ss`; datas sem hora `yyyy-MM-dd`; valores monetários em REAL com 2 casas;
@@ -498,7 +498,7 @@ Controle de versão do banco: migrações aplicadas.
 | `nome` | TEXT | sim |  |  |
 | `aplicada_em` | TEXT | sim |  |  |
 
-Registros no banco de demonstração: 11.
+Registros no banco de demonstração: 12.
 
 ### boletos
 
@@ -583,7 +583,7 @@ Parâmetros do sistema (chave/valor), editados na tela Configurações.
 | `chave` | TEXT | sim |  | PK |
 | `valor` | TEXT |  |  |  |
 
-Registros no banco de demonstração: 51.
+Registros no banco de demonstração: 52.
 
 ### contas
 

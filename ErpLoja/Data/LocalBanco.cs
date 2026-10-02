@@ -125,6 +125,7 @@ public static class Backups
         var nome = $"{Path.GetFileNameWithoutExtension(Db.Caminho)}_{DateTime.Now:yyyyMMdd_HHmmss}_{motivo}.db";
         var destino = Path.Combine(Pasta, nome);
         Db.Backup(destino);
+        Log.Registrar(Log.Sistema, "Backup criado", destino);
         return destino;
     }
 

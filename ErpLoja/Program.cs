@@ -54,13 +54,24 @@ static class Program
         }
 
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
-        Application.ThreadException += (_, e) => Ui.Erro("Ocorreu um erro inesperado:\n" + e.Exception.Message);
+        Application.ThreadException += (_, e) =>
+        {
+            Log.Registrar(Log.Erro, "Erro inesperado: " + e.Exception.GetType().Name, e.Exception.ToString());
+            Ui.Erro("Ocorreu um erro inesperado:\n" + e.Exception.Message);
+        };
 
         if (!AbrirBanco())
             return 1;
+        Log.Registrar(Log.Sistema, "Sistema iniciado", $"versão {Application.ProductVersion.Split('+')[0]} · banco {Db.Caminho}", tela: "");
+        Log.Limpar(Parametros.LogDiasManter);
+        AtalhoAreaDeTrabalho.CriarNaPrimeiraExecucao();
         if (!LoginForm.Executar())
+        {
+            Log.Registrar(Log.Sistema, "Sistema encerrado sem acesso", tela: "");
             return 0;
+        }
         Application.Run(new MainForm());
+        Log.Registrar(Log.Acesso, "Saiu do sistema", tela: "");
         return 0;
     }
 

@@ -22,7 +22,20 @@ function Janelas {
     for ($i = 0; $i -lt $fila.Count -and $i -lt 60; $i++) {
         try { foreach ($filha in $fila[$i].FindAll($Escopo::Children, $ehJanela)) { $fila.Add($filha) } } catch { }
     }
+    # telas embutidas na janela principal (TopLevel = false): painéis com nome dentro da janela
+    $ehPainel = New-Object System.Windows.Automation.PropertyCondition($AE::ControlTypeProperty, [System.Windows.Automation.ControlType]::Pane)
+    $ehTela = New-Object System.Windows.Automation.OrCondition -ArgumentList (, [System.Windows.Automation.Condition[]]@($ehJanela, $ehPainel))
+    foreach ($topo in $fila.ToArray()) {
+        try { foreach ($e in $topo.FindAll($Escopo::Descendants, $ehTela)) { if ($e.Current.Name) { $fila.Add($e) } } } catch { }
+    }
     return , $fila
+}
+
+# a tela está embutida na janela principal (não é janela solta de topo)?
+function Embutida($tela) {
+    $doProcesso = New-Object System.Windows.Automation.PropertyCondition($AE::ProcessIdProperty, $proc.Id)
+    foreach ($w in $AE::RootElement.FindAll($Escopo::Children, $doProcesso)) { if ($w.Current.Name -eq $tela.Current.Name) { return $false } }
+    return $true
 }
 
 function Esperar([string]$nome, [int]$segundos = 25) {
@@ -63,7 +76,13 @@ function BotaoModal($janela, [string]$nome) {
     Start-Sleep -Milliseconds 300
 }
 
-function Fechar($janela) { $janela.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern).Close(); Start-Sleep -Milliseconds 500 }
+# janelas soltas fecham pelo padrão de janela; telas embutidas, pela aba ativa (Ctrl+W)
+function Fechar($janela) {
+    $padrao = $null
+    if ($janela.TryGetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern, [ref]$padrao)) { $padrao.Close() }
+    else { Teclas $principal '^w' }
+    Start-Sleep -Milliseconds 500
+}
 
 function Teclas($janela, [string]$teclas) {
     [Microsoft.VisualBasic.Interaction]::AppActivate($proc.Id)
@@ -83,9 +102,12 @@ try {
     $principal = Esperar 'ERP Loja - [B-Z]*'
     $log.Add('login ok: ' + $principal.Current.Name)
 
-    # menu lateral
+    # menu lateral: a tela abre embutida à direita do menu (sem janela solta)
     Botao $principal 'PDV - frente de caixa*'
-    $j = Esperar 'PDV - frente de caixa'; Abriu $j; Fechar $j
+    $j = Esperar 'PDV - frente de caixa'; Abriu $j
+    if (-not (Embutida $j)) { throw 'o PDV abriu como janela solta (deveria abrir embutido na janela principal)' }
+    $log.Add('embutida: PDV dentro da janela principal')
+    Fechar $j
 
     # atalhos de teclado
     foreach ($caso in @(@('{F5}', 'Painel gerencial'), @('^n', 'Notas fiscais'), @('{F6}', 'Estoque'), @('{F7}', 'Financeiro*'))) {
@@ -118,7 +140,7 @@ try {
     $log.Add('RESULTADO: OK')
 }
 catch {
-    $log.Add('RESULTADO: FALHA - ' + $_.Exception.Message)
+    $log.Add('RESULTADO: FALHA - ' + $_.Exception.Message + ' @ ' + $_.InvocationInfo.PositionMessage)
 }
 finally {
     if (-not $proc.HasExited) { $proc.Kill() }

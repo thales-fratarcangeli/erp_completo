@@ -4,11 +4,11 @@
 
 | Item | Valor |
 |---|---|
-| Data da execução | 02/10/2026 00:22 |
-| Versão do sistema | 1.1.0.0 (banco v11) |
+| Data da execução | 02/10/2026 00:34 |
+| Versão do sistema | 1.1.0.0 (banco v12) |
 | Ambiente | Microsoft Windows 10.0.19045 · .NET 10.0.12 |
-| Verificações | 235 |
-| Aprovadas | 235 |
+| Verificações | 255 |
+| Aprovadas | 255 |
 | Reprovadas | 0 |
 | Resultado | **APROVADO** |
 
@@ -17,7 +17,7 @@
 | # | Resultado | Verificação |
 |---:|:---:|---|
 | 1 | ✅ | banco legado reconhecido como banco do sistema |
-| 2 | ✅ | legado v1: registra a 1 e aplica as migrações 2 a 11 |
+| 2 | ✅ | legado v1: registra a 1 e aplica as migrações 2 a 12 |
 | 3 | ✅ | backup automático antes de migrar banco existente |
 | 4 | ✅ | __migracoes com todas as versões |
 | 5 | ✅ | coluna login renomeada para username |
@@ -38,7 +38,7 @@
 | 20 | ✅ | arquivo que não é SQLite é recusado |
 | 21 | ✅ | arquivo inexistente é recusado |
 | 22 | ✅ | banco lembrado que sumiu não é usado (cai no loja.db ao lado do exe ou pergunta) |
-| 23 | ✅ | banco novo: 11 migrações aplicadas |
+| 23 | ✅ | banco novo: 12 migrações aplicadas |
 | 24 | ✅ | criar banco não sobrescreve arquivo existente |
 | 25 | ✅ | login admin/admin (username sem diferenciar maiúsculas) |
 | 26 | ✅ | senha errada rejeitada |
@@ -241,13 +241,33 @@
 | 223 | ✅ | tela TEF simulador |
 | 224 | ✅ | tela Painel gerencial: botão de ajuda visível [visível=True, índice=0, direita=1358/1370] |
 | 225 | ✅ | tela Painel gerencial |
-| 226 | ✅ | o ? de cada tela abre só a explicação daquela tela |
-| 227 | ✅ | toda tela aberta tem tópico de ajuda |
-| 228 | ✅ | todos os diálogos têm ajuda (9 diálogos) |
-| 229 | ✅ | todas as telas do sistema foram abertas no teste |
-| 230 | ✅ | manual do usuário gerado em docs/12-manual-do-usuario.md a partir da ajuda |
-| 231 | ✅ | dados de demonstração gerados em 2,8 s — Dados de demonstração gerados: 35 clientes, 8 fornecedores, 50 produtos, 48 compras, 77 ordens de produção, 1399 vendas, 7 orçamentos/pedidos, 3 fretes, 8 boletos, 5 notas fiscais. |
-| 232 | ✅ | dados de demonstração íntegros (chaves estrangeiras) |
-| 233 | ✅ | insumos não ficam negativos na demonstração |
-| 234 | ✅ | CPF/CNPJ da demonstração são válidos |
-| 235 | ✅ | modelo de dados (dicionário + diagrama ER) gerado em docs/06-modelo-de-dados.md |
+| 226 | ✅ | tela Log de atividades: botão de ajuda visível [visível=True, índice=0, direita=1358/1370] |
+| 227 | ✅ | tela Log de atividades |
+| 228 | ✅ | o ? de cada tela abre só a explicação daquela tela |
+| 229 | ✅ | a tela abre embutida no espaço à direita do menu (sem janela solta) |
+| 230 | ✅ | PDV com fundo branco |
+| 231 | ✅ | segunda tela vira outra aba; a anterior fica guardada atrás |
+| 232 | ✅ | abrir uma tela já aberta só a traz para frente (sem duplicar) |
+| 233 | ✅ | fechar a tela remove a aba e volta para a anterior |
+| 234 | ✅ | sem telas abertas, volta à tela inicial |
+| 235 | ✅ | log gravado em banco separado (loja_log.db) |
+| 236 | ✅ | venda gera log de dados (tabelas gravadas e id do registro) |
+| 237 | ✅ | migrações registram um resumo (sem cada comando) |
+| 238 | ✅ | abrir e fechar telas gera log |
+| 239 | ✅ | gravação desfeita (rollback) não aparece no log |
+| 240 | ✅ | gravação confirmada aparece no log |
+| 241 | ✅ | clique em botão gera log |
+| 242 | ✅ | classificação dos comandos SQL para o log |
+| 243 | ✅ | senhas não aparecem no log |
+| 244 | ✅ | registros antigos são apagados conforme o parâmetro de retenção |
+| 245 | ✅ | consulta do log com filtros |
+| 246 | ✅ | atalho .lnk do Windows criado (usado na primeira execução) |
+| 247 | ✅ | toda tela aberta tem tópico de ajuda |
+| 248 | ✅ | todos os diálogos têm ajuda (9 diálogos) |
+| 249 | ✅ | todas as telas do sistema foram abertas no teste |
+| 250 | ✅ | manual do usuário gerado em docs/12-manual-do-usuario.md a partir da ajuda |
+| 251 | ✅ | dados de demonstração gerados em 2,7 s — Dados de demonstração gerados: 35 clientes, 8 fornecedores, 50 produtos, 48 compras, 77 ordens de produção, 1399 vendas, 7 orçamentos/pedidos, 3 fretes, 8 boletos, 5 notas fiscais. |
+| 252 | ✅ | dados de demonstração íntegros (chaves estrangeiras) |
+| 253 | ✅ | insumos não ficam negativos na demonstração |
+| 254 | ✅ | CPF/CNPJ da demonstração são válidos |
+| 255 | ✅ | modelo de dados (dicionário + diagrama ER) gerado em docs/06-modelo-de-dados.md |

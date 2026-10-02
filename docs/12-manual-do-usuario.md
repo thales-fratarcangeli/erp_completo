@@ -13,8 +13,14 @@ Cada função existe em um único lugar do menu — não há duas telas fazendo 
 ### Buscar tela (Ctrl+K)
 Não sabe onde fica? Clique em "Buscar tela" ou tecle Ctrl+K e digite uma palavra (ex.: boleto, frete, senha, estoque). O sistema mostra todas as telas relacionadas, procurando nos nomes, nas palavras-chave e no texto de ajuda.
 
+### Telas abertas (abas)
+As telas abrem no espaço à direita do menu, sem janelas soltas. Cada tela aberta vira uma aba no topo: clique na aba para voltar a ela e no × para fechá-la.
+- Ctrl+Tab passa para a próxima aba; Ctrl+W fecha a aba atual.
+- Abrir de novo uma tela que já está aberta apenas a traz para a frente.
+Janelas de edição (ex.: editar um pedido) e confirmações continuam aparecendo por cima, porque precisam de uma resposta antes de continuar.
+
 ### Tela inicial
-Fica limpa de propósito: use o menu ou a busca. Indicadores e gráficos ficam em Gestão > Painel gerencial (F5).
+Aparece quando nenhuma tela está aberta. Fica limpa de propósito: use o menu ou a busca. Indicadores e gráficos ficam em Gestão > Painel gerencial (F5).
 
 ### Atalhos
 - F2 PDV · F4 Pedidos de compra · F5 Painel gerencial · F6 Estoque · F7 Financeiro · F8 Relatórios
@@ -312,8 +318,26 @@ Tela única de configuração. Administradores veem todas as abas; os demais usu
 - TEF: liga o TEF no PDV e escolhe o provedor (SIMULADOR para testes).
 - Impressoras: impressora de cupom (Windows ou térmica ESC/POS com corte e gaveta), colunas, acentuação e impressora de documentos A4. Use "Imprimir página de teste".
 - E-mail: chave do Resend e remetente para a recuperação de senha. Use "Enviar e-mail de teste".
-- Banco de dados: arquivo em uso, migrações aplicadas, backups, troca de banco e geração de dados de demonstração (apenas para testes).
+- Banco de dados: arquivo em uso, migrações aplicadas, backups, dias de log mantidos, troca de banco e geração de dados de demonstração (apenas para testes).
 - Minha conta: seu e-mail de recuperação e troca de senha.
+
+## Log de atividades
+
+Registro de tudo o que é feito no sistema: quem fez, o quê, em qual tela, quando e em qual computador. Somente administradores.
+
+### Categorias
+- ACESSO: entradas, saídas, senhas erradas e recuperação de senha.
+- TELA: telas abertas e fechadas.
+- AÇÃO: botões clicados, confirmações (sim/não), mensagens exibidas, exportações e operações do PDV.
+- DADOS: gravações no banco (o que foi incluído, alterado ou excluído e em quais tabelas). Só aparecem gravações confirmadas.
+- ERRO: avisos de erro mostrados ao usuário e erros inesperados (com detalhes técnicos para o suporte).
+- SISTEMA: início do sistema, migrações, backups, atalho criado, dados de demonstração.
+
+### Como usar
+Escolha o período e, se quiser, a categoria, o usuário ou um texto (ex.: nome de tela, "vendas", "Excluiu"). Clique numa linha para ver o detalhe completo embaixo. "Exportar CSV" gera planilha do que está na tela.
+
+### Onde fica
+O log é gravado em um banco separado, ao lado do banco da loja (ex.: loja.db → loja_log.db). Senhas e valores digitados não são gravados no log. Registros mais antigos que o configurado em Configurações > Banco de dados (padrão 365 dias) são apagados ao abrir o sistema.
 
 ## Clientes e fornecedores
 

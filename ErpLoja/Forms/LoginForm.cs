@@ -26,6 +26,7 @@ public static class LoginForm
             var dt = Db.Query("SELECT id, nome, senha, admin, ativo, email FROM usuarios WHERE username = @p0", usuario.Text.Trim());
             if (dt.Rows.Count == 0 || !Senhas.Verificar(senha.Text, Ui.Txt(dt.Rows[0]["senha"])))
             {
+                Log.Registrar(Log.Acesso, "Acesso recusado", $"username informado: {usuario.Text.Trim()}", tela: "Acesso");
                 Ui.Erro("Username ou senha inválidos.");
                 senha.SelectAll();
                 senha.Focus();
@@ -34,12 +35,14 @@ public static class LoginForm
             var r = dt.Rows[0];
             if ((long)r["ativo"] != 1)
             {
+                Log.Registrar(Log.Acesso, "Acesso recusado (usuário inativo)", usuario.Text.Trim(), tela: "Acesso");
                 Ui.Erro("Este usuário está inativo.");
                 return false;
             }
             Sessao.UsuarioId = (long)r["id"];
             Sessao.Nome = Ui.Txt(r["nome"]);
             Sessao.Admin = (long)r["admin"] == 1;
+            Log.Registrar(Log.Acesso, "Entrou no sistema", Sessao.Admin ? "administrador" : "usuário comum", tela: "Acesso");
             if (!Email.Valido(Ui.Txt(r["email"])))
                 Ui.Info("Seu usuário não tem e-mail cadastrado. Cadastre em Configurações > Minha conta para poder recuperar a senha se esquecer.");
             return true;

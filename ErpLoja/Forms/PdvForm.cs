@@ -20,28 +20,31 @@ public class ItemLinha
 /// <summary>PDV: frente de caixa em tela cheia, operado pelo teclado.</summary>
 public class PdvForm : Form
 {
-    static readonly Color Fundo = ColorTranslator.FromHtml("#0b1220");
-    static readonly Color Barra = ColorTranslator.FromHtml("#111827");
-    static readonly Color Cartao = ColorTranslator.FromHtml("#1e293b");
-    static readonly Color Linha = ColorTranslator.FromHtml("#334155");
-    static readonly Color Suave = ColorTranslator.FromHtml("#94a3b8");
-    static readonly Color Verde = ColorTranslator.FromHtml("#4ade80");
-    static readonly Color Ambar = ColorTranslator.FromHtml("#fbbf24");
+    // tema claro: fundo branco, cartões cinza-claro, texto escuro; verde e âmbar indicam a situação do caixa
+    static readonly Color Fundo = Color.White;
+    static readonly Color Barra = ColorTranslator.FromHtml("#f8fafc");
+    static readonly Color Cartao = ColorTranslator.FromHtml("#f1f5f9");
+    static readonly Color Linha = ColorTranslator.FromHtml("#e2e8f0");
+    static readonly Color Suave = ColorTranslator.FromHtml("#64748b");
+    static readonly Color Texto = ColorTranslator.FromHtml("#0f172a");
+    static readonly Color Verde = ColorTranslator.FromHtml("#15803d");
+    static readonly Color VerdeClaro = ColorTranslator.FromHtml("#dcfce7");
+    static readonly Color Ambar = ColorTranslator.FromHtml("#fde68a");
 
     readonly BindingList<ItemLinha> itens = new();
     readonly DataGridView grid = new();
     readonly TextBox codigo = new();
-    readonly Label lblUltimo = Rotulo("Caixa livre", 18F, Color.White, negrito: true);
+    readonly Label lblUltimo = Rotulo("Caixa livre", 18F, Texto, negrito: true);
     readonly Label lblUltimoCalculo = Rotulo("Leia o código de barras ou digite o código do produto", 12F, Suave);
-    readonly Label lblCliente = Rotulo("Consumidor final", 12F, Color.White);
+    readonly Label lblCliente = Rotulo("Consumidor final", 12F, Texto);
     readonly Label lblItens = Rotulo("0 itens", 12F, Suave);
-    readonly Label lblSubtotal = Rotulo("R$ 0,00", 12F, Color.White);
-    readonly Label lblDesconto = Rotulo("R$ 0,00", 12F, Color.White);
+    readonly Label lblSubtotal = Rotulo("R$ 0,00", 12F, Texto);
+    readonly Label lblDesconto = Rotulo("R$ 0,00", 12F, Texto);
     readonly Label lblTotal = Rotulo("R$ 0,00", 40F, Verde, negrito: true);
     readonly Label lblSituacao = new() { AutoSize = false, Size = new Size(210, 30), TextAlign = ContentAlignment.MiddleCenter, Font = new Font("Segoe UI Semibold", 10F), ForeColor = Color.Black };
-    readonly Label lblRelogio = Rotulo("", 14F, Color.White, negrito: true);
-    readonly Label lblQuantidade = Rotulo("Qtd. 1", 11F, Ambar, negrito: true);
-    readonly Panel painelTotal = new() { Dock = DockStyle.Bottom, Height = 132, BackColor = Cartao, Padding = new Padding(22, 14, 22, 10) };
+    readonly Label lblRelogio = Rotulo("", 14F, Texto, negrito: true);
+    readonly Label lblQuantidade = Rotulo("Qtd. 1", 11F, ColorTranslator.FromHtml("#b45309"), negrito: true);
+    readonly Panel painelTotal = new() { Dock = DockStyle.Bottom, Height = 132, BackColor = VerdeClaro, Padding = new Padding(22, 14, 22, 10) };
     readonly System.Windows.Forms.Timer relogio = new() { Interval = 1000 };
 
     decimal proximaQuantidade = 1, desconto;
@@ -61,14 +64,14 @@ public class PdvForm : Form
         Ui.Estilizar(this, "PDV - frente de caixa", 1280, 760, nameof(PdvForm));
         WindowState = FormWindowState.Maximized;
         BackColor = Fundo;
-        ForeColor = Color.White;
+        ForeColor = Texto;
 
         // ---------------- topo
         var topo = new Panel { Dock = DockStyle.Top, Height = 66, BackColor = Barra, Padding = new Padding(16, 0, 64, 0) };
         var marca = new FlowLayoutPanel { Dock = DockStyle.Left, AutoSize = true, WrapContents = false, BackColor = Barra, Padding = new Padding(0, 12, 0, 0) };
         marca.Controls.Add(new PictureBox { Image = Ui.Logo(40), Size = new Size(40, 40), Margin = new Padding(0, 0, 12, 0) });
         var identificacao = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false, BackColor = Barra, Margin = new Padding(0) };
-        identificacao.Controls.Add(Rotulo(Db.Config("nome_loja"), 13F, Color.White, negrito: true));
+        identificacao.Controls.Add(Rotulo(Db.Config("nome_loja"), 13F, Texto, negrito: true));
         identificacao.Controls.Add(Rotulo($"CAIXA {Parametros.CaixaNumero}   ·   Operador: {Sessao.Nome}", 9.5F, Suave));
         marca.Controls.Add(identificacao);
         var direita = new FlowLayoutPanel { Dock = DockStyle.Right, AutoSize = true, WrapContents = false, BackColor = Barra, Padding = new Padding(0, 17, 0, 0) };
@@ -93,8 +96,8 @@ public class PdvForm : Form
         var entrada = new Panel { Dock = DockStyle.Top, Height = 98, BackColor = Cartao, Padding = new Padding(18, 10, 18, 10) };
         codigo.Dock = DockStyle.Bottom;
         codigo.Font = new Font("Segoe UI", 20F);
-        codigo.BackColor = Fundo;
-        codigo.ForeColor = Color.White;
+        codigo.BackColor = Color.White;
+        codigo.ForeColor = Texto;
         codigo.BorderStyle = BorderStyle.FixedSingle;
         codigo.PlaceholderText = "código, código de barras ou 3*código";
         var cabecalhoEntrada = new Panel { Dock = DockStyle.Top, Height = 26, BackColor = Cartao };
@@ -192,11 +195,12 @@ public class PdvForm : Form
             Size = new Size(tecla.Length > 2 ? 46 : 38, 30),
             TextAlign = ContentAlignment.MiddleCenter,
             Font = new Font("Segoe UI Semibold", 10F),
-            BackColor = destaque ? ColorTranslator.FromHtml("#16a34a") : Linha,
-            ForeColor = Color.White,
+            BackColor = destaque ? ColorTranslator.FromHtml("#16a34a") : Color.White,
+            ForeColor = destaque ? Color.White : Texto,
+            BorderStyle = destaque ? BorderStyle.None : BorderStyle.FixedSingle,
             Margin = new Padding(0, 0, 6, 0),
         };
-        var legenda = Rotulo(texto, 10.5F, Color.FromArgb(203, 213, 225));
+        var legenda = Rotulo(texto, 10.5F, Texto);
         legenda.Margin = new Padding(0, 5, 0, 0);
         p.Controls.Add(tampa);
         p.Controls.Add(legenda);
@@ -228,10 +232,10 @@ public class PdvForm : Form
         grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Cartao;
         grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 10F);
         grid.DefaultCellStyle.BackColor = Fundo;
-        grid.DefaultCellStyle.ForeColor = Color.White;
+        grid.DefaultCellStyle.ForeColor = Texto;
         grid.DefaultCellStyle.Font = new Font("Segoe UI", 13F);
-        grid.DefaultCellStyle.SelectionBackColor = ColorTranslator.FromHtml("#1d4ed8");
-        grid.DefaultCellStyle.SelectionForeColor = Color.White;
+        grid.DefaultCellStyle.SelectionBackColor = ColorTranslator.FromHtml("#dbeafe");
+        grid.DefaultCellStyle.SelectionForeColor = Texto;
         grid.AlternatingRowsDefaultCellStyle.BackColor = Barra;
         grid.RowTemplate.Height = 40;
         grid.DataSource = itens;
@@ -285,9 +289,10 @@ public class PdvForm : Form
         lblQuantidade.Text = $"Qtd. {proximaQuantidade:0.###}";
         var emVenda = itens.Count > 0;
         lblSituacao.Text = emVenda ? "VENDA EM ANDAMENTO" : "CAIXA LIVRE";
-        lblSituacao.BackColor = emVenda ? Ambar : Verde;
+        lblSituacao.BackColor = emVenda ? Ambar : VerdeClaro;
+        lblSituacao.ForeColor = emVenda ? ColorTranslator.FromHtml("#78350f") : Verde;
         if (antes != lblTotal.Text && emVenda)
-            Animacao.Pulsar(painelTotal, ColorTranslator.FromHtml("#14532d"), 450);
+            Animacao.Pulsar(painelTotal, ColorTranslator.FromHtml("#bbf7d0"), 450);
     }
 
     static readonly Regex Multiplicador = new(@"^\s*(\d+(?:[.,]\d+)?)\s*[*xX]\s*(.+)$");
@@ -343,6 +348,7 @@ public class PdvForm : Form
             };
             itens.Add(item);
         }
+        Log.Registrar(Log.Acao, "PDV: item lançado", $"{quantidade:0.###} {item.Unidade} {item.Codigo} {item.Produto}");
         lblUltimo.Text = item.Produto;
         lblUltimoCalculo.Text = $"{quantidade:0.###} {item.Unidade} × {Ui.Moeda(item.Unitario)} = {Ui.Moeda(Math.Round(quantidade * item.Unitario, 2))}";
         var linha = itens.IndexOf(item);
@@ -372,6 +378,7 @@ public class PdvForm : Form
             return;
         clienteId = Ui.Id(combo);
         lblCliente.Text = clienteId is null ? "Consumidor final" : combo.Text;
+        Log.Registrar(Log.Acao, "PDV: cliente definido", lblCliente.Text);
         codigo.Focus();
     }
 
@@ -384,6 +391,7 @@ public class PdvForm : Form
         if (d.ShowDialog(this) != DialogResult.OK)
             return;
         proximaQuantidade = q.Value;
+        Log.Registrar(Log.Acao, "PDV: quantidade do próximo item", $"{q.Value:0.###}");
         AtualizarTotais();
         codigo.Focus();
     }
@@ -401,6 +409,7 @@ public class PdvForm : Form
         if (d.ShowDialog(this) != DialogResult.OK)
             return;
         desconto = valor.Value;
+        Log.Registrar(Log.Acao, "PDV: desconto aplicado", Ui.Moeda(desconto));
         AtualizarTotais();
         codigo.Focus();
     }
@@ -418,6 +427,7 @@ public class PdvForm : Form
         if (!Ui.Confirmar($"Remover \"{i.Produto}\" da venda?"))
             return;
         itens.Remove(i);
+        Log.Registrar(Log.Acao, "PDV: item removido", $"{i.Codigo} {i.Produto}");
         for (int k = 0; k < itens.Count; k++)
             itens[k].Seq = k + 1;
         itens.ResetBindings();
@@ -430,6 +440,8 @@ public class PdvForm : Form
     {
         if (perguntar && itens.Count > 0 && !Ui.Confirmar("Cancelar a venda em andamento?"))
             return;
+        if (perguntar && itens.Count > 0)
+            Log.Registrar(Log.Acao, "PDV: venda em andamento cancelada", $"{itens.Count} item(ns), {Ui.Moeda(Total)}");
         itens.Clear();
         desconto = 0;
         proximaQuantidade = 1;

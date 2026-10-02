@@ -48,12 +48,17 @@ public static class Animacao
     /// <summary>Janela surge suavemente.</summary>
     public static void Surgir(Form f)
     {
+        // só janelas soltas: telas embutidas na janela principal (TopLevel = false) não usam transparência
         f.Load += (_, _) =>
         {
-            if (Ativa)
+            if (Ativa && f.TopLevel)
                 f.Opacity = 0;
         };
-        f.Shown += (_, _) => Executar(f, 180, p => f.Opacity = p);
+        f.Shown += (_, _) =>
+        {
+            if (f.TopLevel)
+                Executar(f, 180, p => f.Opacity = p);
+        };
     }
 
     /// <summary>Cor de fundo transita ao passar o mouse.</summary>

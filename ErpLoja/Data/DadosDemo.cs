@@ -102,6 +102,15 @@ public static class DadosDemo
 
     public static string Gerar()
     {
+        string resumo;
+        using (Log.Suspender())
+            resumo = GerarDados();
+        Log.Registrar(Log.Sistema, "Dados de demonstração gerados", resumo);
+        return resumo;
+    }
+
+    static string GerarDados()
+    {
         var r = new Random(2026);
         var hoje = DateTime.Today;
         var inicio = hoje.AddDays(-180);

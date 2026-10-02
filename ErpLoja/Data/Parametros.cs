@@ -89,6 +89,7 @@ public static class Parametros
 
         new("backup_ao_iniciar", "SIM", Banco, "Backup automático diário ao abrir o sistema", ["SIM", "NAO"]),
         new("backups_manter", "15", Banco, "Quantidade de backups diários mantidos"),
+        new("log_dias_manter", "365", Banco, "Dias de log de atividades mantidos", Dica: "O log fica em um banco separado (ex.: loja_log.db). 0 = manter tudo."),
     ];
 
     /// <summary>Chaves cujo valor precisa ser um número inteiro não negativo.</summary>
@@ -139,6 +140,7 @@ public static class Parametros
     public static string ResendRemetente => Db.Config("resend_remetente");
     public static bool BackupAoIniciar => Txt("backup_ao_iniciar") != Nao;
     public static int BackupsManter => Math.Max(1, Int("backups_manter"));
+    public static int LogDiasManter => Math.Max(0, Int("log_dias_manter"));
 
     /// <summary>Regra de venda sem estoque. Devolve true se pode seguir.</summary>
     public static bool PodeVenderSemEstoque(string mensagem) => AplicarRegraEstoque(VendaSemEstoque, mensagem, "A venda sem estoque");

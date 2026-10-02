@@ -113,6 +113,7 @@ public static class RecuperacaoSenha
               <p style="color:#52514e">O código vale por {MinutosValidade} minutos. Se você não pediu, ignore este e-mail.</p>
             </div>
             """);
+        Log.Registrar(Log.Acesso, "Código de recuperação de senha enviado", $"usuário {Ui.Txt(u["username"])} → {Email.Mascarar(email)}", tela: "Recuperar senha");
         return Email.Mascarar(email);
     }
 
@@ -143,6 +144,7 @@ public static class RecuperacaoSenha
             var tentativas = (long)pedido["tentativas"] + 1;
             s.Exec("UPDATE recuperacao_senha SET tentativas = @p0, usado = @p1 WHERE id = @p2", tentativas, tentativas >= MaxTentativas, pedidoId);
             s.Commit();
+            Log.Registrar(Log.Acesso, "Código de recuperação incorreto", $"usuário {Ui.Txt(u["username"])}, tentativa {tentativas}", tela: "Recuperar senha");
             throw new InvalidOperationException(tentativas >= MaxTentativas
                 ? "Código incorreto. Limite de tentativas atingido: solicite um novo código."
                 : $"Código incorreto. Restam {MaxTentativas - tentativas} tentativa(s).");
@@ -150,5 +152,6 @@ public static class RecuperacaoSenha
         s.Exec("UPDATE usuarios SET senha = @p0 WHERE id = @p1", Senhas.Hash(novaSenha), id);
         s.Exec("UPDATE recuperacao_senha SET usado = 1 WHERE id = @p0", pedidoId);
         s.Commit();
+        Log.Registrar(Log.Acesso, "Senha redefinida por código", $"usuário {Ui.Txt(u["username"])}", tela: "Recuperar senha");
     }
 }

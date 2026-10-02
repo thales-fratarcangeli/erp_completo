@@ -144,6 +144,8 @@ public static class Ui
         b.FlatAppearance.MouseOverBackColor = b.BackColor;
         b.FlatAppearance.MouseDownBackColor = primario ? Animacao.Escurecer(Primaria, 0.3) : Color.FromArgb(229, 231, 235);
         Animacao.Hover(b, b.BackColor, primario ? Animacao.Escurecer(Primaria, 0.18) : Color.FromArgb(239, 246, 255));
+        // log de atividades: registrado antes da ação, com a tela onde o botão está
+        b.Click += (_, _) => Log.Registrar(Log.Acao, "Botão " + b.Text.Trim(), tela: b.FindForm()?.Text);
         if (clique != null)
             b.Click += clique;
         return b;
@@ -249,15 +251,37 @@ public static class Ui
     public static string Txt(object? v) => v is null or DBNull ? "" : Convert.ToString(v) ?? "";
     public static string Moeda(decimal v) => v.ToString("C2");
 
-    public static void Erro(string m) => MessageBox.Show(m, "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-    public static void Info(string m) => MessageBox.Show(m, "ERP Loja", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    public static void Erro(string m)
+    {
+        Log.Registrar(Log.Erro, "Aviso exibido ao usuário", m);
+        MessageBox.Show(m, "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+    }
+
+    public static void Info(string m)
+    {
+        Log.Registrar(Log.Acao, "Mensagem exibida", m);
+        MessageBox.Show(m, "ERP Loja", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
 
     /// <summary>Confirmação rápida e não bloqueante (aviso no canto da tela).</summary>
-    public static void Feito(string m) => Toast.Mostrar(m, TipoAviso.Sucesso);
+    public static void Feito(string m)
+    {
+        Log.Registrar(Log.Acao, "Concluído", m);
+        Toast.Mostrar(m, TipoAviso.Sucesso);
+    }
 
-    public static void Aviso(string m) => Toast.Mostrar(m, TipoAviso.Atencao);
-    public static bool Confirmar(string m) =>
-        MessageBox.Show(m, "Confirmação", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes;
+    public static void Aviso(string m)
+    {
+        Log.Registrar(Log.Acao, "Aviso", m);
+        Toast.Mostrar(m, TipoAviso.Atencao);
+    }
+
+    public static bool Confirmar(string m)
+    {
+        var sim = MessageBox.Show(m, "Confirmação", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes;
+        Log.Registrar(Log.Acao, sim ? "Confirmou" : "Não confirmou", m);
+        return sim;
+    }
 
     public static void ExportarCsv(DataGridView g, string nome)
     {
@@ -281,6 +305,7 @@ public static class Ui
             sb.AppendLine(string.Join(";", colunas.Select(c =>
                 Csv(r[c.ColumnName] is double d ? d.ToString("0.00") : Txt(r[c.ColumnName])))));
         File.WriteAllText(dlg.FileName, sb.ToString(), new UTF8Encoding(true));
+        Log.Registrar(Log.Acao, "Exportou CSV", $"{dt.DefaultView.Count} linha(s) → {dlg.FileName}");
         Info("Arquivo exportado:\n" + dlg.FileName);
     }
 

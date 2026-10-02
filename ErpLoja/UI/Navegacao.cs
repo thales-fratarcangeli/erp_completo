@@ -81,6 +81,8 @@ public static class Navegacao
             Cadastros.Usuarios, SoAdmin: true),
         new("ConfiguracoesForm", "Configurações", "Sistema", "parâmetros configuração empresa impressora tef ciot e-mail backup banco senha",
             () => new ConfiguracoesForm()),
+        new("LogForm", "Log de atividades", "Sistema", "log auditoria histórico atividades quem fez rastreio registro usuário ações",
+            () => new LogForm(), SoAdmin: true),
         new("LocalizarTelaForm", "Localizar tela", "Sistema", "buscar procurar tela menu achar pesquisar",
             Acao: dono => LocalizarTelaForm.Executar(dono), Atalho: Keys.Control | Keys.K),
     ];

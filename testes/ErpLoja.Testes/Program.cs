@@ -504,6 +504,7 @@ var t = new Thread(() =>
             ("Fretes", () => new FretesForm()), ("Cobrança", () => new CobrancaForm()), ("Boleto", () => Privado<BoletoForm>(boletoId)),
             ("Localizar tela", () => Privado<LocalizarTelaForm>()), ("Pagamento", () => new PagamentoForm(123.45m, true)),
             ("TEF simulador", () => new TefSimuladorForm(50m, ModalidadeTef.Credito, 3)), ("Painel gerencial", () => new DashboardForm()),
+            ("Log de atividades", () => new LogForm()),
         };
         foreach (var (nome, criar) in telas)
         {
@@ -542,6 +543,82 @@ var t = new Thread(() =>
             Ok(!Todos(ajudaPdv).OfType<ListBox>().Any() && textoAjuda.Contains("PDV") && !textoAjuda.Contains("Cobrança bancária") && ajudaPdv.Text.Contains("PDV"),
                 "o ? de cada tela abre só a explicação daquela tela");
         }
+
+        // ---------- janela principal: telas embutidas no palco, com abas
+        using (var principal = new MainForm())
+        {
+            principal.WindowState = FormWindowState.Normal;
+            principal.Size = new Size(1400, 860);
+            principal.Show();
+            Application.DoEvents();
+            Tela TelaDe(string chave) => Navegacao.Telas().First(x => x.Chave == chave);
+            Navegacao.Abridor!(TelaDe("PdvForm"));
+            Application.DoEvents();
+            var pdvEmbutido = principal.TelaAtiva;
+            Ok(pdvEmbutido is PdvForm && !pdvEmbutido.TopLevel && pdvEmbutido.FormBorderStyle == FormBorderStyle.None
+               && pdvEmbutido.Parent != null && pdvEmbutido.Parent.FindForm() == principal && Application.OpenForms.Cast<Form>().All(f => f == principal || f.TopLevel == false || f is Toast),
+                "a tela abre embutida no espaço à direita do menu (sem janela solta)");
+            Ok(pdvEmbutido!.BackColor == Color.White, "PDV com fundo branco");
+            Navegacao.Abridor!(TelaDe("EstoqueForm"));
+            Application.DoEvents();
+            Ok(principal.TelasAbertas.Count == 2 && principal.TelaAtiva is EstoqueForm && !pdvEmbutido.Visible,
+                "segunda tela vira outra aba; a anterior fica guardada atrás");
+            Navegacao.Abridor!(TelaDe("PdvForm"));
+            Application.DoEvents();
+            Ok(principal.TelaAtiva == pdvEmbutido && principal.TelasAbertas.Count == 2, "abrir uma tela já aberta só a traz para frente (sem duplicar)");
+            pdvEmbutido.Close();
+            Application.DoEvents();
+            Ok(pdvEmbutido.IsDisposed && principal.TelasAbertas.Count == 1 && principal.TelaAtiva is EstoqueForm,
+                "fechar a tela remove a aba e volta para a anterior");
+            principal.TelaAtiva!.Close();
+            Application.DoEvents();
+            Ok(principal.TelaAtiva is null && principal.TelasAbertas.Count == 0, "sem telas abertas, volta à tela inicial");
+        }
+
+        // ---------- log de atividades (banco separado)
+        long ContarLog(string where, params object[] args)
+        {
+            using var c = Log.Abrir();
+            using var cmd = c.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(*) FROM log WHERE " + where;
+            for (int i = 0; i < args.Length; i++)
+                cmd.Parameters.AddWithValue("@p" + i, args[i]);
+            return (long)cmd.ExecuteScalar()!;
+        }
+        Ok(File.Exists(Log.Caminho) && Path.GetFileName(Log.Caminho) == Path.GetFileNameWithoutExtension(Db.Caminho) + "_log.db",
+            $"log gravado em banco separado ({Path.GetFileName(Log.Caminho)})");
+        Ok(ContarLog("categoria = @p0 AND tabela = 'vendas' AND acao = 'Incluiu vendas' AND detalhe LIKE '%venda_itens%' AND registro_id IS NOT NULL", Log.Dados) > 0,
+            "venda gera log de dados (tabelas gravadas e id do registro)");
+        Ok(ContarLog("categoria = @p0 AND acao LIKE 'Migração %'", Log.Sistema) > 0 && ContarLog("tabela = '__migracoes'") == 0,
+            "migrações registram um resumo (sem cada comando)");
+        Ok(ContarLog("categoria = @p0 AND acao LIKE 'Abriu %'", Log.Tela) > 0 && ContarLog("categoria = @p0 AND acao LIKE 'Fechou %'", Log.Tela) > 0,
+            "abrir e fechar telas gera log");
+        var antesRollback = ContarLog("acao = 'Incluiu categorias'");
+        using (var s = new DbSessao(transacao: true))
+            s.Exec("INSERT INTO categorias(nome) VALUES('Desfeita no teste')"); // sem Commit = rollback
+        Ok(ContarLog("acao = 'Incluiu categorias'") == antesRollback, "gravação desfeita (rollback) não aparece no log");
+        Db.Exec("INSERT INTO categorias(nome) VALUES('Gravada no teste')");
+        Ok(ContarLog("acao = 'Incluiu categorias'") == antesRollback + 1, "gravação confirmada aparece no log");
+        Ui.Botao("Botão de teste").PerformClick();
+        Ok(ContarLog("categoria = @p0 AND acao = 'Botão Botão de teste'", Log.Acao) == 1, "clique em botão gera log");
+        Ok(Log.ClassificarSql("INSERT OR IGNORE INTO configuracoes(chave) VALUES(1)") == ("INSERT", "configuracoes")
+           && Log.ClassificarSql("  update produtos set x = 1") == ("UPDATE", "produtos") && Log.ClassificarSql("DELETE FROM contas WHERE 1") == ("DELETE", "contas")
+           && Log.ClassificarSql("SELECT * FROM vendas") is null && Log.ClassificarSql("CREATE TABLE x(a)") is null, "classificação dos comandos SQL para o log");
+        Ok(ContarLog("detalhe LIKE '%nova123%' OR acao LIKE '%nova123%'") == 0, "senhas não aparecem no log");
+        using (var c = Log.Abrir())
+        using (var cmd = c.CreateCommand())
+        {
+            cmd.CommandText = "INSERT INTO log(data_hora, categoria, acao) VALUES('2000-01-01 00:00:00', 'SISTEMA', 'antigo')";
+            cmd.ExecuteNonQuery();
+        }
+        Ok(Log.Limpar(30) >= 1 && ContarLog("acao = 'antigo'") == 0, "registros antigos são apagados conforme o parâmetro de retenção");
+        Ok(Log.Consultar(DateTime.Today.AddDays(-1), DateTime.Today, Log.Dados, null, "vendas").Rows.Count > 0, "consulta do log com filtros");
+
+        // ---------- atalho na área de trabalho
+        var lnk = Path.Combine(Temp, "ERP Loja.lnk");
+        AtalhoAreaDeTrabalho.Criar(lnk, Path.Combine(Environment.SystemDirectory, "notepad.exe"));
+        var cabecalhoLnk = File.Exists(lnk) ? File.ReadAllBytes(lnk).Take(4).ToArray() : [];
+        Ok(cabecalhoLnk.SequenceEqual(new byte[] { 0x4C, 0, 0, 0 }), "atalho .lnk do Windows criado (usado na primeira execução)");
 
         // ---------- ajuda em todas as telas
         var semAjuda = Ajuda.ChavesUsadas.Where(k => !Ajuda.Existe(k)).ToList();

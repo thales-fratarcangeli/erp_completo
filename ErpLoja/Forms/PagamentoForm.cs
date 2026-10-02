@@ -3,9 +3,11 @@ namespace ErpLoja.Forms;
 /// <summary>Pagamento do PDV: forma (teclas 1 a 5), valor recebido e troco, parcelas e vencimento.</summary>
 public class PagamentoForm : Form
 {
-    static readonly Color Fundo = ColorTranslator.FromHtml("#0b1220");
-    static readonly Color Cartao = ColorTranslator.FromHtml("#1e293b");
+    static readonly Color Fundo = Color.White;
+    static readonly Color Cartao = ColorTranslator.FromHtml("#f1f5f9");
     static readonly Color Selecionado = ColorTranslator.FromHtml("#2563eb");
+    static readonly Color Texto = ColorTranslator.FromHtml("#0f172a");
+    static readonly Color Suave = ColorTranslator.FromHtml("#64748b");
 
     static readonly (string Forma, ModalidadeTef? Tef)[] Formas =
     [
@@ -18,8 +20,8 @@ public class PagamentoForm : Form
     readonly List<Button> botoes = new();
     readonly NumericUpDown recebido = Ui.Numero(2, 9_999_999), parcelas = Ui.Numero(0, 60, 1);
     readonly DateTimePicker vencimento = Ui.Data();
-    readonly Label troco = new() { AutoSize = true, Font = new Font("Segoe UI Semibold", 20F), ForeColor = ColorTranslator.FromHtml("#fbbf24") };
-    readonly Label aviso = new() { AutoSize = true, ForeColor = ColorTranslator.FromHtml("#94a3b8"), MaximumSize = new Size(560, 0) };
+    readonly Label troco = new() { AutoSize = true, Font = new Font("Segoe UI Semibold", 20F), ForeColor = ColorTranslator.FromHtml("#b45309") };
+    readonly Label aviso = new() { AutoSize = true, ForeColor = Suave, MaximumSize = new Size(560, 0) };
     readonly FlowLayoutPanel detalhes = new() { AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false, BackColor = Fundo };
     int escolha;
 
@@ -37,7 +39,7 @@ public class PagamentoForm : Form
         Icon = Ui.Icone;
         Font = Ui.Fonte;
         BackColor = Fundo;
-        ForeColor = Color.White;
+        ForeColor = Texto;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = MinimizeBox = false;
         ShowInTaskbar = false;
@@ -50,8 +52,8 @@ public class PagamentoForm : Form
         Animacao.Surgir(this);
 
         var raiz = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false, BackColor = Fundo };
-        raiz.Controls.Add(new Label { Text = "TOTAL A PAGAR", AutoSize = true, ForeColor = ColorTranslator.FromHtml("#94a3b8"), Font = new Font("Segoe UI Semibold", 10F) });
-        raiz.Controls.Add(new Label { Text = Ui.Moeda(total), AutoSize = true, ForeColor = ColorTranslator.FromHtml("#4ade80"), Font = new Font("Segoe UI Semibold", 34F), Margin = new Padding(0, 0, 0, 12) });
+        raiz.Controls.Add(new Label { Text = "TOTAL A PAGAR", AutoSize = true, ForeColor = Suave, Font = new Font("Segoe UI Semibold", 10F) });
+        raiz.Controls.Add(new Label { Text = Ui.Moeda(total), AutoSize = true, ForeColor = ColorTranslator.FromHtml("#15803d"), Font = new Font("Segoe UI Semibold", 34F), Margin = new Padding(0, 0, 0, 12) });
 
         var grade = new FlowLayoutPanel { AutoSize = true, WrapContents = false, BackColor = Fundo, Margin = new Padding(0, 0, 0, 14) };
         for (int i = 0; i < Formas.Length; i++)
@@ -63,7 +65,7 @@ public class PagamentoForm : Form
                 Size = new Size(118, 74),
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Cartao,
-                ForeColor = Color.White,
+                ForeColor = Texto,
                 Font = new Font("Segoe UI Semibold", 10F),
                 Margin = new Padding(0, 0, 8, 0),
                 Cursor = Cursors.Hand,
@@ -122,6 +124,7 @@ public class PagamentoForm : Form
         {
             var alvo = k == i ? Selecionado : Cartao;
             var botao = botoes[k];
+            botao.ForeColor = k == i ? Color.White : Texto;
             var de = botao.BackColor;
             Animacao.Executar(botao, 140, p => botao.BackColor = Animacao.Misturar(de, alvo, p));
         }
@@ -129,7 +132,7 @@ public class PagamentoForm : Form
         void Campo(string rotulo, Control c)
         {
             var linha = new FlowLayoutPanel { AutoSize = true, BackColor = Fundo, Margin = new Padding(0, 4, 0, 4) };
-            linha.Controls.Add(new Label { Text = rotulo, AutoSize = true, ForeColor = Color.White, Font = new Font("Segoe UI", 12F), Margin = new Padding(0, 6, 10, 0), MinimumSize = new Size(170, 0) });
+            linha.Controls.Add(new Label { Text = rotulo, AutoSize = true, ForeColor = Texto, Font = new Font("Segoe UI", 12F), Margin = new Padding(0, 6, 10, 0), MinimumSize = new Size(170, 0) });
             linha.Controls.Add(c);
             detalhes.Controls.Add(linha);
         }

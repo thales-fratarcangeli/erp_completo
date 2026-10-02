@@ -27,9 +27,9 @@ public class TefSimuladorForm : Form
     readonly decimal valor;
     readonly ModalidadeTef modalidade;
     readonly int parcelas;
-    readonly Label mensagem = new() { Dock = DockStyle.Top, Height = 60, TextAlign = ContentAlignment.MiddleCenter, Font = new Font("Segoe UI Semibold", 14F), ForeColor = Color.White };
-    readonly Label contagem = new() { Dock = DockStyle.Top, Height = 26, TextAlign = ContentAlignment.MiddleCenter, ForeColor = ColorTranslator.FromHtml("#94a3b8") };
-    readonly PictureBox desenho = new() { Dock = DockStyle.Fill, BackColor = ColorTranslator.FromHtml("#0b1220") };
+    readonly Label mensagem = new() { Dock = DockStyle.Top, Height = 60, TextAlign = ContentAlignment.MiddleCenter, Font = new Font("Segoe UI Semibold", 14F), ForeColor = ColorTranslator.FromHtml("#0f172a") };
+    readonly Label contagem = new() { Dock = DockStyle.Top, Height = 26, TextAlign = ContentAlignment.MiddleCenter, ForeColor = ColorTranslator.FromHtml("#64748b") };
+    readonly PictureBox desenho = new() { Dock = DockStyle.Fill, BackColor = Color.White };
     readonly System.Windows.Forms.Timer tempo = new() { Interval = 40 };
     readonly bool[,] qr = new bool[25, 25];
     double fase;
@@ -44,7 +44,7 @@ public class TefSimuladorForm : Form
         Text = "TEF (simulador)";
         Icon = Ui.Icone;
         Font = Ui.Fonte;
-        BackColor = ColorTranslator.FromHtml("#0b1220");
+        BackColor = Color.White;
         Size = new Size(460, 470);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = MinimizeBox = false;
@@ -59,11 +59,11 @@ public class TefSimuladorForm : Form
             Height = 54,
             TextAlign = ContentAlignment.MiddleCenter,
             Font = new Font("Segoe UI Semibold", 22F),
-            ForeColor = ColorTranslator.FromHtml("#4ade80"),
+            ForeColor = ColorTranslator.FromHtml("#15803d"),
             Text = Ui.Moeda(valor) + (modalidade == ModalidadeTef.Credito && parcelas > 1 ? $"  em {parcelas}x" : ""),
         };
         mensagem.Text = modalidade == ModalidadeTef.Pix ? "Leia o QR Code com o app do banco" : "Insira, aproxime ou passe o cartão";
-        var botoes = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 56, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(10), BackColor = ColorTranslator.FromHtml("#111827") };
+        var botoes = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 56, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(10), BackColor = ColorTranslator.FromHtml("#f8fafc") };
         botoes.Controls.AddRange([
             Ui.Botao("Cancelar (Esc)", (_, _) => Finalizar(false, "Operação cancelada pelo operador.")),
             Ui.Botao("Negar", (_, _) => Finalizar(false, "Transação negada pelo emissor (simulação).")),
@@ -109,6 +109,8 @@ public class TefSimuladorForm : Form
             var tamanho = 25 * modulo;
             float x0 = centro.X - tamanho / 2f, y0 = centro.Y - tamanho / 2f;
             g.FillRectangle(Brushes.White, x0 - 10, y0 - 10, tamanho + 20, tamanho + 20);
+            using (var moldura = new Pen(ColorTranslator.FromHtml("#e2e8f0"), 2))
+                g.DrawRectangle(moldura, x0 - 10, y0 - 10, tamanho + 20, tamanho + 20);
             for (int i = 0; i < 25; i++)
                 for (int j = 0; j < 25; j++)
                 {
@@ -124,7 +126,7 @@ public class TefSimuladorForm : Form
         {
             var r = (float)(40 + ((fase * 25 + k * 30) % 90));
             var alfa = (int)Math.Max(0, 160 - r * 1.6);
-            using var onda = new Pen(Color.FromArgb(alfa, 74, 222, 128), 3);
+            using var onda = new Pen(Color.FromArgb(alfa, 22, 163, 74), 3);
             g.DrawArc(onda, centro.X - r + 40, centro.Y - r, r * 2, r * 2, -50, 100);
         }
         var desloc = (float)(Math.Sin(fase) * 8);

@@ -82,6 +82,7 @@ public sealed class DbSessao : IDisposable
 {
     readonly SqliteConnection conexao;
     SqliteTransaction? tx;
+    readonly RegistroDeGravacoes gravacoes = new();
 
     /// <param name="semChavesEstrangeiras">Desliga a verificação de FKs nesta conexão (só migrações que reconstroem tabelas).</param>
     public DbSessao(bool transacao = false, bool criar = false, bool semChavesEstrangeiras = false)
@@ -110,7 +111,20 @@ public sealed class DbSessao : IDisposable
     public int Exec(string sql, params object?[] args)
     {
         using var cmd = Comando(sql, args);
-        return cmd.ExecuteNonQuery();
+        var linhas = cmd.ExecuteNonQuery();
+        if (!Log.Suspenso && Log.ClassificarSql(sql) is { } escrita && linhas > 0)
+        {
+            long? id = null;
+            if (escrita.Operacao == "INSERT")
+            {
+                using var ultimo = Comando("SELECT last_insert_rowid()", []);
+                id = ultimo.ExecuteScalar() as long?;
+            }
+            gravacoes.Anotar(escrita.Operacao, escrita.Tabela, linhas, id);
+            if (tx is null)
+                gravacoes.Registrar(); // sem transação: a gravação já está confirmada
+        }
+        return linhas;
     }
 
     public object? Scalar(string sql, params object?[] args)
@@ -198,11 +212,13 @@ public sealed class DbSessao : IDisposable
         tx?.Commit();
         tx?.Dispose();
         tx = null;
+        gravacoes.Registrar();
     }
 
     public void Dispose()
     {
-        tx?.Dispose(); // sem Commit = rollback
+        tx?.Dispose(); // sem Commit = rollback (as gravações anotadas não aconteceram)
+        gravacoes.Descartar();
         conexao.Dispose();
     }
 }

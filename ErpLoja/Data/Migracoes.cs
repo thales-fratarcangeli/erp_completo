@@ -29,6 +29,7 @@ public static class Migracoes
         new(9, "Cobrança bancária: contas, boletos, remessas e retornos CNAB 240", M009),
         new(10, "Reforma tributária: IBS, CBS e Imposto Seletivo", M010),
         new(11, "Parâmetros de impressoras, TEF, transporte, produção e reforma tributária", M011),
+        new(12, "Log de atividades: parâmetro de retenção", M012),
     ];
 
     public static int VersaoDoSistema => Todas.Max(m => m.Versao);
@@ -49,6 +50,7 @@ public static class Migracoes
     /// </summary>
     public static (List<Migracao> Aplicadas, string? Backup) Atualizar(bool criar = false)
     {
+        using var semLog = Log.Suspender(); // registra um resumo por migração, não cada comando
         int atual;
         using (var s = new DbSessao(transacao: true, criar: criar))
         {
@@ -90,9 +92,11 @@ public static class Migracoes
                 s.Exec("INSERT INTO __migracoes(versao, nome, aplicada_em) VALUES(@p0, @p1, @p2)", m.Versao, m.Nome, DateTime.Now);
                 s.Exec($"PRAGMA user_version = {m.Versao}");
                 s.Commit();
+                Log.Registrar(Log.Sistema, $"Migração {m.Versao} aplicada", m.Nome + (backup is null ? "" : $" (backup: {Path.GetFileName(backup)})"));
             }
             catch (Exception ex)
             {
+                Log.Registrar(Log.Erro, $"Falha na migração {m.Versao}", ex.Message);
                 throw new InvalidOperationException(
                     $"Falha ao aplicar a migração {m.Versao} ({m.Nome}): {ex.Message}" +
                     (backup is null ? "" : $"\nO banco não foi alterado por esta migração. Backup anterior: {backup}"), ex);
@@ -781,4 +785,7 @@ public static class Migracoes
         foreach (var p in Parametros.Definicoes)
             Config(s, p.Chave, p.Padrao);
     }
+
+    // ------------------------------------------------------------------ 012
+    static void M012(DbSessao s) => Config(s, "log_dias_manter", "365");
 }
