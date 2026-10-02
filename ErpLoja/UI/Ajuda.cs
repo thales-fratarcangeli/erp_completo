@@ -151,6 +151,7 @@ public static class Ajuda
             - Receber mercadoria: dá entrada no estoque, recalcula o custo médio e lança o contas a pagar; o pedido fica RECEBIDO.
             - Cancelar: só para pedido em aberto. Se a compra gerada for cancelada depois, o pedido volta para ABERTO.
             - Nº da nota fiscal já usado em outra compra do mesmo fornecedor: o sistema pede confirmação (evita entrada em dobro).
+            - Item com custo unitário zero: o sistema pergunta se é bonificação antes de receber (custo zero derruba o custo médio).
 
             ## Custo
             Frete e descontos do pedido são distribuídos proporcionalmente no custo dos itens. As contas a pagar somam exatamente o total do pedido.
