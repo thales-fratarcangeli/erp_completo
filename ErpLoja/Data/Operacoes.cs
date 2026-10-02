@@ -147,6 +147,7 @@ public static class Operacoes
 
     public static void CancelarVenda(long id)
     {
+        Permissoes.ExigirAdmin("cancelar vendas");
         using var s = new DbSessao(transacao: true);
         if (Convert.ToString(s.Scalar("SELECT status FROM vendas WHERE id = @p0", id)) != "FINALIZADA")
             throw new InvalidOperationException("Esta venda já está cancelada.");
@@ -204,6 +205,7 @@ public static class Operacoes
 
     public static void CancelarCompra(long id)
     {
+        Permissoes.ExigirAdmin("cancelar compras");
         using var s = new DbSessao(transacao: true);
         if (Convert.ToString(s.Scalar("SELECT status FROM compras WHERE id = @p0", id)) != "FINALIZADA")
             throw new InvalidOperationException("Esta compra já está cancelada.");

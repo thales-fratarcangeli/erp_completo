@@ -59,7 +59,10 @@ Bancos de versões anteriores são atualizados automaticamente (migrations), com
 Informe seu username e senha.
 
 ### Primeiro acesso
-Com a senha padrão (admin) — ou com a senha igual ao username — o sistema pede uma senha nova antes de entrar (mínimo de 4 caracteres, digitada duas vezes). Sem trocar, não entra: qualquer pessoa poderia adivinhar a senha padrão.
+Com a senha padrão (admin) — ou com a senha igual ao username — o sistema pede uma senha nova antes de entrar (mínimo de 8 caracteres, digitada duas vezes).
+
+### Bloqueio por senhas erradas
+Depois de 5 senhas erradas seguidas, o usuário fica bloqueado por 15 minutos (proteção contra quem tenta adivinhar a senha). Para liberar antes, um administrador define uma senha nova em Cadastros > Usuários, ou a própria pessoa usa "Esqueci minha senha". Sem trocar, não entra: qualquer pessoa poderia adivinhar a senha padrão.
 
 ### Esqueci minha senha
 Clique em "Esqueci minha senha": o sistema envia um código de 6 dígitos para o e-mail cadastrado no seu usuário. O código vale 15 minutos e aceita até 5 tentativas.
@@ -431,7 +434,7 @@ Agrupam os produtos nos relatórios e no painel. Categoria em uso por produtos n
 ## Cadastro de usuários
 
 - Username: usado para entrar (3 a 30 caracteres: letras, números, ponto, hífen ou sublinhado).
-- Senha: obrigatória no cadastro (mínimo 4 caracteres); ao editar, deixe em branco para manter a atual (é assim que o administrador redefine a senha de alguém).
+- Senha: obrigatória no cadastro (mínimo 8 caracteres, sem senhas óbvias como 12345678); ao editar, deixe em branco para manter a atual (é assim que o administrador redefine a senha de alguém).
 - E-mail: obrigatório e único; é para onde vai o código de recuperação de senha.
 - Administrador: acessa usuários e configurações, cancela vendas/compras e concede descontos acima do limite.
 - Ativo: usuário inativo não consegue entrar. Você não pode excluir nem inativar o próprio usuário, nem tirar o seu acesso de administrador (peça a outro administrador).

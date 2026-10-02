@@ -48,7 +48,7 @@ public class ConfiguracoesForm : Form
         var definicoes = Parametros.Definicoes.Where(d => d.Grupo == grupo).ToList();
         foreach (var d in definicoes)
         {
-            var valor = Db.Config(d.Chave);
+            var valor = d.Secreto ? Parametros.Segredo(d.Chave) : Db.Config(d.Chave);
             Control controle;
             if ((d.Opcoes ?? d.OpcoesDinamicas?.Invoke()) is { } opcoes)
             {
@@ -58,7 +58,7 @@ public class ConfiguracoesForm : Form
                 controle = cb;
             }
             else
-                controle = new TextBox { Text = valor, UseSystemPasswordChar = d.Secreto };
+                controle = Validacao.Aplicar(new TextBox { Text = valor, UseSystemPasswordChar = d.Secreto }, Parametros.FormatoDe(d), d.Rotulo);
             painel.Adicionar(d.Rotulo + ":", controle, 320);
             if (d.Dica != null)
                 painel.Nota(d.Dica, 600);
@@ -96,7 +96,7 @@ public class ConfiguracoesForm : Form
             }
         }
         foreach (var d in definicoes)
-            Db.SalvarConfig(d.Chave, campos[d.Chave].Text.Trim());
+            Parametros.Salvar(d, campos[d.Chave] is TextBox tb ? Parametros.FormatoDe(d).Normalizar(tb.Text) : campos[d.Chave].Text.Trim());
         ParametrosSalvos?.Invoke();
         if (!silencioso)
             Ui.Feito("Configurações salvas.");
@@ -216,7 +216,7 @@ public class ConfiguracoesForm : Form
         var aba = NovaAba("Minha conta", out var painel);
         var u = Db.Query("SELECT username, email FROM usuarios WHERE id = @p0", Sessao.UsuarioId).Rows[0];
         painel.Adicionar("Username:", new TextBox { Text = Ui.Txt(u["username"]), ReadOnly = true });
-        var email = painel.Adicionar("E-mail:", new TextBox { Text = Ui.Txt(u["email"]) });
+        var email = painel.Adicionar("E-mail:", Validacao.Aplicar(new TextBox { Text = Ui.Txt(u["email"]) }, Formatos.Email, "E-mail"));
         painel.Nota("Usado para receber o código de recuperação de senha.");
         painel.Linha(Ui.Botao("Salvar e-mail", (_, _) =>
         {
@@ -237,14 +237,14 @@ public class ConfiguracoesForm : Form
         }, primario: true));
 
         painel.Nota("", 10);
-        var atual = painel.Adicionar("Senha atual:", new TextBox { UseSystemPasswordChar = true });
-        var nova = painel.Adicionar("Nova senha:", new TextBox { UseSystemPasswordChar = true });
-        var confirma = painel.Adicionar("Confirmar nova senha:", new TextBox { UseSystemPasswordChar = true });
+        var atual = painel.Adicionar("Senha atual:", Validacao.Aplicar(new TextBox { UseSystemPasswordChar = true }, Formatos.Senha, "Senha atual"));
+        var nova = painel.Adicionar("Nova senha:", Validacao.Aplicar(new TextBox { UseSystemPasswordChar = true }, Formatos.Senha, "Nova senha"));
+        var confirma = painel.Adicionar("Confirmar nova senha:", Validacao.Aplicar(new TextBox { UseSystemPasswordChar = true }, Formatos.Senha, "Confirmar nova senha"));
         painel.Linha(Ui.Botao("Alterar senha", (_, _) =>
         {
             var hash = Ui.Txt(Db.Scalar("SELECT senha FROM usuarios WHERE id = @p0", Sessao.UsuarioId));
             if (!Senhas.Verificar(atual.Text, hash)) { Ui.Erro("Senha atual incorreta."); return; }
-            if (nova.Text.Length < 4) { Ui.Erro("A nova senha deve ter pelo menos 4 caracteres."); return; }
+            if (RegrasCadastro.Senha(nova.Text) is string erroSenha) { Ui.Erro(erroSenha); return; }
             if (nova.Text != confirma.Text) { Ui.Erro("A confirmação não confere."); return; }
             Db.Exec("UPDATE usuarios SET senha = @p0 WHERE id = @p1", Senhas.Hash(nova.Text), Sessao.UsuarioId);
             Log.Registrar(Log.Acesso, "Senha alterada pelo próprio usuário", "Configurações > Minha conta");

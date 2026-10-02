@@ -9,6 +9,10 @@ public class RecuperarSenhaForm : Form
 
     public RecuperarSenhaForm(string usernameInicial)
     {
+        Validacao.Aplicar(usuario, Formatos.UsernameOuEmail, "Username ou e-mail");
+        Validacao.Aplicar(codigo, Formatos.CodigoVerificacao, "Código");
+        Validacao.Aplicar(nova, Formatos.Senha, "Nova senha");
+        Validacao.Aplicar(confirma, Formatos.Senha, "Confirmação");
         Text = "Recuperar senha";
         Font = Ui.Fonte;
         Icon = Ui.Icone;

@@ -72,7 +72,8 @@ public class Dialogo : Form
 
         var ok = Ui.Botao(textoOk, (_, _) =>
         {
-            if (Validar?.Invoke() ?? true)
+            // formato de cada campo do diálogo primeiro (o primeiro inválido recebe o cursor), depois a regra do diálogo
+            if (Validacao.ConferirTodos(this) && (Validar?.Invoke() ?? true))
                 DialogResult = DialogResult.OK;
         }, primario: true);
         var cancelar = Ui.Botao("Cancelar");

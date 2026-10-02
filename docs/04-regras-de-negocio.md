@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Documento** | Catálogo de regras de negócio (RN) |
-| **Sistema** | ERP Loja 1.2.0 (banco v12) |
+| **Sistema** | ERP Loja 1.3.0 (banco v13) |
 | **Status** | Vigente |
 | **Rastreabilidade** | Requisitos em [02](02-especificacao-de-requisitos.md); casos de uso em [03](03-casos-de-uso.md); verificação em [08](08-relatorio-de-testes.md) |
 
@@ -208,7 +208,7 @@ Base legal: EC 132/2023 e LC 214/2025 (IBS, CBS e Imposto Seletivo). Valores pad
 | RN-USU-05 | Banco novo vem com admin/admin; a tela de entrada avisa enquanto a senha não for trocada. |
 | RN-USU-06 | **Recuperação de senha**: código de 6 dígitos (gerador criptográfico) enviado ao e-mail pelo Resend; válido 15 min; 5 tentativas; um novo pedido invalida os anteriores; uso único; nova senha com ≥ 4 caracteres; e-mail exibido mascarado. |
 | RN-USU-07 | O sistema nunca fica sem administrador ativo: o último não pode ser inativado, rebaixado nem excluído. Ninguém inativa o próprio usuário nem tira o próprio acesso de administrador. Senha do cadastro com ≥ 4 caracteres. |
-| RN-USU-08 | Entrar com a senha padrão (`admin`) ou com senha igual ao username exige escolher uma senha nova (mín. 4 caracteres, diferente da padrão e do username, digitada duas vezes) antes de usar o sistema; sem trocar, não entra. |
+| RN-USU-08 | Entrar com a senha padrão (`admin`) ou com senha igual ao username exige escolher uma senha nova (regras de RN-SEG-04, diferente da padrão e do username, digitada duas vezes) antes de usar o sistema; sem trocar, não entra. |
 
 ## Banco de dados (RN-BD)
 
@@ -249,6 +249,19 @@ Base legal: EC 132/2023 e LC 214/2025 (IBS, CBS e Imposto Seletivo). Valores pad
 |---|---|
 | RN-INS-01 | Na **primeira execução** em cada usuário do Windows, o sistema cria o atalho "ERP Loja" na área de trabalho apontando para o executável. Se o usuário apagar o atalho, ele não é recriado (um marcador em `%LOCALAPPDATA%\ErpLoja` registra que já foi criado). |
 | RN-INS-02 | Perfis isolados (variável `ERPLOJA_PREFERENCIAS`, usada em testes) não criam atalho. Falha ao criar o atalho é registrada no log e não impede o uso. |
+
+## Validação de entrada e segurança (RN-SEG)
+
+| ID | Regra |
+|---|---|
+| RN-SEG-01 | Todo campo de texto tem um formato (`Data/Formatos.cs`): caracteres fora do formato são bloqueados na digitação; texto colado com caracteres inválidos fica marcado e não é gravado (não é alterado em silêncio); ao sair do campo, o valor válido recebe a máscara; ao gravar, todos os campos são conferidos. Campos numéricos não aceitam letras. |
+| RN-SEG-02 | Operações de administrador (cancelar venda, compra ou nota; alterar configurações; gravar usuários e contas bancárias; gerar dados de demonstração) são conferidas na tela e na camada de dados; tentativas negadas vão ao log (ACESSO). |
+| RN-SEG-03 | 5 senhas erradas seguidas bloqueiam o usuário por 15 minutos; definir senha nova desbloqueia. O administrador é avisado, ao entrar, das tentativas recusadas desde a sua última entrada. |
+| RN-SEG-04 | Senhas novas: mínimo 8 caracteres, até 128, sem senhas óbvias (lista interna) nem só 1–2 caracteres repetidos. Hash PBKDF2-SHA256 com 600.000 iterações; hashes antigos são refeitos no login. |
+| RN-SEG-05 | Credenciais de integração (parâmetros secretos) são gravadas cifradas com a DPAPI do Windows (escopo da máquina). Credencial cifrada em outro computador fica em branco e precisa ser informada de novo. |
+| RN-SEG-06 | O log de atividades guarda, em cada registro, o hash do anterior (SHA-256); "Verificar integridade" aponta o primeiro registro alterado ou removido fora do sistema. |
+| RN-SEG-07 | O banco é verificado (`PRAGMA quick_check`) a cada abertura; problema de integridade é avisado e registrado. |
+| RN-SEG-08 | Exportação CSV: texto iniciado por = + - @ recebe apóstrofo (não vira fórmula). Importação de XML: sem DTD/entidades externas e com limite de tamanho. |
 
 ## Parâmetros (RN-PAR)
 

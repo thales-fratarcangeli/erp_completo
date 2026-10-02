@@ -12,6 +12,7 @@ public class LogForm : Form
 
     public LogForm()
     {
+        Validacao.Aplicar(texto, Formatos.Busca, "Contém");
         Ui.Estilizar(this, "Log de atividades", 1250, 720, nameof(LogForm));
 
         categoria.Items.Add("(todas)");
@@ -25,6 +26,16 @@ public class LogForm : Form
             Ui.Rotulo("Contém:"), texto,
             Ui.Botao("Atualizar", (_, _) => Carregar(), primario: true),
             Ui.Botao("Exportar CSV", (_, _) => Ui.ExportarCsv(grid, "log")),
+            Ui.Botao("Verificar integridade", (_, _) =>
+            {
+                if (Log.VerificarIntegridade() is string problema)
+                {
+                    Log.Registrar(Log.Erro, "Log de atividades com integridade comprometida", problema);
+                    Ui.Erro("ATENÇÃO: " + problema + "\nGuarde uma cópia do arquivo de log e dos backups e verifique quem teve acesso ao computador.");
+                }
+                else
+                    Ui.Feito("Log íntegro: nenhum registro foi alterado ou apagado fora do sistema.");
+            }),
             resumo,
         ]);
 

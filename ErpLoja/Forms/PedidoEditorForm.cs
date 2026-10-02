@@ -26,6 +26,8 @@ public class PedidoEditorForm : Form
     /// <summary>Abre um documento ainda não gravado, já preenchido (ex.: pedido de compra gerado pela sugestão do estoque).</summary>
     public PedidoEditorForm(Pedido pedido)
     {
+        Validacao.Aplicar(codigo, Formatos.CodigoOuNome, "Produto");
+        Validacao.Aplicar(observacoes, Formatos.Texto(500), "Observações");
         p = pedido;
         editavel = p.Status == "ABERTO";
         var compra = p.Tipo == Pedidos.Compra;
@@ -184,6 +186,8 @@ public class PedidoEditorForm : Form
 
     bool Salvar(bool fechar)
     {
+        if (!Validacao.ConferirTodos(this))
+            return false;
         grid.EndEdit();
         if (p.Itens.Count == 0)
         {

@@ -202,6 +202,10 @@ Use **Imprimir página de teste** em *Configurações > Impressoras*.
 | 38 | Cenários automatizados travariam em qualquer caixa de mensagem ou janela modal | `MessageBox.Show` e `ShowDialog` esperam clique | `Ui.Interceptar` nos testes; `Usuario.QuandoAbrir` responde janelas esperadas e cancela (e reprova) as inesperadas após 2 s |
 | 39 | Primeira rodada de agentes de teste parou no meio | Limite de uso da sessão (HTTP 429) e cópias de trabalho criadas a partir do último commit **enviado** ao GitHub, sem os commits locais (infraestrutura de cenários ausente) | Commit + push antes de lançar; agentes relançados com prazo e commits frequentes |
 | 40 | Cenário de exemplo não compilava (`Ui` desconhecido) | Projeto de testes não tem os `global using` do sistema | `using ErpLoja.UI;` no arquivo do cenário (documentado nas instruções aos agentes) |
+| 41 | Filtro de colagem transformava "1O2" (letra O) em "12", um CST válido e errado | Caracteres inválidos colados eram removidos em silêncio | O texto colado não é alterado: fica marcado como inválido e a gravação é recusada (rejeitar em vez de "consertar") |
+| 42 | Erro "Index was outside the bounds of the array" no painel gerencial ao mover o mouse logo após trocar o período | Áreas de passagem do mouse eram do desenho anterior, com mais categorias | Áreas descartadas quando os dados mudam e verificação de limite |
+| 43 | Teste de recuperação de senha interrompia a bateria inteira | A senha de teste ("nova123") deixou de ser aceita pela nova política (mínimo 8) e a exceção não era tratada naquele trecho | Senhas de teste fortes; a infraestrutura de cenários passou a anexar a exceção ao relatório |
+| 44 | Barras invertidas e quebras de linha corrompidas ao gerar código por script | Escapes interpretados duas vezes (terminal + Python) | Edições com escapes feitas por arquivo de script ou pelo editor, nunca por bloco "heredoc" |
 
 ### Revisão de redundância (versão 1.0.0)
 

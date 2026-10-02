@@ -128,7 +128,9 @@ public static class Impressao
         b.AddRange([0x1B, 0x74, (byte)(codepage == 860 ? 3 : 2)]);    // ESC t  página de código
         if (abrirGaveta)
             b.AddRange([0x1B, 0x70, 0x00, 0x19, 0xFA]);              // ESC p  pulso na gaveta
-        foreach (var bruta in texto.Replace("\r\n", "\n").Split('\n'))
+        // caracteres de controle vindos dos dados (ex.: nome de produto) virariam comandos ESC/POS: removidos (OWASP A05)
+        texto = new string(texto.Replace("\r\n", "\n").Where(c => c == '\n' || !char.IsControl(c)).ToArray());
+        foreach (var bruta in texto.Split('\n'))
         {
             var l = Interpretar(bruta);
             b.AddRange([0x1B, 0x61, (byte)(l.Centro ? 1 : 0)]);      // ESC a  alinhamento

@@ -122,8 +122,8 @@ public static class RecuperacaoSenha
     /// <summary>Confere o código e grava a nova senha. Lança exceção com a mensagem para o usuário se falhar.</summary>
     public static void Redefinir(string usernameOuEmail, string codigo, string novaSenha)
     {
-        if (novaSenha.Length < 4)
-            throw new InvalidOperationException("A nova senha deve ter pelo menos 4 caracteres.");
+        if (RegrasCadastro.Senha(novaSenha) is string erroSenha)
+            throw new InvalidOperationException(erroSenha);
         var u = Usuario(usernameOuEmail) ?? throw new InvalidOperationException("Usuário não encontrado ou inativo.");
         var id = (long)u["id"];
 

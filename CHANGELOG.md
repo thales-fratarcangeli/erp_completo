@@ -2,6 +2,23 @@
 
 O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e a numeração segue [SemVer](https://semver.org/lang/pt-BR/).
 
+## 1.3.0 — 2026-10-02
+
+### Segurança (revisão OWASP Top 10:2025 — [15](docs/15-seguranca-owasp.md))
+- Autorização também na camada de dados (cancelamentos, configurações, usuários, contas bancárias, dados de demonstração).
+- Bloqueio de 15 minutos após 5 senhas erradas; senha mínima de 8 caracteres sem senhas óbvias; alerta ao administrador sobre tentativas recusadas.
+- Senhas com PBKDF2 de 600.000 iterações (hashes antigos refeitos no login); credenciais de integração cifradas com DPAPI (migração 13).
+- Log de atividades com cadeia de hashes e verificação de integridade; verificação do banco a cada abertura.
+- Proteções contra CSV injection, XXE, curingas em buscas e comandos de impressora embutidos nos dados.
+- Erros inesperados sem detalhes internos na tela (detalhe no log); dependências travadas por arquivo de lock.
+
+### Validação de entrada
+- Todos os campos verificam o tipo de dado: CNPJ com formação de CNPJ, campos numéricos sem texto, e-mail, CEP, telefone, placa, NCM, CFOP, CST, código de barras, datas, URLs https e outros — na digitação, ao colar, ao sair do campo e ao gravar, com máscara automática e explicação do erro.
+- A bateria reprova qualquer campo de texto sem formato.
+
+### Corrigido
+- Gráfico do painel gerencial podia gerar erro ao passar o mouse logo depois de trocar o período.
+
 ## 1.2.0 — 2026-10-02
 
 ### Adicionado

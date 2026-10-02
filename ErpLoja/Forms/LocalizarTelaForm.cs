@@ -35,6 +35,7 @@ public class LocalizarTelaForm : Form
 
     LocalizarTelaForm()
     {
+        Validacao.Aplicar(busca, Formatos.Busca, "Busca");
         Text = "Localizar tela";
         Icon = Ui.Icone;
         Font = Ui.Fonte;

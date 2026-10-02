@@ -143,7 +143,7 @@ public class FretesForm : Form
     async Task CancelarCiot()
     {
         using var d = new Dialogo("Cancelar CIOT", "FretesForm", "Cancelar CIOT");
-        var motivo = d.Adicionar("Motivo:", new TextBox());
+        var motivo = d.Adicionar("Motivo:", Validacao.Caixa(Formatos.Texto(200), "Motivo"));
         d.Validar = () => motivo.Text.Trim().Length >= 15 || Falhar("Descreva o motivo (pelo menos 15 caracteres).");
         if (Selecionado() is null || d.ShowDialog(this) != DialogResult.OK)
             return;
@@ -215,9 +215,9 @@ public static class FreteEditor
         Ui.Preencher(motorista, Db.Query("SELECT id, nome FROM pessoas WHERE (eh_motorista = 1 AND ativo = 1) OR id = @p0 ORDER BY nome", Atual("motorista_id")), "(nenhum)");
         var veiculo = d.Adicionar("Veículo:", Ui.Combo());
         Ui.Preencher(veiculo, Db.Query("SELECT id, placa || ' - ' || tipo || COALESCE(' ' || marca_modelo, '') FROM veiculos WHERE ativo = 1 OR id = @p0 ORDER BY placa", Atual("veiculo_id")), "(nenhum)");
-        var origem = d.Adicionar("Origem (cidade):", new TextBox { Text = f is null ? Db.Config("cidade") : Ui.Txt(f["origem_cidade"]) });
+        var origem = d.Adicionar("Origem (cidade):", Validacao.Aplicar(new TextBox { Text = f is null ? Db.Config("cidade") : Ui.Txt(f["origem_cidade"]) }, Formatos.Cidade, "Origem"));
         var origemUf = d.Adicionar("Origem (UF):", Ui.Combo(80));
-        var destino = d.Adicionar("Destino (cidade):", new TextBox { Text = f is null ? "" : Ui.Txt(f["destino_cidade"]) });
+        var destino = d.Adicionar("Destino (cidade):", Validacao.Aplicar(new TextBox { Text = f is null ? "" : Ui.Txt(f["destino_cidade"]) }, Formatos.Cidade, "Destino"));
         var destinoUf = d.Adicionar("Destino (UF):", Ui.Combo(80));
         foreach (var uf in new[] { origemUf, destinoUf })
             uf.Items.AddRange(["", .. Fiscal.Ufs]);
@@ -225,13 +225,13 @@ public static class FreteEditor
         destinoUf.SelectedItem = f is null ? "" : Ui.Txt(f["destino_uf"]);
         var distancia = d.Adicionar("Distância (km):", Ui.Numero(0, 99_999));
         var peso = d.Adicionar("Peso (kg):", Ui.Numero(2, 999_999));
-        var mercadoria = d.Adicionar("Mercadoria:", new TextBox { Text = f is null ? "" : Ui.Txt(f["mercadoria"]) });
+        var mercadoria = d.Adicionar("Mercadoria:", Validacao.Aplicar(new TextBox { Text = f is null ? "" : Ui.Txt(f["mercadoria"]) }, Formatos.Texto(100), "Mercadoria"));
         var valor = d.Adicionar("Valor do frete (R$):", Ui.Numero());
         var pedagio = d.Adicionar("Pedágio (R$):", Ui.Numero());
         var adiantamento = d.Adicionar("Adiantamento (R$):", Ui.Numero());
         var outras = d.Adicionar("Outras despesas (R$):", Ui.Numero());
         var previsao = d.Adicionar("Previsão de entrega:", Ui.Data(f?["previsao_entrega"] is string pe ? Db.LerData(pe) : DateTime.Today.AddDays(3)));
-        var obs = d.Adicionar("Observações:", new TextBox { Text = f is null ? "" : Ui.Txt(f["observacoes"]) });
+        var obs = d.Adicionar("Observações:", Validacao.Aplicar(new TextBox { Text = f is null ? "" : Ui.Txt(f["observacoes"]) }, Formatos.Texto(500), "Observações"));
         var ciotInfo = new Label { AutoSize = true, Font = Ui.FonteNegrito, Margin = new Padding(3, 8, 3, 3) };
         d.Adicionar("CIOT:", ciotInfo);
         if (f != null)

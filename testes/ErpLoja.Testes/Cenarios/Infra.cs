@@ -204,7 +204,11 @@ public sealed class Usuario : IDisposable
             else if (DateTime.Now - desde > TimeSpan.FromSeconds(2))
             {
                 tratados.Add(f);
-                Ok(false, $"janela inesperada '{f.Text}' ({f.GetType().Name}) foi cancelada automaticamente");
+                // janela de erro do .NET: inclui a exceção no relatório para facilitar o diagnóstico
+                var detalhe = f is ThreadExceptionDialog
+                    ? ": " + string.Join(" | ", Todos(f).Where(c => c is TextBox or Label).Select(c => c.Text).Where(s => s.Length > 0)).Replace("\r\n", " ")
+                    : "";
+                Ok(false, $"janela inesperada '{f.Text}' ({f.GetType().Name}) foi cancelada automaticamente{(detalhe.Length > 900 ? detalhe[..900] : detalhe)}");
                 f.DialogResult = DialogResult.Cancel;
             }
         }

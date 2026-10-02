@@ -275,11 +275,11 @@ public class LogisticaCadastraVeiculo : ICenario
         placa.Text = "QWE1R23";
         renavam.Text = "12AB";
         u.Clicar(f, "Salvar");
-        u.Ok(u.Viu("ERRO", "RENAVAM inválido"), "RENAVAM com letras é recusado");
+        u.Ok(u.Viu("ERRO", "RENAVAM\" aceita só números"), "RENAVAM com letras é recusado");
         renavam.Text = "12345678901";
         rntrc.Text = "123";
         u.Clicar(f, "Salvar");
-        u.Ok(u.Viu("ERRO", "RNTRC inválido"), "RNTRC curto é recusado");
+        u.Ok(u.Viu("ERRO", "RNTRC do veículo\" deve ter 8 ou 9 dígitos"), "RNTRC curto é recusado");
         rntrc.Text = "12345678";
         u.Clicar(f, "Salvar");
         u.Ok(ProducaoLogisticaUtil.Dec("SELECT COUNT(*) FROM veiculos") == antes + 1

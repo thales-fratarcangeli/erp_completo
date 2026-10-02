@@ -89,6 +89,7 @@ public static class Ui
         g.DefaultCellStyle.SelectionForeColor = Color.Black;
         g.DataBindingComplete += (_, _) => FormatarColunas(g);
         g.DataError += (_, e) => { e.ThrowException = false; Erro("Valor inválido."); };
+        Validacao.Grade(g); // células numéricas só aceitam números; colunas com formato filtram a digitação
         DestacarLinhaSobMouse(g);
         MostrarEstadoVazio(g);
         return g;
@@ -222,7 +223,8 @@ public static class Ui
         BackColor = Color.White,
     };
 
-    public static NumericUpDown Numero(int casas = 2, decimal maximo = 999_999_999m, decimal minimo = 0) => new()
+    /// <summary>Campo numérico: não aceita letras (ver Validacao.SoNumeros).</summary>
+    public static NumericUpDown Numero(int casas = 2, decimal maximo = 999_999_999m, decimal minimo = 0) => Validacao.SoNumeros(new()
     {
         DecimalPlaces = casas,
         Maximum = maximo,
@@ -231,7 +233,7 @@ public static class Ui
         Width = 110,
         TextAlign = HorizontalAlignment.Right,
         Margin = new Padding(4, 7, 4, 4),
-    };
+    });
 
     public static DateTimePicker Data(DateTime? valor = null) => new()
     {
@@ -369,11 +371,17 @@ public static class Ui
         sb.AppendLine(string.Join(";", colunas.Select(c => Csv(c.ColumnName))));
         foreach (DataRowView r in dt.DefaultView)
             sb.AppendLine(string.Join(";", colunas.Select(c =>
-                Csv(r[c.ColumnName] is double d ? d.ToString("0.00") : Txt(r[c.ColumnName])))));
+                Csv(r[c.ColumnName] is double d ? d.ToString("0.00") : SemFormula(Txt(r[c.ColumnName]))))));
         File.WriteAllText(dlg.FileName, sb.ToString(), new UTF8Encoding(true));
         Log.Registrar(Log.Acao, "Exportou CSV", $"{dt.DefaultView.Count} linha(s) → {dlg.FileName}");
         Info("Arquivo exportado:\n" + dlg.FileName);
     }
+
+    /// <summary>
+    /// OWASP A05 (CSV/formula injection): texto que começa com = + - @ ou tabulação seria executado como fórmula pelo
+    /// Excel; recebe um apóstrofo na frente para ser exibido como texto.
+    /// </summary>
+    public static string SemFormula(string s) => s.Length > 0 && "=+-@\t\r".Contains(s[0]) ? "'" + s : s;
 
     static string Csv(string s) =>
         s.Contains(';') || s.Contains('"') || s.Contains('\n') ? "\"" + s.Replace("\"", "\"\"") + "\"" : s;

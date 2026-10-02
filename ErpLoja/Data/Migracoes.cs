@@ -30,6 +30,7 @@ public static class Migracoes
         new(10, "Reforma tributária: IBS, CBS e Imposto Seletivo", M010),
         new(11, "Parâmetros de impressoras, TEF, transporte, produção e reforma tributária", M011),
         new(12, "Log de atividades: parâmetro de retenção", M012),
+        new(13, "Segurança: credenciais cifradas e bloqueio após senhas erradas", M013),
     ];
 
     public static int VersaoDoSistema => Todas.Max(m => m.Versao);
@@ -788,4 +789,27 @@ public static class Migracoes
 
     // ------------------------------------------------------------------ 012
     static void M012(DbSessao s) => Config(s, "log_dias_manter", "365");
+
+    // ------------------------------------------------------------------ 013
+    static void M013(DbSessao s)
+    {
+        // OWASP A07: bloqueio temporário após senhas erradas seguidas
+        AdicionarColuna(s, "usuarios", "falhas_login", "INTEGER NOT NULL DEFAULT 0");
+        AdicionarColuna(s, "usuarios", "bloqueado_ate", "TEXT");
+        // trocar a senha (administrador ou recuperação) desbloqueia o usuário
+        s.Exec("""
+            CREATE TRIGGER IF NOT EXISTS usuarios_desbloquear_ao_trocar_senha AFTER UPDATE OF senha ON usuarios
+            WHEN NEW.senha <> OLD.senha
+            BEGIN
+                UPDATE usuarios SET falhas_login = 0, bloqueado_ate = NULL WHERE id = NEW.id;
+            END
+            """);
+        // OWASP A04: credenciais de integração gravadas em texto puro passam a ser cifradas (DPAPI)
+        foreach (var chave in Parametros.ChavesSecretas)
+        {
+            var valor = Convert.ToString(s.Scalar("SELECT valor FROM configuracoes WHERE chave = @p0", chave)) ?? "";
+            if (valor.Length > 0 && !Segredos.Cifrado(valor))
+                s.Exec("UPDATE configuracoes SET valor = @p0 WHERE chave = @p1", Segredos.Proteger(valor), chave);
+        }
+    }
 }

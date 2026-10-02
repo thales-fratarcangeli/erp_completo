@@ -10,8 +10,10 @@ public class NotaEditorForm : Form
     readonly DataGridView grid = Ui.Grid(somenteLeitura: false);
     readonly ComboBox modelo = Ui.Combo(140), cadastro = Ui.Combo(260), uf = Ui.Combo(70);
     readonly NumericUpDown serie = Ui.Numero(0, 999, 1), frete = Ui.Numero(), desconto = Ui.Numero(), qtd = Ui.Numero(3);
-    readonly TextBox natureza = Caixa(260), nome = Caixa(260), documento = Caixa(150), ie = Caixa(120),
-        endereco = Caixa(360), cidade = Caixa(180), info = Caixa(600), codigo = Caixa(180);
+    readonly TextBox natureza = Caixa(260, Formatos.Texto(60), "Natureza da operação"), nome = Caixa(260, Formatos.Nome, "Nome"),
+        documento = Caixa(150, Formatos.CpfCnpj, "CPF/CNPJ"), ie = Caixa(120, Formatos.InscricaoEstadual, "IE"),
+        endereco = Caixa(360, Formatos.Texto(150), "Endereço"), cidade = Caixa(180, Formatos.Cidade, "Cidade"),
+        info = Caixa(600, Formatos.Texto(1000), "Informações complementares"), codigo = Caixa(180, Formatos.CodigoOuNome, "Produto");
     readonly Label lblTotais = Ui.Rotulo("");
     readonly Label lblTotal = new() { AutoSize = true, Font = new Font("Segoe UI Semibold", 16F), ForeColor = Ui.Primaria, Margin = new Padding(16, 4, 8, 0) };
     bool carregando = true;
@@ -19,7 +21,8 @@ public class NotaEditorForm : Form
 
     public long? IdSalvo => n.Id;
 
-    static TextBox Caixa(int largura) => new() { Width = largura, Margin = new Padding(4, 7, 4, 4) };
+    static TextBox Caixa(int largura, Formato formato, string rotulo) =>
+        Validacao.Aplicar(new TextBox { Width = largura, Margin = new Padding(4, 7, 4, 4) }, formato, rotulo);
 
     public NotaEditorForm(NotaFiscal nota)
     {
@@ -84,6 +87,14 @@ public class NotaEditorForm : Form
         uf.Items.AddRange(Fiscal.Ufs);
         grid.DataSource = n.Itens;
         grid.ReadOnly = !editavel;
+        // colunas fiscais da grade só aceitam o formato de cada código (NCM 8 dígitos, CFOP 4 dígitos...)
+        foreach (var (coluna, formato) in new (string, Formato)[]
+                 {
+                     (nameof(NotaItem.Ncm), Formatos.Ncm), (nameof(NotaItem.Cfop), Formatos.Cfop), (nameof(NotaItem.Cst), Formatos.Cst),
+                     (nameof(NotaItem.CstIbsCbs), Formatos.CstIbsCbs), (nameof(NotaItem.CClassTrib), Formatos.CClassTrib),
+                     (nameof(NotaItem.Unidade), Formatos.Unidade), (nameof(NotaItem.Codigo), Formatos.Texto(60)), (nameof(NotaItem.Descricao), Formatos.Texto(120)),
+                 })
+            Validacao.Coluna(grid, coluna, formato);
         grid.DataBindingComplete += (_, _) =>
         {
             foreach (DataGridViewColumn col in grid.Columns)
@@ -208,6 +219,8 @@ public class NotaEditorForm : Form
 
     void Salvar(bool emitir)
     {
+        if (!Validacao.ConferirTodos(this))
+            return;
         grid.EndEdit();
         n.Modelo = modelo.SelectedIndex == 1 ? "65" : "55";
         n.Serie = (int)serie.Value;

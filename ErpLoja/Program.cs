@@ -54,10 +54,14 @@ static class Program
         }
 
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
-        Application.ThreadException += (_, e) =>
+        // OWASP A10: falha inesperada vira mensagem amigável (sem detalhes internos) e o detalhe técnico vai para o log
+        Application.ThreadException += (_, e) => TratarErroInesperado(e.Exception);
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+            Log.Registrar(Log.Erro, "Erro fatal: " + e.ExceptionObject.GetType().Name, e.ExceptionObject.ToString() ?? "");
+        TaskScheduler.UnobservedTaskException += (_, e) =>
         {
-            Log.Registrar(Log.Erro, "Erro inesperado: " + e.Exception.GetType().Name, e.Exception.ToString());
-            Ui.Erro("Ocorreu um erro inesperado:\n" + e.Exception.Message);
+            Log.Registrar(Log.Erro, "Erro em tarefa em segundo plano: " + e.Exception.GetType().Name, e.Exception.ToString());
+            e.SetObserved();
         };
 
         if (!AbrirBanco())
@@ -73,6 +77,19 @@ static class Program
         Application.Run(new MainForm());
         Log.Registrar(Log.Acesso, "Saiu do sistema", tela: "");
         return 0;
+    }
+
+    /// <summary>
+    /// Erros de regra (mensagem escrita para o usuário) e de permissão aparecem como estão; os demais aparecem como
+    /// mensagem genérica com a hora, para o suporte achar o detalhe técnico no log (sem expor SQL, caminhos ou pilha).
+    /// </summary>
+    static void TratarErroInesperado(Exception ex)
+    {
+        Log.Registrar(Log.Erro, "Erro inesperado: " + ex.GetType().Name, ex.ToString());
+        if (ex is InvalidOperationException or UnauthorizedAccessException)
+            Ui.Erro(ex.Message);
+        else
+            Ui.Erro($"Ocorreu um erro inesperado e a operação não foi concluída.\nO detalhe técnico foi registrado no Log de atividades ({DateTime.Now:dd/MM/yyyy HH:mm:ss}).");
     }
 
     /// <summary>Localiza o banco automaticamente; se não achar, pergunta (criar novo / indicar / sair). Aplica as migrações.</summary>
@@ -97,6 +114,13 @@ static class Program
                     Ui.Info($"O banco de dados foi atualizado para a versão {Migracoes.VersaoDoSistema}:\n" +
                             string.Join("\n", aplicadas.Select(m => $"• {m.Versao} - {m.Nome}")) +
                             $"\n\nBackup feito antes da atualização:\n{backup}");
+                // OWASP A08: confere a integridade do arquivo do banco a cada abertura
+                if (Convert.ToString(Db.Scalar("PRAGMA quick_check")) is var verificacao && verificacao != "ok")
+                {
+                    Log.Registrar(Log.Erro, "Banco de dados com problema de integridade", verificacao ?? "");
+                    Ui.Erro("O arquivo do banco de dados apresentou problema de integridade (pode estar danificado).\n" +
+                            "Feche o sistema e restaure o backup mais recente da pasta backups. Detalhe: " + verificacao);
+                }
                 if (Parametros.BackupAoIniciar)
                 {
                     try { Backups.Diario(Parametros.BackupsManter); }

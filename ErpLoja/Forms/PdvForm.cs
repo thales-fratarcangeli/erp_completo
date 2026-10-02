@@ -62,6 +62,7 @@ public class PdvForm : Form
 
     public PdvForm()
     {
+        Validacao.Aplicar(codigo, Formatos.EntradaPdv, "Produto");
         Ui.Estilizar(this, "PDV - frente de caixa", 1280, 760, nameof(PdvForm));
         WindowState = FormWindowState.Maximized;
         BackColor = Fundo;

@@ -23,6 +23,10 @@ Directory.CreateDirectory(Telas);
 Directory.CreateDirectory(Temp);
 LocalBanco.PastaPreferencias = Path.Combine(Temp, "preferencias");
 var telasAbertas = new HashSet<string>();
+var camposSemFormato = new List<string>();
+var camposConferidos = 0;
+static int Usuario_ContarCampos(Control raiz) =>
+    raiz.Controls.Cast<Control>().Sum(c => (c is TextBox tb && !tb.ReadOnly && tb.Parent is not UpDownBase ? 1 : 0) + Usuario_ContarCampos(c));
 
 var t = new Thread(() =>
 {
@@ -311,19 +315,19 @@ var t = new Thread(() =>
         Ok(codigo.Length == 6, "código de 6 dígitos no e-mail");
         Ok(Convert.ToInt64(Db.Scalar("SELECT COUNT(*) FROM recuperacao_senha WHERE codigo_hash LIKE '%' || @p0 || '%'", codigo)) == 0, "código guardado só como hash");
         var errado = codigo == "000000" ? "111111" : "000000";
-        Ok(Erro(() => RecuperacaoSenha.Redefinir("admin", errado, "nova123")).Contains("Restam 4"), "código errado conta tentativa");
-        RecuperacaoSenha.Redefinir("admin", codigo, "nova123");
-        Ok(Senhas.Verificar("nova123", (string)Db.Scalar("SELECT senha FROM usuarios WHERE username='admin'")!), "código certo redefine a senha");
-        Ok(Erro(() => RecuperacaoSenha.Redefinir("admin", codigo, "outra")).Contains("Nenhum código pendente"), "código não pode ser reutilizado");
+        Ok(Erro(() => RecuperacaoSenha.Redefinir("admin", errado, "Nova!Senha123")).Contains("Restam 4"), "código errado conta tentativa");
+        RecuperacaoSenha.Redefinir("admin", codigo, "Nova!Senha123");
+        Ok(Senhas.Verificar("Nova!Senha123", (string)Db.Scalar("SELECT senha FROM usuarios WHERE username='admin'")!), "código certo redefine a senha");
+        Ok(Erro(() => RecuperacaoSenha.Redefinir("admin", codigo, "Outra!Senha123")).Contains("Nenhum código pendente"), "código não pode ser reutilizado");
         Solicitar("admin");
         var codigoExpirado = CodigoEnviado();
         Db.Exec("UPDATE recuperacao_senha SET expira_em = '2000-01-01 00:00:00' WHERE usado = 0");
-        Ok(Erro(() => RecuperacaoSenha.Redefinir("admin", codigoExpirado, "nova123")).Contains("expirou"), "código expirado é recusado");
+        Ok(Erro(() => RecuperacaoSenha.Redefinir("admin", codigoExpirado, "Nova!Senha123")).Contains("expirou"), "código expirado é recusado");
         Solicitar("admin");
         var codigoBloqueado = CodigoEnviado();
         var ultimo = "";
-        for (int k = 0; k < 5; k++) ultimo = Erro(() => RecuperacaoSenha.Redefinir("admin", codigoBloqueado == "000000" ? "111111" : "000000", "x1234"));
-        Ok(ultimo.Contains("Limite") && Erro(() => RecuperacaoSenha.Redefinir("admin", codigoBloqueado, "x1234")).Contains("Nenhum código pendente"),
+        for (int k = 0; k < 5; k++) ultimo = Erro(() => RecuperacaoSenha.Redefinir("admin", codigoBloqueado == "000000" ? "111111" : "000000", "Forte!Senha99"));
+        Ok(ultimo.Contains("Limite") && Erro(() => RecuperacaoSenha.Redefinir("admin", codigoBloqueado, "Forte!Senha99")).Contains("Nenhum código pendente"),
             "5 tentativas erradas invalidam o código");
         resend.Status = 403;
         resend.Resposta = "{\"statusCode\":403,\"message\":\"The domain is not verified\"}";
@@ -527,6 +531,9 @@ var t = new Thread(() =>
                     f.DrawToBitmap(bmp, new Rectangle(0, 0, f.Width, f.Height));
                     bmp.Save(Path.Combine(Telas, nome + ".png"));
                 }
+                var semFormato = Validacao.CamposSemFormato(f);
+                camposSemFormato.AddRange(semFormato.Select(c => $"{nome}: {c.Name}{(c.PlaceholderText.Length > 0 ? " (" + c.PlaceholderText + ")" : "")}"));
+                camposConferidos += Usuario_ContarCampos(f);
                 var botaoAjuda = f.Controls.OfType<Button>().FirstOrDefault(b => b.Text == "?");
                 Ok(f is AjudaForm || f.HelpButton || (botaoAjuda != null && botaoAjuda.Visible && f.Controls.GetChildIndex(botaoAjuda) == 0
                                     && botaoAjuda.Right <= f.ClientSize.Width), $"tela {nome}: botão de ajuda visível" + (botaoAjuda is null ? " (sem botão)" : $" [visível={botaoAjuda.Visible}, índice={f.Controls.GetChildIndex(botaoAjuda)}, direita={botaoAjuda.Right}/{f.ClientSize.Width}]"));
@@ -604,7 +611,7 @@ var t = new Thread(() =>
         Ok(Log.ClassificarSql("INSERT OR IGNORE INTO configuracoes(chave) VALUES(1)") == ("INSERT", "configuracoes")
            && Log.ClassificarSql("  update produtos set x = 1") == ("UPDATE", "produtos") && Log.ClassificarSql("DELETE FROM contas WHERE 1") == ("DELETE", "contas")
            && Log.ClassificarSql("SELECT * FROM vendas") is null && Log.ClassificarSql("CREATE TABLE x(a)") is null, "classificação dos comandos SQL para o log");
-        Ok(ContarLog("detalhe LIKE '%nova123%' OR acao LIKE '%nova123%'") == 0, "senhas não aparecem no log");
+        Ok(ContarLog("detalhe LIKE '%Nova!Senha123%' OR acao LIKE '%Nova!Senha123%'") == 0, "senhas não aparecem no log");
         using (var c = Log.Abrir())
         using (var cmd = c.CreateCommand())
         {
@@ -641,6 +648,29 @@ var t = new Thread(() =>
         AtalhoAreaDeTrabalho.Criar(lnk, Path.Combine(Environment.SystemDirectory, "notepad.exe"));
         var cabecalhoLnk = File.Exists(lnk) ? File.ReadAllBytes(lnk).Take(4).ToArray() : [];
         Ok(cabecalhoLnk.SequenceEqual(new byte[] { 0x4C, 0, 0, 0 }), "atalho .lnk do Windows criado (usado na primeira execução)");
+
+        // ---------- validação de entrada: todo campo editável tem formato (tipo de dado) definido
+        Ok(camposSemFormato.Count == 0 && camposConferidos > 40,
+            $"todos os campos de texto editáveis das telas têm formato de entrada ({camposConferidos} campos conferidos)" +
+            (camposSemFormato.Count > 0 ? ": sem formato em " + string.Join("; ", camposSemFormato) : ""));
+        var caixasSemFormatoNoFonte = Directory.GetFiles(Path.Combine(Raiz, "ErpLoja"), "*.cs", SearchOption.AllDirectories)
+            .Where(f => !f.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar) && !f.EndsWith("Validacao.cs"))
+            .SelectMany(f => File.ReadAllLines(f).Select((linha, i) => (Arquivo: Path.GetFileName(f), Linha: i + 1, Texto: linha)))
+            .Where(l => (l.Texto.Contains("new TextBox") || System.Text.RegularExpressions.Regex.IsMatch(l.Texto, @"TextBox \w+ = new\(\)"))
+                        && !l.Texto.Contains("Validacao.") && !l.Texto.Contains("ReadOnly = true"))
+            .Select(l => $"{l.Arquivo}:{l.Linha}")
+            .ToList();
+        var declaracoesSemFormato = caixasSemFormatoNoFonte.Where(l =>
+        {
+            // membros declarados "readonly TextBox x = new()" recebem o formato no construtor (conferido pela abertura das telas acima)
+            var (arquivo, linha) = (l.Split(':')[0], int.Parse(l.Split(':')[1]));
+            var texto = File.ReadAllLines(Directory.GetFiles(Path.Combine(Raiz, "ErpLoja"), arquivo, SearchOption.AllDirectories)[0])[linha - 1];
+            var seguintes = string.Join(" ", File.ReadAllLines(Directory.GetFiles(Path.Combine(Raiz, "ErpLoja"), arquivo, SearchOption.AllDirectories)[0]).Skip(linha - 1).Take(8));
+            var inicializador = seguintes[..(seguintes.IndexOf("};") is var fim and > 0 ? fim : seguintes.Length)];
+            return !texto.TrimStart().StartsWith("readonly TextBox") && !inicializador.Contains("ReadOnly = true");
+        }).ToList();
+        Ok(declaracoesSemFormato.Count == 0, "nenhuma caixa de texto é criada sem formato no código-fonte" +
+            (declaracoesSemFormato.Count > 0 ? ": " + string.Join(", ", declaracoesSemFormato) : ""));
 
         // ---------- ajuda em todas as telas
         var semAjuda = Ajuda.ChavesUsadas.Where(k => !Ajuda.Existe(k)).ToList();

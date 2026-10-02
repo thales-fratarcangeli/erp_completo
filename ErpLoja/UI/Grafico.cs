@@ -53,6 +53,8 @@ public class Grafico : Control
     public void Definir(string[] categorias, params Serie[] series)
     {
         this.categorias = categorias;
+        alvos.Clear();
+        focoCategoria = -1;
         this.series = series.ToList();
         focoCategoria = -1;
         Invalidate();
@@ -270,6 +272,9 @@ public class Grafico : Control
         base.OnMouseMove(e);
         var alvo = alvos.FirstOrDefault(a => a.Area.Contains(e.Location));
         var categoria = alvo.Area.IsEmpty ? -1 : alvo.Categoria;
+        // os alvos são do último desenho: se os dados mudaram depois dele, a categoria pode não existir mais
+        if (categoria >= categorias.Length)
+            categoria = -1;
         if (categoria == focoCategoria)
             return;
         focoCategoria = categoria;

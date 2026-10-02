@@ -17,7 +17,7 @@ public class PedidosPainel : UserControl
     readonly string tipo;
     readonly ComboBox situacao = Ui.Combo(160);
     readonly DateTimePicker de = Ui.Data(DateTime.Today.AddDays(-90)), ate = Ui.Data();
-    readonly TextBox busca = new() { Width = 200, PlaceholderText = "Filtrar...", Margin = new Padding(4, 7, 4, 4) };
+    readonly TextBox busca = Validacao.Aplicar(new TextBox { Width = 200, PlaceholderText = "Filtrar...", Margin = new Padding(4, 7, 4, 4) }, Formatos.Busca, "Filtro");
     readonly DataGridView docs = Ui.Grid(), itens = Ui.Grid();
     readonly SplitContainer split = new() { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal };
     readonly Label resumo = Ui.Rotulo("");
@@ -255,7 +255,7 @@ public static class FluxoPedidos
         var nudParcelas = d.Adicionar("Parcelas:", Ui.Numero(0, Parametros.MaxParcelas, 1));
         nudParcelas.Value = Math.Clamp(p.Parcelas, 1, Parametros.MaxParcelas);
         var dtVenc = d.Adicionar("1º vencimento:", Ui.Data(DateTime.Today.AddDays(Parametros.PrazoVencimentoDias)));
-        var tbNota = p.Tipo == Pedidos.Compra ? d.Adicionar("Nº da nota fiscal:", new TextBox()) : null;
+        var tbNota = p.Tipo == Pedidos.Compra ? d.Adicionar("Nº da nota fiscal:", Validacao.Caixa(Formatos.NumeroNota, "Nº da nota fiscal")) : null;
         d.Nota(p.Tipo == Pedidos.Compra ? "Parcelas e vencimento valem para pagamento a prazo." : "Parcelas e vencimento valem para a prazo e boleto (ficam em aberto no contas a receber).");
         d.Validar = () =>
         {

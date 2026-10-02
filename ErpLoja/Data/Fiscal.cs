@@ -441,6 +441,7 @@ public static class Fiscal
     /// <summary>Cancela uma nota emitida (rascunho é excluído, não cancelado). Não desfaz a venda/compra (RN-FIS-08).</summary>
     public static void Cancelar(long id)
     {
+        Permissoes.ExigirAdmin("cancelar notas fiscais");
         if (Db.Exec("UPDATE notas_fiscais SET status = 'CANCELADA' WHERE id = @p0 AND status = 'EMITIDA'", id) == 0)
             throw new InvalidOperationException("Somente notas emitidas podem ser canceladas (rascunho se exclui; nota cancelada já está cancelada).");
     }

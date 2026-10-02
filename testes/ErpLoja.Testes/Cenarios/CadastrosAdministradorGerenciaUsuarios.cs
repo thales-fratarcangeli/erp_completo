@@ -39,22 +39,22 @@ public class CadastrosAdministradorGerenciaUsuarios : ICenario
         u.Mensagens.Clear();
         u.Preencher(tela, "Nome", "João Caixa");
         u.Preencher(tela, "Username", "joao.caixa");
-        u.Preencher(tela, "Senha (mínimo 4 caracteres)", "12");
+        u.Preencher(tela, "Senha (mínimo 8 caracteres)", "12");
         u.Preencher(tela, "E-mail (recuperação de senha)", "joao@loja.com.br");
         u.Clicar(tela, "Salvar");
-        u.Ok(u.Viu("ERRO", "pelo menos 4 caracteres"), "senha curta é recusada");
+        u.Ok(u.Viu("ERRO", "pelo menos 8 caracteres"), "senha curta é recusada");
 
         if (emailAdmin.Length > 0)
         {
             u.Mensagens.Clear();
-            u.Preencher(tela, "Senha (mínimo 4 caracteres)", "1234");
+            u.Preencher(tela, "Senha (mínimo 8 caracteres)", "Joao!Senha2026");
             u.Preencher(tela, "E-mail (recuperação de senha)", emailAdmin.ToUpperInvariant());
             u.Clicar(tela, "Salvar");
             u.Ok(u.Viu("ERRO", "já existe outro registro com este \"E-mail"), "e-mail de outro usuário (maiúsculas diferentes) é recusado" + CadastrosApoio.Erros(u));
         }
 
         u.Mensagens.Clear();
-        u.Preencher(tela, "Senha (mínimo 4 caracteres)", "1234");
+        u.Preencher(tela, "Senha (mínimo 8 caracteres)", "Joao!Senha2026");
         u.Preencher(tela, "E-mail (recuperação de senha)", "joao@loja.com.br");
         u.Preencher(tela, "Username", usernameAdmin.ToUpperInvariant());
         u.Clicar(tela, "Salvar");
@@ -65,14 +65,14 @@ public class CadastrosAdministradorGerenciaUsuarios : ICenario
         u.Clicar(tela, "Salvar");
         u.Ok(!u.Viu("ERRO", ""), "usuário comum cadastrado" + CadastrosApoio.Erros(u));
         var joao = Convert.ToInt64(Db.Scalar("SELECT id FROM usuarios WHERE username = 'joao.caixa'") ?? 0L);
-        u.Ok(joao > 0 && Senhas.Verificar("1234", Ui.Txt(Db.Scalar("SELECT senha FROM usuarios WHERE id = @p0", joao))),
+        u.Ok(joao > 0 && Senhas.Verificar("Joao!Senha2026", Ui.Txt(Db.Scalar("SELECT senha FROM usuarios WHERE id = @p0", joao))),
             "senha gravada como hash e conferível");
 
         // editar sem digitar senha mantém a senha
         u.Mensagens.Clear();
         u.Preencher(tela, "Nome", "João da Caixa");
         u.Clicar(tela, "Salvar");
-        u.Ok(!u.Viu("ERRO", "") && Senhas.Verificar("1234", Ui.Txt(Db.Scalar("SELECT senha FROM usuarios WHERE id = @p0", joao))),
+        u.Ok(!u.Viu("ERRO", "") && Senhas.Verificar("Joao!Senha2026", Ui.Txt(Db.Scalar("SELECT senha FROM usuarios WHERE id = @p0", joao))),
             "editar com senha em branco mantém a senha" + CadastrosApoio.Erros(u));
 
         // usuário comum não vê telas de administrador

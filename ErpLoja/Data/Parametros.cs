@@ -106,6 +106,38 @@ public static class Parametros
     /// <summary>Chaves com valor percentual (0 a 100).</summary>
     public static readonly string[] Decimais = ["desconto_maximo_pct", "aliq_cbs", "aliq_ibs_uf", "aliq_ibs_mun"];
 
+    /// <summary>Formato de entrada de cada parâmetro digitado (os de lista de opções não precisam).</summary>
+    static readonly Dictionary<string, Formato> formatos = new()
+    {
+        ["nome_loja"] = Formatos.Nome,
+        ["cnpj"] = Formatos.Cnpj,
+        ["ie"] = Formatos.InscricaoEstadual,
+        ["endereco"] = Formatos.Texto(150),
+        ["cidade"] = Formatos.Cidade,
+        ["telefone"] = Formatos.Telefone,
+        ["email_loja"] = Formatos.Email,
+        ["natureza_venda"] = Formatos.Texto(60),
+        ["natureza_compra"] = Formatos.Texto(60),
+        ["cst_padrao"] = Formatos.Cst,
+        ["cst_ibscbs_padrao"] = Formatos.CstIbsCbs,
+        ["cclass_trib_padrao"] = Formatos.CClassTrib,
+        ["caixa_numero"] = Formatos.Inteiro(1, 999),
+        ["rntrc_empresa"] = Formatos.Rntrc,
+        ["pamcard_url"] = Formatos.UrlHttps,
+        ["pamcard_usuario"] = Formatos.Texto(60),
+        ["pamcard_senha"] = Formatos.Senha,
+        ["pamcard_cnpj_contratante"] = Formatos.Cnpj,
+        ["resend_api_key"] = new("Chave de API", "não aceita espaços.", c => !char.IsControl(c) && !char.IsWhiteSpace(c), 200),
+        ["resend_remetente"] = Formatos.Remetente,
+    };
+
+    /// <summary>Formato de entrada do parâmetro (inteiros e percentuais só aceitam números).</summary>
+    public static Formato FormatoDe(Parametro d) =>
+        formatos.TryGetValue(d.Chave, out var f) ? f
+        : Inteiros.Contains(d.Chave) ? Formatos.Inteiro(Positivos.Contains(d.Chave) ? 1 : 0)
+        : Decimais.Contains(d.Chave) ? Formatos.Percentual
+        : Formatos.Texto(200);
+
     /// <summary>Confere o valor digitado para o parâmetro. Devolve a mensagem para o usuário ou null se estiver válido.</summary>
     public static string? Validar(Parametro d, string valor)
     {
@@ -122,6 +154,9 @@ public static class Parametros
             return $"\"{d.Rotulo}\" deve ser um número entre 0 e 100 (ex.: 0,90).";
         if (d.Chave == "resend_remetente" && texto.Length > 0 && !texto.Contains('@'))
             return "O remetente precisa conter um e-mail, ex.: ERP Loja <nao-responda@sualoja.com.br>";
+        // formato do campo (CNPJ, e-mail, https...): conferido também aqui, na camada de dados, antes de gravar
+        if (d.Opcoes is null && d.OpcoesDinamicas is null && FormatoDe(d).Validar(texto) is string erroFormato)
+            return $"\"{d.Rotulo}\" {erroFormato}";
         return null;
     }
 
@@ -162,7 +197,22 @@ public static class Parametros
     public static bool ImpressoraCortar => Txt("impressora_cortar") == Sim;
     public static bool ImpressoraGaveta => Txt("impressora_gaveta") == Sim;
     public static string ImpressoraDocumentos => Db.Config("impressora_documentos");
-    public static string ResendApiKey => Db.Config("resend_api_key");
+    public static string ResendApiKey => Segredo("resend_api_key");
+
+    /// <summary>Valor de um parâmetro secreto, decifrado (ver Segredos).</summary>
+    public static string Segredo(string chave) => Segredos.Abrir(Db.Config(chave));
+
+    /// <summary>Grava o parâmetro; os secretos (senhas e chaves de API) são cifrados antes de ir para o banco.</summary>
+    public static void Salvar(Parametro d, string valor)
+    {
+        Permissoes.ExigirAdmin("alterar as configurações");
+        if (Validar(d, valor) is string erro)
+            throw new InvalidOperationException(erro);
+        Db.SalvarConfig(d.Chave, d.Secreto ? Segredos.Proteger(valor) : valor);
+    }
+
+    /// <summary>Chaves dos parâmetros secretos.</summary>
+    public static IEnumerable<string> ChavesSecretas => Definicoes.Where(d => d.Secreto).Select(d => d.Chave);
     public static string ResendRemetente => Db.Config("resend_remetente");
     public static bool BackupAoIniciar => Txt("backup_ao_iniciar") != Nao;
     public static int BackupsManter => Math.Max(1, Int("backups_manter"));

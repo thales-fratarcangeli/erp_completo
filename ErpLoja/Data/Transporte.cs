@@ -57,7 +57,7 @@ public class PamcardAdministradora : IAdministradoraCiot
     {
         var url = Db.Config("pamcard_url");
         var usuario = Db.Config("pamcard_usuario");
-        var senha = Db.Config("pamcard_senha");
+        var senha = Parametros.Segredo("pamcard_senha");
         var cnpj = Fiscal.SoDigitos(Db.Config("pamcard_cnpj_contratante"));
         if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(usuario) || string.IsNullOrWhiteSpace(senha) || cnpj.Length != 14)
             throw new InvalidOperationException(

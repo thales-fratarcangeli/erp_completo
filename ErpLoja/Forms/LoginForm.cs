@@ -9,8 +9,8 @@ public static class LoginForm
             ShowInTaskbar = true,
             StartPosition = FormStartPosition.CenterScreen,
         };
-        var usuario = d.Adicionar("Username:", new TextBox());
-        var senha = d.Adicionar("Senha:", new TextBox { UseSystemPasswordChar = true });
+        var usuario = d.Adicionar("Username:", Validacao.Caixa(Formatos.Username, "Username"));
+        var senha = d.Adicionar("Senha:", Validacao.Aplicar(new TextBox { UseSystemPasswordChar = true }, Formatos.Senha, "Senha"));
 
         var admin = Db.Query("SELECT senha FROM usuarios WHERE username = 'admin'");
         if (admin.Rows.Count > 0 && Senhas.Verificar("admin", Ui.Txt(admin.Rows[0]["senha"])))
@@ -23,10 +23,19 @@ public static class LoginForm
 
         d.Validar = () =>
         {
-            var dt = Db.Query("SELECT id, nome, senha, admin, ativo, email FROM usuarios WHERE username = @p0", usuario.Text.Trim());
+            var dt = Db.Query("SELECT id, nome, senha, admin, ativo, email, falhas_login, bloqueado_ate FROM usuarios WHERE username = @p0", usuario.Text.Trim());
+            if (dt.Rows.Count > 0 && ControleDeAcesso.Bloqueado(dt.Rows[0]) is TimeSpan falta)
+            {
+                Log.Registrar(Log.Acesso, "Acesso recusado (usuário bloqueado)", $"username informado: {usuario.Text.Trim()}", tela: "Acesso");
+                Ui.Erro($"Usuário bloqueado temporariamente por excesso de senhas erradas. Tente de novo em {Math.Ceiling(falta.TotalMinutes):0} minuto(s) " +
+                        "ou peça a um administrador para definir uma senha nova (ou use \"Esqueci minha senha\").");
+                return false;
+            }
             if (dt.Rows.Count == 0 || !Senhas.Verificar(senha.Text, Ui.Txt(dt.Rows[0]["senha"])))
             {
                 Log.Registrar(Log.Acesso, "Acesso recusado", $"username informado: {usuario.Text.Trim()}", tela: "Acesso");
+                if (dt.Rows.Count > 0 && ControleDeAcesso.RegistrarFalha((long)dt.Rows[0]["id"]))
+                    Log.Registrar(Log.Acesso, "Usuário bloqueado por senhas erradas", $"username: {usuario.Text.Trim()}, bloqueio de {ControleDeAcesso.MinutosBloqueio} min", tela: "Acesso");
                 Ui.Erro("Username ou senha inválidos.");
                 senha.SelectAll();
                 senha.Focus();
@@ -42,7 +51,11 @@ public static class LoginForm
             Sessao.UsuarioId = (long)r["id"];
             Sessao.Nome = Ui.Txt(r["nome"]);
             Sessao.Admin = (long)r["admin"] == 1;
+            ControleDeAcesso.RegistrarSucesso((long)r["id"], senha.Text, Ui.Txt(r["senha"]));
+            var alerta = Sessao.Admin ? ControleDeAcesso.AlertaDeTentativas((long)r["id"]) : null;
             Log.Registrar(Log.Acesso, "Entrou no sistema", Sessao.Admin ? "administrador" : "usuário comum", tela: "Acesso");
+            if (alerta != null)
+                Ui.Aviso(alerta);
             if (!Email.Valido(Ui.Txt(r["email"])))
                 Ui.Aviso("Seu usuário não tem e-mail cadastrado. Cadastre em Configurações > Minha conta para poder recuperar a senha.");
             return true;
@@ -60,13 +73,13 @@ public static class LoginForm
     {
         using var d = new Dialogo("Troque a senha padrão", "login", "Salvar e entrar") { StartPosition = FormStartPosition.CenterScreen };
         d.Nota("Por segurança, escolha uma senha nova antes de começar. A senha atual é a padrão (ou igual ao username) e qualquer pessoa poderia adivinhá-la.");
-        var nova = d.Adicionar("Nova senha:", new TextBox { UseSystemPasswordChar = true });
-        var confirmacao = d.Adicionar("Repita a nova senha:", new TextBox { UseSystemPasswordChar = true });
+        var nova = d.Adicionar("Nova senha:", Validacao.Aplicar(new TextBox { UseSystemPasswordChar = true }, Formatos.Senha, "Nova senha"));
+        var confirmacao = d.Adicionar("Repita a nova senha:", Validacao.Aplicar(new TextBox { UseSystemPasswordChar = true }, Formatos.Senha, "Repita a nova senha"));
         d.Validar = () =>
         {
-            string? erro = nova.Text.Length < 4 ? "A nova senha deve ter pelo menos 4 caracteres."
-                : nova.Text == atual || nova.Text == "admin" || string.Equals(nova.Text, username, StringComparison.OrdinalIgnoreCase)
+            string? erro = nova.Text == atual || nova.Text == "admin" || string.Equals(nova.Text, username, StringComparison.OrdinalIgnoreCase)
                     ? "Escolha uma senha diferente da padrão e do username."
+                : RegrasCadastro.Senha(nova.Text) is string fraca ? fraca
                 : nova.Text != confirmacao.Text ? "As duas senhas digitadas são diferentes."
                 : null;
             if (erro is null)

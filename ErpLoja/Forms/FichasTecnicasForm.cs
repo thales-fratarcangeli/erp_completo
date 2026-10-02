@@ -18,6 +18,9 @@ public class FichasTecnicasForm : Form
 
     public FichasTecnicasForm()
     {
+        Validacao.Aplicar(busca, Formatos.Busca, "Filtro");
+        Validacao.Aplicar(codigo, Formatos.CodigoOuNome, "Insumo");
+        Validacao.Aplicar(observacoes, Formatos.Texto(500), "Observações");
         Ui.Estilizar(this, "Fichas técnicas", 1250, 740, nameof(FichasTecnicasForm));
         quantidade.Value = 1;
 
@@ -215,6 +218,8 @@ public class FichasTecnicasForm : Form
 
     void Salvar()
     {
+        if (!Validacao.ConferirTodos(this))
+            return;
         if (ficha is null)
             return;
         insumos.EndEdit();

@@ -75,9 +75,29 @@ public static class RegrasCadastro
         System.Text.RegularExpressions.Regex.IsMatch(cst?.Trim() ?? "", @"^\d{2,3}$")
             ? null : "CST/CSOSN deve ter 2 dígitos (regime normal, ex.: 00) ou 3 dígitos (Simples Nacional, ex.: 102).";
 
-    /// <summary>Senha nova: mesmo mínimo da recuperação de senha (RN-USU-06).</summary>
-    public static string? Senha(string senha) =>
-        senha.Length >= 4 ? null : "A senha deve ter pelo menos 4 caracteres.";
+    public const int SenhaMinima = 8;
+
+    static readonly HashSet<string> SenhasComuns = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "12345678", "123456789", "1234567890", "87654321", "11111111", "00000000", "12341234", "11223344", "abcd1234", "a1b2c3d4",
+        "password", "password1", "senha123", "senha1234", "senhasenha", "admin123", "admin1234", "administrador", "qwerty123",
+        "qwertyui", "asdf1234", "iloveyou", "mudar123", "trocar123", "loja1234", "erploja1", "changeme",
+    };
+
+    /// <summary>
+    /// Senha nova (RN-USU-06/08, OWASP A07): pelo menos 8 caracteres, não pode ser uma senha comum nem só uma letra/número
+    /// repetido. Vale para cadastro, troca, primeiro acesso e recuperação.
+    /// </summary>
+    public static string? Senha(string senha)
+    {
+        if (senha.Length < SenhaMinima)
+            return $"A senha deve ter pelo menos {SenhaMinima} caracteres.";
+        if (senha.Length > 128)
+            return "A senha pode ter no máximo 128 caracteres.";
+        if (SenhasComuns.Contains(senha) || senha.Distinct().Count() <= 2)
+            return "Esta senha é muito fácil de adivinhar. Use uma combinação de palavras, números ou símbolos.";
+        return null;
+    }
 
     /// <summary>
     /// RN-USU-07: o sistema nunca fica sem administrador ativo; ninguém inativa o próprio usuário nem tira o próprio

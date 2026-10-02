@@ -22,7 +22,7 @@ public class CadastrosProdutoComDadosErrados : ICenario
         u.Preencher(tela, "Descrição", "Produto de teste");
         u.Preencher(tela, "Código de barras (EAN)", eanRuim);
         u.Clicar(tela, "Salvar");
-        u.Ok(u.Viu("ERRO", "Código de barras inválido"), "EAN com dígito verificador errado é recusado");
+        u.Ok(u.Viu("ERRO", "não é um código de barras válido"), "EAN com dígito verificador errado é recusado");
 
         var outro = Db.Query("SELECT id, codigo_barras, nome FROM produtos WHERE codigo_barras IS NOT NULL ORDER BY id LIMIT 1").Rows[0];
         u.Mensagens.Clear();
@@ -34,13 +34,13 @@ public class CadastrosProdutoComDadosErrados : ICenario
         u.Preencher(tela, "Código de barras (EAN)", eanBom);
         u.Preencher(tela, "NCM (8 dígitos) — fiscal", "2202");
         u.Clicar(tela, "Salvar");
-        u.Ok(u.Viu("ERRO", "NCM deve ter 8 dígitos"), "NCM incompleto é recusado");
+        u.Ok(u.Viu("ERRO", "deve ter 8 dígitos"), "NCM incompleto é recusado");
 
         u.Mensagens.Clear();
         u.Preencher(tela, "NCM (8 dígitos) — fiscal", "2202.10.00");
         u.Preencher(tela, "CST / CSOSN (ex.: 102 no Simples)", "1O2");
         u.Clicar(tela, "Salvar");
-        u.Ok(u.Viu("ERRO", "CST/CSOSN deve ter"), "CST com letra (O no lugar de zero) é recusado");
+        u.Ok(u.Viu("ERRO", "aceita só números"), "CST com letra (O no lugar de zero) é recusado");
 
         u.Mensagens.Clear();
         u.Preencher(tela, "CST / CSOSN (ex.: 102 no Simples)", "102");

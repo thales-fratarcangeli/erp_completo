@@ -8,6 +8,7 @@ public class BuscaProdutoForm : Form
 
     BuscaProdutoForm(string termo)
     {
+        Validacao.Aplicar(busca, Formatos.CodigoOuNome, "Pesquisa");
         Ui.Estilizar(this, "Buscar produto", 900, 520, nameof(BuscaProdutoForm));
         StartPosition = FormStartPosition.CenterParent;
         MinimizeBox = false;
@@ -49,9 +50,9 @@ public class BuscaProdutoForm : Form
             SELECT p.id, p.codigo AS "Código", p.codigo_barras AS "Cód. barras", p.nome AS "Produto",
                    c.nome AS "Categoria", p.unidade AS "Un.", p.estoque AS "Estoque", p.preco_venda AS "Preço"
             FROM produtos p LEFT JOIN categorias c ON c.id = p.categoria_id
-            WHERE p.ativo = 1 AND (p.nome LIKE @p0 OR p.codigo LIKE @p0 OR p.codigo_barras LIKE @p0)
+            WHERE p.ativo = 1 AND (p.nome LIKE @p0 ESCAPE '\' OR p.codigo LIKE @p0 ESCAPE '\' OR p.codigo_barras LIKE @p0 ESCAPE '\')
             ORDER BY p.nome LIMIT 300
-            """, "%" + busca.Text.Trim() + "%");
+            """, Db.Contem(busca.Text));
     }
 
     void Confirmar()

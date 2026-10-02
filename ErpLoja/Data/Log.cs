@@ -75,6 +75,16 @@ public static class Log
                 CREATE INDEX IF NOT EXISTS ix_log_usuario ON log(usuario, data_hora);
                 """;
             cmd.ExecuteNonQuery();
+            // cadeia de hashes (OWASP A08/A09): bancos de log anteriores ganham as colunas na primeira abertura
+            using (var colunas = c.CreateCommand())
+            {
+                colunas.CommandText = "SELECT COUNT(*) FROM pragma_table_info('log') WHERE name = 'hash'";
+                if (Convert.ToInt64(colunas.ExecuteScalar()) == 0)
+                {
+                    colunas.CommandText = "ALTER TABLE log ADD COLUMN anterior TEXT; ALTER TABLE log ADD COLUMN hash TEXT;";
+                    colunas.ExecuteNonQuery();
+                }
+            }
             estruturaCriadaEm = caminho;
         }
         return c;
@@ -90,28 +100,87 @@ public static class Log
             lock (trava)
             {
                 using var c = Abrir();
+                using var tx = c.BeginTransaction();
+                using var ultimo = c.CreateCommand();
+                ultimo.Transaction = tx;
+                ultimo.CommandText = "SELECT hash FROM log ORDER BY id DESC LIMIT 1";
+                var anterior = ultimo.ExecuteScalar() as string ?? "";
+                var registro = new Registro(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture), Sessao.UsuarioId,
+                    Sessao.Nome ?? "", Environment.MachineName, Limitar(tela ?? TelaAtual, 120), categoria, Limitar(acao, 300),
+                    Limitar(detalhe, 4000), tabela, registroId);
                 using var cmd = c.CreateCommand();
+                cmd.Transaction = tx;
                 cmd.CommandText = """
-                    INSERT INTO log(data_hora, usuario_id, usuario, maquina, tela, categoria, acao, detalhe, tabela, registro_id)
-                    VALUES(@d, @uid, @u, @m, @t, @c, @a, @det, @tab, @reg)
+                    INSERT INTO log(data_hora, usuario_id, usuario, maquina, tela, categoria, acao, detalhe, tabela, registro_id, anterior, hash)
+                    VALUES(@d, @uid, @u, @m, @t, @c, @a, @det, @tab, @reg, @ant, @hash)
                     """;
-                cmd.Parameters.AddWithValue("@d", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture));
-                cmd.Parameters.AddWithValue("@uid", (object?)Sessao.UsuarioId ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@u", Sessao.Nome ?? "");
-                cmd.Parameters.AddWithValue("@m", Environment.MachineName);
-                cmd.Parameters.AddWithValue("@t", Limitar(tela ?? TelaAtual, 120));
-                cmd.Parameters.AddWithValue("@c", categoria);
-                cmd.Parameters.AddWithValue("@a", Limitar(acao, 300));
-                cmd.Parameters.AddWithValue("@det", Limitar(detalhe, 4000));
-                cmd.Parameters.AddWithValue("@tab", (object?)tabela ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@reg", (object?)registroId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@d", registro.DataHora);
+                cmd.Parameters.AddWithValue("@uid", (object?)registro.UsuarioId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@u", registro.Usuario);
+                cmd.Parameters.AddWithValue("@m", registro.Maquina);
+                cmd.Parameters.AddWithValue("@t", registro.Tela);
+                cmd.Parameters.AddWithValue("@c", registro.Categoria);
+                cmd.Parameters.AddWithValue("@a", registro.Acao);
+                cmd.Parameters.AddWithValue("@det", registro.Detalhe);
+                cmd.Parameters.AddWithValue("@tab", (object?)registro.Tabela ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@reg", (object?)registro.RegistroId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@ant", anterior);
+                cmd.Parameters.AddWithValue("@hash", Hash(anterior, registro));
                 cmd.ExecuteNonQuery();
+                tx.Commit();
             }
         }
         catch
         {
             // o log é auxiliar: nunca derruba a operação do usuário
         }
+    }
+
+    record Registro(string DataHora, long? UsuarioId, string Usuario, string Maquina, string Tela, string Categoria, string Acao,
+        string Detalhe, string? Tabela, long? RegistroId);
+
+    /// <summary>SHA-256 do hash anterior + todos os campos do registro (cadeia: alterar ou apagar uma linha quebra as seguintes).</summary>
+    static string Hash(string anterior, Registro r)
+    {
+        var texto = string.Join("\u001f", anterior, r.DataHora, r.UsuarioId?.ToString(CultureInfo.InvariantCulture) ?? "", r.Usuario, r.Maquina,
+            r.Tela, r.Categoria, r.Acao, r.Detalhe, r.Tabela ?? "", r.RegistroId?.ToString(CultureInfo.InvariantCulture) ?? "");
+        return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(texto)));
+    }
+
+    /// <summary>
+    /// Confere a cadeia de hashes do log (OWASP A08/A09). Devolve null se íntegra ou a descrição do primeiro registro
+    /// alterado/removido. Registros anteriores à cadeia (sem hash) e o início após a limpeza por retenção são aceitos.
+    /// </summary>
+    public static string? VerificarIntegridade()
+    {
+        if (!File.Exists(Caminho))
+            return null;
+        lock (trava)
+        {
+            using var c = Abrir();
+            using var cmd = c.CreateCommand();
+            cmd.CommandText = """
+                SELECT id, data_hora, usuario_id, usuario, maquina, tela, categoria, acao, detalhe, tabela, registro_id, anterior, hash
+                FROM log WHERE hash IS NOT NULL ORDER BY id
+                """;
+            using var r = cmd.ExecuteReader();
+            string? hashAnterior = null;
+            long? idAnterior = null;
+            while (r.Read())
+            {
+                var id = r.GetInt64(0);
+                var registro = new Registro(r.GetString(1), r.IsDBNull(2) ? null : r.GetInt64(2), r.GetString(3), r.GetString(4), r.GetString(5),
+                    r.GetString(6), r.GetString(7), r.GetString(8), r.IsDBNull(9) ? null : r.GetString(9), r.IsDBNull(10) ? null : r.GetInt64(10));
+                var anterior = r.IsDBNull(11) ? "" : r.GetString(11);
+                if (hashAnterior != null && anterior != hashAnterior)
+                    return $"A sequência do log foi quebrada entre os registros {idAnterior} e {id} (registro apagado ou alterado fora do sistema).";
+                if (Hash(anterior, registro) != r.GetString(12))
+                    return $"O registro {id} ({registro.DataHora}) foi alterado fora do sistema.";
+                hashAnterior = r.GetString(12);
+                idAnterior = id;
+            }
+        }
+        return null;
     }
 
     static string Limitar(string s, int max) => s.Length <= max ? s : s[..(max - 1)] + "…";
@@ -178,8 +247,8 @@ public static class Log
             }
             if (!string.IsNullOrWhiteSpace(texto))
             {
-                filtros.Add("(acao LIKE @x OR detalhe LIKE @x OR tela LIKE @x OR tabela LIKE @x)");
-                cmd.Parameters.AddWithValue("@x", "%" + texto.Trim() + "%");
+                filtros.Add(@"(acao LIKE @x ESCAPE '\' OR detalhe LIKE @x ESCAPE '\' OR tela LIKE @x ESCAPE '\' OR tabela LIKE @x ESCAPE '\')");
+                cmd.Parameters.AddWithValue("@x", Db.Contem(texto));
             }
             cmd.CommandText = $"""
                 SELECT id, substr(data_hora, 9, 2) || '/' || substr(data_hora, 6, 2) || '/' || substr(data_hora, 1, 4) || ' ' || substr(data_hora, 12, 8) AS "Data/hora",

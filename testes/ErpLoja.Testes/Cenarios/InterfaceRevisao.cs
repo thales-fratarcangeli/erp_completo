@@ -33,27 +33,27 @@ public class InterfaceRevisaoUsabilidade : ICenario
         {
             Preencher(f, true, "admin", "admin");
             u.Clicar(f, "Salvar e entrar");
-            Preencher(f, true, "nova1", "nova2");
+            Preencher(f, true, "Nova!Senha1", "Nova!Senha2");
             u.Clicar(f, "Salvar e entrar");
             Preencher(f, true, "abc", "abc");
             u.Clicar(f, "Salvar e entrar");
-            Preencher(f, true, "segura9", "segura9");
+            Preencher(f, true, "Segura!2026", "Segura!2026");
             u.Clicar(f, "Salvar e entrar");
         });
         var entrou = LoginForm.Executar();
         Usuario.Esperar(300);
         u.ConferirJanelas();
-        u.Ok(entrou && u.Viu("ERRO", "diferente da padrão") && u.Viu("ERRO", "diferentes") && u.Viu("ERRO", "pelo menos 4"),
+        u.Ok(entrou && u.Viu("ERRO", "diferente da padrão") && u.Viu("ERRO", "diferentes") && u.Viu("ERRO", "pelo menos 8"),
             "primeiro acesso com a senha padrão exige senha nova (recusa a padrão, senhas diferentes e curtas)");
         var hash = Ui.Txt(Db.Scalar("SELECT senha FROM usuarios WHERE username = 'admin'"));
-        u.Ok(Senhas.Verificar("segura9", hash) && !Senhas.Verificar("admin", hash), "senha nova gravada (como hash) e a padrão deixa de valer");
+        u.Ok(Senhas.Verificar("Segura!2026", hash) && !Senhas.Verificar("admin", hash), "senha nova gravada (como hash) e a padrão deixa de valer");
 
         // segundo acesso com a senha nova: entra direto, sem pedir troca
         u.QuandoAbrirJanela("Acesso", f =>
         {
             var caixas = Usuario.Todos(f).OfType<TextBox>().ToList();
             caixas.First(c => !c.UseSystemPasswordChar).Text = "admin";
-            caixas.First(c => c.UseSystemPasswordChar).Text = "segura9";
+            caixas.First(c => c.UseSystemPasswordChar).Text = "Segura!2026";
             u.Clicar(f, "Entrar");
         });
         u.Ok(LoginForm.Executar() && u.JanelasPendentes == 0, "com a senha nova entra direto");

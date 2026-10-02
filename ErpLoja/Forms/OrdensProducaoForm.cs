@@ -159,7 +159,7 @@ public class OrdensProducaoForm : Form
         var quantidade = d.Adicionar("Quantidade a produzir:", Ui.Numero(3, 9_999_999, 0.001m));
         quantidade.Value = 1;
         var previsao = d.Adicionar("Previsão de conclusão:", Ui.Data(DateTime.Today.AddDays(1)));
-        var obs = d.Adicionar("Observações:", new TextBox());
+        var obs = d.Adicionar("Observações:", Validacao.Caixa(Formatos.Texto(500), "Observações"));
         d.Nota("A necessidade de cada insumo é calculada pela ficha técnica (proporção do rendimento + perdas).");
         if (d.ShowDialog(dono) != DialogResult.OK || Ui.Id(produto) is not long id)
             return null;

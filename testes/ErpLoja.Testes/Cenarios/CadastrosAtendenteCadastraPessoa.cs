@@ -20,7 +20,7 @@ public class CadastrosAtendenteCadastraPessoa : ICenario
         u.Preencher(tela, "Nome / razão social", "Maria Apressada");
         u.Preencher(tela, "CPF/CNPJ", "123.456.789-00");
         u.Clicar(tela, "Salvar");
-        u.Ok(u.Viu("ERRO", "CPF/CNPJ inválido"), "CPF com dígito errado é recusado");
+        u.Ok(u.Viu("ERRO", "não é um CPF"), "CPF com dígito errado é recusado");
 
         // nenhum papel marcado
         var cpfNovo = CadastrosApoio.Cpf("529982247");

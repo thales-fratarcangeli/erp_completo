@@ -44,6 +44,13 @@ public static class Db
         return s.Scalar(sql, args);
     }
 
+    /// <summary>
+    /// Padrão "contém" para LIKE com os curingas digitados (% e _) tratados como texto (OWASP A05). O SQL deve usar
+    /// "LIKE @pN ESCAPE '\'" (a barra invertida é o caractere de escape).
+    /// </summary>
+    public static string Contem(string texto) =>
+        "%" + texto.Trim().Replace(@"\", @"\\").Replace("%", @"\%").Replace("_", @"\_") + "%";
+
     /// <summary>Data no formato gravado no banco (yyyy-MM-dd).</summary>
     public static string Dia(DateTime d) => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 

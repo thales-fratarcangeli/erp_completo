@@ -214,12 +214,12 @@ public class SistemaFuncionarioMinhaConta : ICenario
             atual.Text = "errada"; nova.Text = "abcd"; confirma.Text = "abcd";
             u.Clicar(aba, "Alterar senha");
             u.Ok(u.Viu("ERRO", "Senha atual incorreta"), "senha atual errada é recusada");
-            atual.Text = "1234"; nova.Text = "abcd"; confirma.Text = "abce";
+            atual.Text = "1234"; nova.Text = "Nova!Senha99"; confirma.Text = "Nova!Senha98";
             u.Clicar(aba, "Alterar senha");
             u.Ok(u.Viu("ERRO", "confirmação"), "confirmação diferente é recusada");
-            atual.Text = "1234"; nova.Text = "abcd"; confirma.Text = "abcd";
+            atual.Text = "1234"; nova.Text = "Nova!Senha99"; confirma.Text = "Nova!Senha99";
             u.Clicar(aba, "Alterar senha");
-            u.Ok(Senhas.Verificar("abcd", Ui.Txt(Db.Scalar("SELECT senha FROM usuarios WHERE id = @p0", id))) && atual.Text == "",
+            u.Ok(Senhas.Verificar("Nova!Senha99", Ui.Txt(Db.Scalar("SELECT senha FROM usuarios WHERE id = @p0", id))) && atual.Text == "",
                 "senha alterada e campos limpos");
             u.Ok(Log.Consultar(DateTime.Today, DateTime.Today, Log.Acesso, "Joana Caixa", "Senha alterada").Rows.Count == 1,
                 "a troca de senha fica registrada no log de acesso (categoria ACESSO)");
@@ -327,7 +327,7 @@ public class SistemaRecuperacaoDeSenha : ICenario
             var (campoCodigo, nova, confirma) = (caixas[1], caixas[2], caixas[3]);
             u.Mensagens.Clear();
             campoCodigo.Text = codigo == "000000" ? "111111" : "000000";
-            nova.Text = confirma.Text = "nova123";
+            nova.Text = confirma.Text = "Nova!Senha123";
             u.Clicar(f, "Redefinir senha");
             u.Ok(u.Viu("ERRO", "Restam 4"), "código errado avisa quantas tentativas restam");
             campoCodigo.Text = codigo;
@@ -335,7 +335,7 @@ public class SistemaRecuperacaoDeSenha : ICenario
             u.Clicar(f, "Redefinir senha");
             Usuario.Esperar();
             u.Ok(u.Viu("INFO", "Senha redefinida"), "o código recebido redefine a senha mesmo depois de um reenvio que falhou" + SistemaUtil.Erros(u));
-            u.Ok(Senhas.Verificar("nova123", Ui.Txt(Db.Scalar("SELECT senha FROM usuarios WHERE username = 'maria'"))), "a nova senha passa a valer");
+            u.Ok(Senhas.Verificar("Nova!Senha123", Ui.Txt(Db.Scalar("SELECT senha FROM usuarios WHERE username = 'maria'"))), "a nova senha passa a valer");
             if (!f.IsDisposed)
                 f.Close();
         }

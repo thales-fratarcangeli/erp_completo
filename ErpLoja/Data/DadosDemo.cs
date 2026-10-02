@@ -102,6 +102,7 @@ public static class DadosDemo
 
     public static string Gerar()
     {
+        Permissoes.ExigirAdmin("gerar dados de demonstração");
         string resumo;
         using (Log.Suspender())
             resumo = GerarDados();

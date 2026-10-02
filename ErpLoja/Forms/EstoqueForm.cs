@@ -11,6 +11,7 @@ public class EstoqueForm : Form
 
     public EstoqueForm()
     {
+        Validacao.Aplicar(busca, Formatos.Busca, "Pesquisa");
         Ui.Estilizar(this, "Estoque", 1150, 720, nameof(EstoqueForm));
 
         var barra = Ui.Barra();
@@ -137,7 +138,7 @@ public class EstoqueForm : Form
         tipo.Items.AddRange(["Entrada", "Saída (perda, quebra, uso)", "Definir saldo (inventário)"]);
         tipo.SelectedIndex = 0;
         var quantidade = d.Adicionar("Quantidade:", Ui.Numero(3));
-        var motivo = d.Adicionar("Motivo:", new TextBox());
+        var motivo = d.Adicionar("Motivo:", Validacao.Caixa(Formatos.Texto(200), "Motivo"));
         d.Validar = () =>
         {
             if (tipo.SelectedIndex < 2 && quantidade.Value <= 0) { Ui.Erro("Informe a quantidade."); return false; }

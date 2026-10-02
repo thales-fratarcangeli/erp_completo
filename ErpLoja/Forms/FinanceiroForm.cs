@@ -120,7 +120,7 @@ public class FinanceiroForm : Form
         using var d = new Dialogo("Nova conta", "conta_nova", "Salvar");
         var tipoConta = d.Adicionar("Tipo:", Ui.Combo());
         tipoConta.Items.AddRange(["A pagar", "A receber"]);
-        var descricao = d.Adicionar("Descrição:", new TextBox());
+        var descricao = d.Adicionar("Descrição:", Validacao.Caixa(Formatos.Texto(150), "Descrição"));
         var valor = d.Adicionar("Valor total (R$):", Ui.Numero());
         var parcelas = d.Adicionar("Parcelas:", Ui.Numero(0, Parametros.MaxParcelas, 1));
         var vencimento = d.Adicionar("1º vencimento:", Ui.Data(DateTime.Today.AddDays(Parametros.PrazoVencimentoDias)));

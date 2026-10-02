@@ -22,26 +22,26 @@ public static class Cadastros
                telefone AS "Telefone", email AS "E-mail", cidade || COALESCE('/' || uf, '') AS "Cidade", {SimNao} AS "Ativo"
         FROM pessoas WHERE {"{filtro}"} ORDER BY nome
         """,
-        new Campo("nome", "Nome / razão social", Obrigatorio: true),
-        new Campo("fantasia", "Nome fantasia"),
+        new Campo("nome", "Nome / razão social", Obrigatorio: true, Formato: Formatos.Nome),
+        new Campo("fantasia", "Nome fantasia", Formato: Formatos.Nome),
         new Campo("eh_cliente", "Cliente", TipoCampo.Booleano, Padrao: true),
         new Campo("eh_fornecedor", "Fornecedor", TipoCampo.Booleano),
         new Campo("eh_transportador", "Transportador", TipoCampo.Booleano),
         new Campo("eh_motorista", "Motorista", TipoCampo.Booleano),
-        new Campo("cpf_cnpj", "CPF/CNPJ", Validacao: ValidarDocumento),
-        new Campo("ie", "Inscrição estadual"),
-        new Campo("telefone", "Telefone"),
-        new Campo("email", "E-mail", Validacao: ValidarEmail),
-        new Campo("contato", "Pessoa de contato"),
-        new Campo("endereco", "Endereço"),
-        new Campo("cidade", "Cidade"),
+        new Campo("cpf_cnpj", "CPF/CNPJ", Validacao: ValidarDocumento, Formato: Formatos.CpfCnpj),
+        new Campo("ie", "Inscrição estadual", Formato: Formatos.InscricaoEstadual),
+        new Campo("telefone", "Telefone", Formato: Formatos.Telefone),
+        new Campo("email", "E-mail", Validacao: ValidarEmail, Formato: Formatos.Email),
+        new Campo("contato", "Pessoa de contato", Formato: Formatos.Nome),
+        new Campo("endereco", "Endereço", Formato: Formatos.Texto(150)),
+        new Campo("cidade", "Cidade", Formato: Formatos.Cidade),
         new Campo("uf", "UF", TipoCampo.Opcoes, Opcoes: ["", .. Fiscal.Ufs]),
-        new Campo("cep", "CEP"),
+        new Campo("cep", "CEP", Formato: Formatos.Cep),
         new Campo("limite_credito", "Limite de crédito a prazo (R$, 0 = sem limite)", TipoCampo.Decimal),
-        new Campo("rntrc", "RNTRC (transportador)", Validacao: Fretes.ValidarRntrc),
-        new Campo("cnh", "CNH (motorista)"),
+        new Campo("rntrc", "RNTRC (transportador)", Validacao: Fretes.ValidarRntrc, Formato: Formatos.Rntrc),
+        new Campo("cnh", "CNH (motorista)", Formato: Formatos.Cnh),
         new Campo("cnh_categoria", "Categoria da CNH", TipoCampo.Opcoes, Opcoes: ["", "A", "B", "C", "D", "E", "AB", "AC", "AD", "AE"]),
-        new Campo("cnh_validade", "Validade da CNH (dd/mm/aaaa)"),
+        new Campo("cnh_validade", "Validade da CNH (dd/mm/aaaa)", Formato: Formatos.DataBr),
         new Campo("observacoes", "Observações", TipoCampo.MultiLinha),
         new Campo("ativo", "Ativo", TipoCampo.Booleano, Padrao: true))
     {
@@ -73,26 +73,26 @@ public static class Cadastros
         WHERE {"{filtro}"}
         ORDER BY p.nome
         """,
-        new Campo("codigo", "Código", Obrigatorio: true),
-        new Campo("codigo_barras", "Código de barras (EAN)"),
-        new Campo("nome", "Descrição", Obrigatorio: true),
+        new Campo("codigo", "Código", Obrigatorio: true, Formato: Formatos.CodigoProduto),
+        new Campo("codigo_barras", "Código de barras (EAN)", Formato: Formatos.CodigoBarras),
+        new Campo("nome", "Descrição", Obrigatorio: true, Formato: Formatos.Texto(120)),
         new Campo("tipo", "Tipo", TipoCampo.Opcoes, Obrigatorio: true, Opcoes: ["MERCADORIA", "PRODUTO_ACABADO", "INSUMO"], Padrao: "MERCADORIA"),
         new Campo("categoria_id", "Categoria", TipoCampo.Lookup, Lookup: "SELECT id, nome FROM categorias ORDER BY nome"),
-        new Campo("unidade", "Unidade (UN, KG, CX...)", Obrigatorio: true, Padrao: "UN"),
+        new Campo("unidade", "Unidade (UN, KG, CX...)", Obrigatorio: true, Padrao: "UN", Formato: Formatos.Unidade),
         new Campo("preco_custo", "Preço de custo (R$, custo médio)", TipoCampo.Decimal, Casas: 4),
         new Campo("preco_venda", "Preço de venda (R$)", TipoCampo.Decimal),
         new Campo("estoque_minimo", "Estoque mínimo", TipoCampo.Decimal),
         new Campo("ativo", "Ativo", TipoCampo.Booleano, Padrao: true),
-        new Campo("ncm", "NCM (8 dígitos) — fiscal", Validacao: RegrasCadastro.Ncm),
-        new Campo("cest", "CEST"),
+        new Campo("ncm", "NCM (8 dígitos) — fiscal", Validacao: RegrasCadastro.Ncm, Formato: Formatos.Ncm),
+        new Campo("cest", "CEST", Formato: Formatos.Cest),
         new Campo("origem", "Origem (0 = nacional, 1/2 = estrangeira)", TipoCampo.Inteiro),
-        new Campo("cst", "CST / CSOSN (ex.: 102 no Simples)", Obrigatorio: true, Padrao: Parametros.CstPadrao, Validacao: RegrasCadastro.Cst),
+        new Campo("cst", "CST / CSOSN (ex.: 102 no Simples)", Obrigatorio: true, Padrao: Parametros.CstPadrao, Validacao: RegrasCadastro.Cst, Formato: Formatos.Cst),
         new Campo("aliq_icms", "Alíquota ICMS %", TipoCampo.Decimal),
         new Campo("aliq_ipi", "Alíquota IPI %", TipoCampo.Decimal),
         new Campo("aliq_pis", "Alíquota PIS %", TipoCampo.Decimal),
         new Campo("aliq_cofins", "Alíquota COFINS %", TipoCampo.Decimal),
-        new Campo("cst_ibscbs", "Reforma: CST IBS/CBS", Padrao: Parametros.CstIbsCbsPadrao),
-        new Campo("cclass_trib", "Reforma: classificação tributária (cClassTrib)", Padrao: Parametros.CClassTribPadrao),
+        new Campo("cst_ibscbs", "Reforma: CST IBS/CBS", Padrao: Parametros.CstIbsCbsPadrao, Formato: Formatos.CstIbsCbs),
+        new Campo("cclass_trib", "Reforma: classificação tributária (cClassTrib)", Padrao: Parametros.CClassTribPadrao, Formato: Formatos.CClassTrib),
         new Campo("red_ibs_pct", "Reforma: redução de alíquota IBS %", TipoCampo.Decimal),
         new Campo("red_cbs_pct", "Reforma: redução de alíquota CBS %", TipoCampo.Decimal),
         new Campo("aliq_is", "Reforma: Imposto Seletivo %", TipoCampo.Decimal))
@@ -114,7 +114,7 @@ public static class Cadastros
         SELECT c.id, c.nome AS "Categoria", (SELECT COUNT(*) FROM produtos p WHERE p.categoria_id = c.id) AS "Produtos"
         FROM categorias c ORDER BY c.nome
         """,
-        new Campo("nome", "Nome", Obrigatorio: true))
+        new Campo("nome", "Nome", Obrigatorio: true, Formato: Formatos.Texto(60)))
     {
         ValidarExclusao = id => Convert.ToInt64(Db.Scalar("SELECT COUNT(*) FROM produtos WHERE categoria_id = @p0", id)) is var n and > 0
             ? $"Esta categoria tem {n} produto(s). Troque a categoria deles no cadastro de produtos antes de excluí-la (ou apenas renomeie a categoria)."
@@ -128,11 +128,11 @@ public static class Cadastros
         FROM veiculos v LEFT JOIN pessoas p ON p.id = v.proprietario_id
         ORDER BY v.placa
         """,
-        new Campo("placa", "Placa (AAA0A00)", Obrigatorio: true, Validacao: Fretes.ValidarPlaca),
-        new Campo("renavam", "RENAVAM", Validacao: Fretes.ValidarRenavam),
+        new Campo("placa", "Placa (AAA0A00)", Obrigatorio: true, Validacao: Fretes.ValidarPlaca, Formato: Formatos.Placa),
+        new Campo("renavam", "RENAVAM", Validacao: Fretes.ValidarRenavam, Formato: Formatos.Renavam),
         new Campo("tipo", "Tipo", TipoCampo.Opcoes, Obrigatorio: true, Opcoes: ["CAMINHAO", "CARRETA", "TRUCK", "TOCO", "VAN", "UTILITARIO", "CARRO", "MOTO"], Padrao: "CAMINHAO"),
         new Campo("carroceria", "Carroceria", TipoCampo.Opcoes, Opcoes: ["", "BAU", "SIDER", "GRANELEIRA", "CACAMBA", "TANQUE", "FRIGORIFICA", "PRANCHA", "ABERTA"]),
-        new Campo("marca_modelo", "Marca / modelo"),
+        new Campo("marca_modelo", "Marca / modelo", Formato: Formatos.Texto(60)),
         new Campo("ano", "Ano", TipoCampo.Inteiro),
         new Campo("uf", "UF de licenciamento", TipoCampo.Opcoes, Opcoes: ["", .. Fiscal.Ufs]),
         new Campo("capacidade_kg", "Capacidade (kg)", TipoCampo.Decimal),
@@ -141,7 +141,7 @@ public static class Cadastros
         new Campo("frota_propria", "Frota própria", TipoCampo.Booleano, Padrao: true),
         new Campo("proprietario_id", "Proprietário (veículo de terceiro)", TipoCampo.Lookup,
             Lookup: "SELECT id, nome FROM pessoas WHERE eh_transportador = 1 ORDER BY nome"),
-        new Campo("rntrc", "RNTRC do veículo", Validacao: Fretes.ValidarRntrc),
+        new Campo("rntrc", "RNTRC do veículo", Validacao: Fretes.ValidarRntrc, Formato: Formatos.Rntrc),
         new Campo("ativo", "Ativo", TipoCampo.Booleano, Padrao: true))
     {
         ValidarRegistro = r => Marcado(r, "frota_propria") || r["proprietario_id"] is long
@@ -154,26 +154,26 @@ public static class Cadastros
                CASE ativo WHEN 1 THEN 'Sim' ELSE 'Não' END AS "Ativo"
         FROM contas_bancarias ORDER BY nome
         """,
-        new Campo("nome", "Nome de identificação", Obrigatorio: true),
+        new Campo("nome", "Nome de identificação", Obrigatorio: true, Formato: Formatos.Texto(60)),
         new Campo("banco_codigo", "Código do banco (3 dígitos, ex.: 001, 237, 341, 756)", Obrigatorio: true,
-            Validacao: b => Fiscal.SoDigitos(b).Length == 3 ? null : "Código do banco com 3 dígitos."),
-        new Campo("banco_nome", "Nome do banco"),
-        new Campo("agencia", "Agência", Obrigatorio: true),
-        new Campo("agencia_dv", "Dígito da agência"),
-        new Campo("conta", "Conta corrente", Obrigatorio: true),
-        new Campo("conta_dv", "Dígito da conta"),
-        new Campo("carteira", "Carteira"),
-        new Campo("convenio", "Convênio / código do beneficiário"),
+            Validacao: b => Fiscal.SoDigitos(b).Length == 3 ? null : "Código do banco com 3 dígitos.", Formato: Formatos.CodigoBanco),
+        new Campo("banco_nome", "Nome do banco", Formato: Formatos.Texto(60)),
+        new Campo("agencia", "Agência", Obrigatorio: true, Formato: Formatos.Agencia),
+        new Campo("agencia_dv", "Dígito da agência", Formato: Formatos.DigitoVerificador),
+        new Campo("conta", "Conta corrente", Obrigatorio: true, Formato: Formatos.ContaCorrente),
+        new Campo("conta_dv", "Dígito da conta", Formato: Formatos.DigitoVerificador),
+        new Campo("carteira", "Carteira", Formato: Formatos.Carteira),
+        new Campo("convenio", "Convênio / código do beneficiário", Formato: Formatos.Convenio),
         new Campo("campo_livre_modelo", "Modelo do campo livre (25 posições)", Obrigatorio: true, Padrao: Cobranca.ModeloCampoLivrePadrao,
-            Validacao: Cobranca.ValidarModeloCampoLivre),
+            Validacao: Cobranca.ValidarModeloCampoLivre, Formato: Formatos.ModeloCampoLivre),
         new Campo("nosso_numero_digitos", "Dígitos do nosso número", TipoCampo.Inteiro, Padrao: 11),
         new Campo("nosso_numero_atual", "Último nosso número usado", TipoCampo.Inteiro),
         new Campo("remessa_sequencia", "Última sequência de remessa", TipoCampo.Inteiro),
-        new Campo("especie_titulo", "Espécie do título (02 = DM)", Padrao: "02"),
+        new Campo("especie_titulo", "Espécie do título (02 = DM)", Padrao: "02", Formato: Formatos.EspecieTitulo),
         new Campo("multa_pct", "Multa após vencimento (%)", TipoCampo.Decimal),
         new Campo("juros_mes_pct", "Juros ao mês (%)", TipoCampo.Decimal),
         new Campo("dias_protesto", "Dias para protesto (0 = não protestar)", TipoCampo.Inteiro),
-        new Campo("instrucoes", "Instruções ao caixa", TipoCampo.MultiLinha),
+        new Campo("instrucoes", "Instruções ao caixa", TipoCampo.MultiLinha, Formato: Formatos.TextoLongo(220)),
         new Campo("ambiente", "Ambiente", TipoCampo.Opcoes, Obrigatorio: true, Opcoes: ["HOMOLOGACAO", "PRODUCAO"], Padrao: "HOMOLOGACAO"),
         new Campo("ativo", "Ativo", TipoCampo.Booleano, Padrao: true))
     {
@@ -187,12 +187,12 @@ public static class Cadastros
                {SimNao} AS "Ativo"
         FROM usuarios ORDER BY nome
         """,
-        new Campo("nome", "Nome", Obrigatorio: true),
+        new Campo("nome", "Nome", Obrigatorio: true, Formato: Formatos.Nome),
         new Campo("username", "Username", Obrigatorio: true,
             Validacao: u => System.Text.RegularExpressions.Regex.IsMatch(u, @"^[A-Za-z0-9._-]{3,30}$")
-                ? null : "Username deve ter de 3 a 30 caracteres: letras, números, ponto, hífen ou sublinhado (sem espaços)."),
-        new Campo("senha", "Senha (mínimo 4 caracteres)", TipoCampo.Senha, Obrigatorio: true, Validacao: RegrasCadastro.Senha),
-        new Campo("email", "E-mail (recuperação de senha)", Obrigatorio: true, Validacao: ValidarEmail),
+                ? null : "Username deve ter de 3 a 30 caracteres: letras, números, ponto, hífen ou sublinhado (sem espaços).", Formato: Formatos.Username),
+        new Campo("senha", "Senha (mínimo 8 caracteres)", TipoCampo.Senha, Obrigatorio: true, Validacao: RegrasCadastro.Senha),
+        new Campo("email", "E-mail (recuperação de senha)", Obrigatorio: true, Validacao: ValidarEmail, Formato: Formatos.Email),
         new Campo("admin", "Administrador (acessa usuários, configurações e cancelamentos)", TipoCampo.Booleano),
         new Campo("ativo", "Ativo", TipoCampo.Booleano, Padrao: true))
     {

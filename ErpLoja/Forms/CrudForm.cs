@@ -7,9 +7,12 @@ public enum TipoCampo { Texto, MultiLinha, Inteiro, Decimal, Booleano, Lookup, S
 /// <summary>
 /// Campo editável de um cadastro. Lookup = SQL "SELECT id, nome ..." para um combo. Casas = casas decimais do campo
 /// Decimal (use as mesmas do banco para não arredondar o valor gravado ao salvar).
+/// Formato = formato de entrada dos campos de texto (Data/Formatos); sem formato, o campo aceita texto livre de até 200
+/// caracteres (MultiLinha: 2000).
 /// </summary>
 public record Campo(string Coluna, string Rotulo, TipoCampo Tipo = TipoCampo.Texto, bool Obrigatorio = false,
-    string? Lookup = null, object? Padrao = null, Func<string, string?>? Validacao = null, string[]? Opcoes = null, int Casas = 2);
+    string? Lookup = null, object? Padrao = null, Func<string, string?>? Validacao = null, string[]? Opcoes = null, int Casas = 2,
+    Formato? Formato = null);
 
 /// <summary>Tela genérica de cadastro: lista com pesquisa à esquerda, edição à direita.</summary>
 public class CrudForm : Form
@@ -46,6 +49,7 @@ public class CrudForm : Form
 
     public CrudForm(string titulo, string tabela, string sqlLista, params Campo[] campos)
     {
+        Validacao.Aplicar(busca, Formatos.Busca, "Pesquisa");
         this.tabela = tabela;
         this.sqlLista = sqlLista;
         this.campos = campos;
@@ -67,14 +71,14 @@ public class CrudForm : Form
         {
             Control ed = c.Tipo switch
             {
-                TipoCampo.MultiLinha => new TextBox { Multiline = true, Height = 70, ScrollBars = ScrollBars.Vertical, Width = 350 },
-                TipoCampo.Senha => new TextBox { UseSystemPasswordChar = true, Width = 350 },
+                TipoCampo.MultiLinha => Validacao.Caixa(c.Formato ?? Formatos.Observacao, c.Rotulo, c.Obrigatorio, 350),
+                TipoCampo.Senha => Validacao.Aplicar(new TextBox { UseSystemPasswordChar = true, Width = 350 }, c.Formato ?? Formatos.Senha, c.Rotulo),
                 TipoCampo.Inteiro => Ui.Numero(0),
                 TipoCampo.Decimal => Ui.Numero(c.Casas),
                 TipoCampo.Booleano => new CheckBox { Text = c.Rotulo, AutoSize = true },
                 TipoCampo.Lookup => Ui.Combo(350),
                 TipoCampo.Opcoes => OpcoesCombo(c.Opcoes ?? []),
-                _ => new TextBox { Width = 350 },
+                _ => Validacao.Caixa(c.Formato ?? Formatos.Texto(200), c.Rotulo, c.Obrigatorio, 350),
             };
             if (ed is NumericUpDown)
                 ed.Width = 160;
@@ -227,8 +231,32 @@ public class CrudForm : Form
         editores.Values.FirstOrDefault()?.Focus();
     }
 
+    /// <summary>Cadastros exclusivos de administrador: gravação e exclusão conferem o perfil (OWASP A01).</summary>
+    static readonly HashSet<string> TabelasDeAdministrador = ["usuarios", "contas_bancarias"];
+
+    bool PodeAlterar()
+    {
+        if (!TabelasDeAdministrador.Contains(tabela))
+            return true;
+        try
+        {
+            Permissoes.ExigirAdmin($"alterar \"{Text}\"");
+            return true;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Ui.Erro(ex.Message);
+            return false;
+        }
+    }
+
     void Salvar()
     {
+        if (!PodeAlterar())
+            return;
+        // formato de cada campo (CPF/CNPJ, e-mail, NCM, placa...): o primeiro inválido recebe o cursor e a explicação
+        if (!Validacao.ConferirTodos(painel))
+            return;
         var colunas = new List<string>();
         var valores = new List<object?>();
         foreach (var (c, ed) in editores)
@@ -239,7 +267,7 @@ public class CrudForm : Form
                 NumericUpDown n => c.Tipo == TipoCampo.Inteiro ? (long)n.Value : n.Value,
                 ComboBox cb when c.Tipo == TipoCampo.Opcoes => string.IsNullOrEmpty(cb.Text) ? null : cb.Text,
                 ComboBox cb => Ui.Id(cb),
-                TextBox tb => string.IsNullOrWhiteSpace(tb.Text) ? null : tb.Text.Trim(),
+                TextBox tb => string.IsNullOrWhiteSpace(tb.Text) ? null : (Validacao.FormatoDe(tb)?.Normalizar(tb.Text) ?? tb.Text.Trim()),
                 _ => null,
             };
 
@@ -322,6 +350,8 @@ public class CrudForm : Form
 
     void Excluir()
     {
+        if (!PodeAlterar())
+            return;
         if (idAtual is not long id)
         {
             Ui.Erro("Selecione um registro na lista.");

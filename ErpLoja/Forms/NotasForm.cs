@@ -12,6 +12,7 @@ public class NotasForm : Form
 
     public NotasForm()
     {
+        Validacao.Aplicar(busca, Formatos.Busca, "Filtro");
         Ui.Estilizar(this, "Notas fiscais", 1250, 740, nameof(NotasForm));
         tipo.Items.AddRange(["Todas", "Saída", "Entrada"]);
         situacao.Items.AddRange(["Todas", "Em digitação", "Emitidas", "Canceladas"]);

@@ -76,7 +76,16 @@ public static class ImportacaoXml
         XDocument doc;
         try
         {
-            doc = XDocument.Parse(texto);
+            // leitor seguro (OWASP A05/XXE): sem DTD, sem entidades externas e com limite de tamanho
+            var seguro = new System.Xml.XmlReaderSettings
+            {
+                DtdProcessing = System.Xml.DtdProcessing.Prohibit,
+                XmlResolver = null,
+                MaxCharactersInDocument = 20_000_000,
+                MaxCharactersFromEntities = 0,
+            };
+            using var leitor = System.Xml.XmlReader.Create(new StringReader(texto), seguro);
+            doc = XDocument.Load(leitor);
         }
         catch (System.Xml.XmlException)
         {
