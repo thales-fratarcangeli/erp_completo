@@ -38,7 +38,7 @@ public static class Cadastros
         new Campo("uf", "UF", TipoCampo.Opcoes, Opcoes: ["", .. Fiscal.Ufs]),
         new Campo("cep", "CEP"),
         new Campo("limite_credito", "Limite de crédito a prazo (R$, 0 = sem limite)", TipoCampo.Decimal),
-        new Campo("rntrc", "RNTRC (transportador)"),
+        new Campo("rntrc", "RNTRC (transportador)", Validacao: Fretes.ValidarRntrc),
         new Campo("cnh", "CNH (motorista)"),
         new Campo("cnh_categoria", "Categoria da CNH", TipoCampo.Opcoes, Opcoes: ["", "A", "B", "C", "D", "E", "AB", "AC", "AD", "AE"]),
         new Campo("cnh_validade", "Validade da CNH (dd/mm/aaaa)"),
@@ -119,10 +119,8 @@ public static class Cadastros
         FROM veiculos v LEFT JOIN pessoas p ON p.id = v.proprietario_id
         ORDER BY v.placa
         """,
-        new Campo("placa", "Placa (AAA0A00)", Obrigatorio: true,
-            Validacao: p => System.Text.RegularExpressions.Regex.IsMatch(p.ToUpperInvariant().Replace("-", ""), "^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$")
-                ? null : "Placa inválida. Use o padrão Mercosul (ABC1D23) ou o antigo (ABC1234)."),
-        new Campo("renavam", "RENAVAM"),
+        new Campo("placa", "Placa (AAA0A00)", Obrigatorio: true, Validacao: Fretes.ValidarPlaca),
+        new Campo("renavam", "RENAVAM", Validacao: Fretes.ValidarRenavam),
         new Campo("tipo", "Tipo", TipoCampo.Opcoes, Obrigatorio: true, Opcoes: ["CAMINHAO", "CARRETA", "TRUCK", "TOCO", "VAN", "UTILITARIO", "CARRO", "MOTO"], Padrao: "CAMINHAO"),
         new Campo("carroceria", "Carroceria", TipoCampo.Opcoes, Opcoes: ["", "BAU", "SIDER", "GRANELEIRA", "CACAMBA", "TANQUE", "FRIGORIFICA", "PRANCHA", "ABERTA"]),
         new Campo("marca_modelo", "Marca / modelo"),
@@ -134,7 +132,7 @@ public static class Cadastros
         new Campo("frota_propria", "Frota própria", TipoCampo.Booleano, Padrao: true),
         new Campo("proprietario_id", "Proprietário (veículo de terceiro)", TipoCampo.Lookup,
             Lookup: "SELECT id, nome FROM pessoas WHERE eh_transportador = 1 ORDER BY nome"),
-        new Campo("rntrc", "RNTRC do veículo"),
+        new Campo("rntrc", "RNTRC do veículo", Validacao: Fretes.ValidarRntrc),
         new Campo("ativo", "Ativo", TipoCampo.Booleano, Padrao: true))
     {
         ValidarRegistro = r => Marcado(r, "frota_propria") || r["proprietario_id"] is long

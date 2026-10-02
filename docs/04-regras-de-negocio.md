@@ -31,7 +31,7 @@ Sumário: [Cadastros](#cadastros-rn-cad) · [Estoque](#estoque-rn-est) · [Custo
 | RN-CAD-05 | Código de produto, username, e-mail de usuário e placa de veículo são únicos (sem diferenciar maiúsculas). |
 | RN-CAD-06 | Produto tem tipo: **Mercadoria** (revenda), **Produto acabado** (fabricado) ou **Insumo** (matéria-prima). Salvar uma ficha técnica torna a mercadoria um produto acabado. |
 | RN-CAD-07 | Saldo e custo do produto **não são editáveis** no cadastro (ver RN-EST e RN-CUS). CST padrão de produto novo = `cst_padrao`; CST IBS/CBS = `cst_ibscbs_padrao`; cClassTrib = `cclass_trib_padrao`. |
-| RN-CAD-08 | Veículo de terceiro exige proprietário (pessoa com papel transportador). Placa no padrão Mercosul (ABC1D23) ou antigo (ABC1234). |
+| RN-CAD-08 | Veículo de terceiro exige proprietário (pessoa com papel transportador). Placa no padrão Mercosul (ABC1D23) ou antigo (ABC1234), sem hífen. RENAVAM só com números (9 a 11 dígitos); RNTRC (veículo ou transportador) com 8 ou 9 dígitos. |
 | RN-CAD-09 | Limite de crédito do cliente: 0 = sem limite (ver RN-VEN-08). |
 
 ## Estoque (RN-EST)
@@ -116,11 +116,11 @@ Sumário: [Cadastros](#cadastros-rn-cad) · [Estoque](#estoque-rn-est) · [Custo
 
 | ID | Regra |
 |---|---|
-| RN-PRO-01 | Ficha técnica: rendimento > 0; ao menos um insumo; quantidades > 0; sem insumo repetido; o produto não pode ser insumo de si mesmo. |
+| RN-PRO-01 | Ficha técnica: rendimento > 0; ao menos um insumo; quantidades > 0; sem insumo repetido; o produto não pode ser insumo de si mesmo, nem indiretamente (ficha circular: A usa B e B usa A). |
 | RN-PRO-02 | Nova OP exige ficha técnica. Necessidade de cada insumo = `qtd da ficha × (qtd a produzir ÷ rendimento) × (1 + perda%)`. |
 | RN-PRO-03 | Situações: PLANEJADA → EM_PRODUCAO → CONCLUIDA; PLANEJADA/EM_PRODUCAO → CANCELADA. OP concluída ou cancelada não muda mais. |
 | RN-PRO-04 | Concluir: consumo real = previsto × (produzido ÷ planejado); baixa os insumos (SAIDA), entra o produto (ENTRADA), recalcula o custo médio com o custo real (RN-CUS-06) e grava custo total e unitário na OP. |
-| RN-PRO-05 | Insumo insuficiente ao concluir segue `producao_sem_estoque` (PERGUNTAR, PERMITIR, BLOQUEAR). |
+| RN-PRO-05 | Insumo insuficiente ao concluir segue `producao_sem_estoque` (PERGUNTAR, PERMITIR, BLOQUEAR). A falta é calculada com o consumo real (previsto × produzido ÷ planejado), não só com o previsto; BLOQUEAR também vale na camada de dados. |
 
 ## Transporte e CIOT (RN-TRA)
 
@@ -130,9 +130,9 @@ Sumário: [Cadastros](#cadastros-rn-cad) · [Estoque](#estoque-rn-est) · [Custo
 | RN-TRA-02 | **CIOT obrigatório** (regra simplificada ANTT): frete CONTRATADO com transportador pessoa física (CPF — TAC/equiparado). Transportadora (CNPJ) e frota própria: não obrigatório. |
 | RN-TRA-03 | Declarar CIOT exige: transportador com CPF/CNPJ válido e RNTRC (dele ou do veículo); motorista com CPF válido; veículo; origem e destino (cidade/UF); valor > 0; adiantamento ≤ frete. |
 | RN-TRA-04 | A declaração usa a administradora `ciot_administradora` (Pamcard ou simulador; demais listadas sem integração). Com CIOT declarado, valores e envolvidos ficam travados. |
-| RN-TRA-05 | Situações do CIOT: NAO_SE_APLICA, PENDENTE → DECLARADO → ENCERRADO / CANCELADO (cancelamento com motivo de ao menos 15 caracteres). |
-| RN-TRA-06 | Situações do frete: ABERTO → EM_TRANSITO → ENTREGUE; ABERTO/EM_TRANSITO → CANCELADO. Frete com CIOT declarado só é cancelado após cancelar o CIOT; cancelar o frete cancela as contas abertas dele. |
-| RN-TRA-07 | Contas a pagar do frete contratado (uma única vez): adiantamento (vencimento na data do frete) e saldo = frete − adiantamento + pedágio + outras despesas (vencimento na previsão de entrega). |
+| RN-TRA-05 | Situações do CIOT: NAO_SE_APLICA, PENDENTE → DECLARADO → ENCERRADO / CANCELADO (cancelamento com motivo de ao menos 15 caracteres). Declaração só para frete ABERTO/EM_TRANSITO; resposta de sucesso sem número de CIOT é tratada como falha. |
+| RN-TRA-06 | Situações do frete: ABERTO → EM_TRANSITO → ENTREGUE; ABERTO/EM_TRANSITO → CANCELADO. Com CIOT PENDENTE ou CANCELADO o frete não passa para EM_TRANSITO/ENTREGUE. Frete com CIOT declarado só é cancelado após cancelar o CIOT; cancelar o frete cancela as contas abertas dele. |
+| RN-TRA-07 | Contas a pagar do frete contratado (uma única vez): adiantamento (vencimento na data do frete) e saldo = frete − adiantamento + pedágio + outras despesas (vencimento na previsão de entrega). Frete cancelado ou sem valor a pagar não gera contas. Depois de geradas, valores e transportador ficam travados no editor. |
 
 ## Financeiro (RN-FIN)
 

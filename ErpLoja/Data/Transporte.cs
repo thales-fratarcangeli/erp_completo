@@ -159,6 +159,24 @@ public static class Fretes
         var outra => new AdministradoraNaoIntegrada(outra),
     };
 
+    /// <summary>Placa no padrão Mercosul (ABC1D23) ou antigo (ABC1234), sem hífen (evita a mesma placa gravada de dois jeitos).</summary>
+    public static string? ValidarPlaca(string placa) =>
+        placa.Contains('-') || placa.Contains(' ') ? "Digite a placa sem hífen ou espaço (ex.: ABC1D23)." :
+        System.Text.RegularExpressions.Regex.IsMatch(placa.ToUpperInvariant(), "^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$")
+            ? null : "Placa inválida. Use o padrão Mercosul (ABC1D23) ou o antigo (ABC1234).";
+
+    /// <summary>RENAVAM: só números, 9 a 11 dígitos (os antigos têm 9).</summary>
+    public static string? ValidarRenavam(string renavam) =>
+        renavam.All(char.IsDigit) && renavam.Length is >= 9 and <= 11 ? null : "RENAVAM inválido: informe só os números (9 a 11 dígitos), como no documento do veículo.";
+
+    /// <summary>RNTRC (registro na ANTT): 8 ou 9 dígitos; aceita pontos, hífen e espaços.</summary>
+    public static string? ValidarRntrc(string rntrc)
+    {
+        var digitos = Fiscal.SoDigitos(rntrc);
+        return digitos.Length is 8 or 9 && rntrc.All(c => char.IsDigit(c) || c is '.' or '-' or ' ' or '/')
+            ? null : "RNTRC inválido: são 8 ou 9 dígitos (consulte no registro da ANTT).";
+    }
+
     /// <summary>
     /// CIOT obrigatório (regra simplificada da ANTT): frete contratado de transportador autônomo (pessoa física, TAC)
     /// ou equiparado — transportador com CPF. Frota própria e transportadora (ETC, CNPJ) não exigem.
@@ -202,14 +220,19 @@ public static class Fretes
 
     public static async Task<RespostaCiot> DeclararCiot(long freteId)
     {
-        var status = Convert.ToString(Db.Scalar("SELECT ciot_status FROM fretes WHERE id = @p0", freteId));
-        if (status is "DECLARADO" or "ENCERRADO")
+        var atual = Db.Query("SELECT status, ciot_status FROM fretes WHERE id = @p0", freteId).Rows[0];
+        if (Ui.Txt(atual["ciot_status"]) is "DECLARADO" or "ENCERRADO")
             throw new InvalidOperationException("Este frete já tem CIOT declarado.");
+        if (Ui.Txt(atual["status"]) is "ENTREGUE" or "CANCELADO")
+            throw new InvalidOperationException($"O frete está {Ui.Txt(atual["status"])}: não é possível declarar CIOT para ele.");
         var (op, erros) = MontarOperacao(freteId);
         if (op is null)
             throw new InvalidOperationException("Corrija antes de declarar o CIOT:\n" + string.Join("\n", erros));
         var adm = Administradora();
         var resp = await adm.Declarar(op);
+        // sem o número do CIOT a declaração não serve para a viagem: trata como falha
+        if (resp.Sucesso && string.IsNullOrWhiteSpace(resp.Ciot))
+            resp = resp with { Sucesso = false, Mensagem = $"{adm.Nome} não devolveu o número do CIOT. Confira no portal da administradora antes de declarar de novo. {resp.Mensagem}".Trim() };
         Db.Exec("""
             UPDATE fretes SET ciot = COALESCE(@p0, ciot), ciot_protocolo = COALESCE(@p1, ciot_protocolo), ciot_mensagem = @p2,
                    ciot_administradora = @p3, ciot_status = CASE WHEN @p4 = 1 THEN 'DECLARADO' ELSE ciot_status END
@@ -234,6 +257,9 @@ public static class Fretes
         var f = Db.Query("SELECT ciot, ciot_status, ciot_administradora FROM fretes WHERE id = @p0", freteId).Rows[0];
         if (Ui.Txt(f["ciot_status"]) != "DECLARADO")
             throw new InvalidOperationException("Só é possível cancelar um CIOT declarado (e ainda não encerrado).");
+        if ((motivo ?? "").Trim().Length < 15)
+            throw new InvalidOperationException("Descreva o motivo do cancelamento do CIOT (pelo menos 15 caracteres).");
+        motivo = motivo!.Trim();
         var resp = await Administradora(Ui.Txt(f["ciot_administradora"])).Cancelar(Ui.Txt(f["ciot"]), motivo);
         Db.Exec("UPDATE fretes SET ciot_mensagem = @p0, ciot_status = CASE WHEN @p1 = 1 THEN 'CANCELADO' ELSE ciot_status END WHERE id = @p2",
             resp.Mensagem, resp.Sucesso, freteId);
@@ -250,10 +276,14 @@ public static class Fretes
         var f = s.Query("SELECT * FROM fretes WHERE id = @p0", freteId).Rows[0];
         if (Ui.Dec(f["contas_geradas"]) == 1)
             throw new InvalidOperationException("As contas deste frete já foram geradas.");
+        if (Ui.Txt(f["status"]) == "CANCELADO")
+            throw new InvalidOperationException("O frete está cancelado: não gera contas a pagar.");
         if (Ui.Txt(f["modalidade"]) != "CONTRATADO" || f["transportador_id"] is not long transportador)
             throw new InvalidOperationException("Contas a pagar só para frete contratado com transportador informado.");
         var adiantamento = Ui.Dec(f["valor_adiantamento"]);
         var saldo = Ui.Dec(f["valor_frete"]) - adiantamento + Ui.Dec(f["valor_pedagio"]) + Ui.Dec(f["outras_despesas"]);
+        if (adiantamento <= 0 && saldo <= 0)
+            throw new InvalidOperationException("O frete não tem valor a pagar. Informe o valor do frete (Abrir / editar) antes de gerar as contas.");
         var data = Db.LerData(f["data"]);
         var entrega = f["previsao_entrega"] is string p ? Db.LerData(p) : data.AddDays(Parametros.PrazoVencimentoDias);
         int n = 0;
@@ -283,8 +313,13 @@ public static class Fretes
         };
         if (!permitido)
             throw new InvalidOperationException($"Não é possível passar de {atual} para {novo}.");
-        if (novo == "CANCELADO" && Convert.ToString(Db.Scalar("SELECT ciot_status FROM fretes WHERE id = @p0", freteId)) == "DECLARADO")
+        var ciot = Convert.ToString(Db.Scalar("SELECT ciot_status FROM fretes WHERE id = @p0", freteId));
+        if (novo == "CANCELADO" && ciot == "DECLARADO")
             throw new InvalidOperationException("Cancele o CIOT antes de cancelar o frete.");
+        if (novo is "EM_TRANSITO" or "ENTREGUE" && ciot is "PENDENTE" or "CANCELADO")
+            throw new InvalidOperationException(
+                (ciot == "CANCELADO" ? "O CIOT deste frete foi cancelado. " : "Este frete exige CIOT (transportador autônomo contratado) e ele ainda não foi declarado. ") +
+                "Use \"Declarar CIOT\" antes de liberar a viagem (ou cancele o frete).");
         Db.Exec("UPDATE fretes SET status = @p0, data_entrega = CASE WHEN @p0 = 'ENTREGUE' THEN @p1 ELSE data_entrega END WHERE id = @p2",
             novo, Db.Dia(DateTime.Today), freteId);
         if (novo == "CANCELADO")

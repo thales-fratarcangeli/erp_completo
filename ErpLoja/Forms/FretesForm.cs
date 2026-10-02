@@ -245,6 +245,14 @@ public static class FreteEditor
         if (ciotDeclarado)
             foreach (var c in new Control[] { modalidade, transportador, motorista, veiculo, valor, pedagio, adiantamento })
                 c.Enabled = false;
+        // contas a pagar já geradas: os valores ficariam diferentes das contas (que não são refeitas)
+        if (f != null && Ui.Dec(f["contas_geradas"]) == 1)
+        {
+            foreach (var c in new Control[] { modalidade, transportador, valor, pedagio, adiantamento, outras })
+                c.Enabled = false;
+            d.Nota("As contas a pagar deste frete já foram geradas: valores e transportador ficam travados. " +
+                   "Para corrigir, ajuste as contas em Financeiro.");
+        }
 
         d.Validar = () =>
         {
