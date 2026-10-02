@@ -11,7 +11,7 @@ O menu é dividido por áreas, cada uma com sua cor (a mesma cor aparece na faix
 Cada função existe em um único lugar do menu — não há duas telas fazendo a mesma coisa.
 
 ### Buscar tela (Ctrl+K)
-Não sabe onde fica? Clique em "Buscar tela" ou tecle Ctrl+K e digite uma palavra (ex.: boleto, frete, senha, estoque). O sistema mostra todas as telas relacionadas, procurando nos nomes, nas palavras-chave e no texto de ajuda.
+Não sabe onde fica? Clique em "Buscar tela" ou tecle Ctrl+K e digite uma palavra (ex.: boleto, frete, senha, estoque). O sistema mostra todas as telas relacionadas, procurando nos nomes, nas palavras-chave e no texto de ajuda. Pode escrever do seu jeito (ex.: "como cadastrar cliente", "vender", "trocar minha senha"): palavras como "como", "onde" e "o" são ignoradas e verbos acham a tela pelo radical.
 
 ### Telas abertas (abas)
 As telas abrem no espaço à direita do menu, sem janelas soltas. Cada tela aberta vira uma aba no topo: clique na aba para voltar a ela e no × para fechá-la.

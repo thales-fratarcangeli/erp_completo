@@ -35,7 +35,7 @@ public static class Navegacao
 
     public static List<Tela> Telas() =>
     [
-        new("PdvForm", "PDV - frente de caixa", "Vendas", "caixa venda balcão cupom cartão pix dinheiro troco tef frente checkout",
+        new("PdvForm", "PDV - frente de caixa", "Vendas", "caixa venda vender balcão cupom cartão pix dinheiro troco tef frente checkout",
             () => new PdvForm(), Atalho: Keys.F2),
         new("pedidos_ORCAMENTO", "Orçamentos", "Vendas", "proposta cotação preço cliente aprovar validade",
             () => new PedidosForm(Pedidos.Orcamento), Atalho: Keys.Control | Keys.O),
@@ -59,7 +59,7 @@ public static class Navegacao
             Cadastros.Veiculos),
         new("EstoqueForm", "Estoque", "Estoque", "saldo inventário ajuste movimentação reposição mínimo custo médio",
             () => new EstoqueForm(), Atalho: Keys.F6),
-        new("FinanceiroForm", "Contas a pagar e receber", "Financeiro", "financeiro contas pagar receber baixa vencidas fluxo caixa",
+        new("FinanceiroForm", "Contas a pagar e receber", "Financeiro", "financeiro contas pagar receber baixa vencidas fluxo caixa fornecedor cliente pagamento recebimento",
             () => new FinanceiroForm(), Atalho: Keys.F7),
         new("CobrancaForm", "Cobrança bancária (boletos)", "Financeiro", "boleto banco remessa retorno cnab homologação bancária cobrança",
             () => new CobrancaForm()),
@@ -79,7 +79,7 @@ public static class Navegacao
             Cadastros.Categorias),
         new("cadastro_usuarios", "Usuários", "Cadastros", "usuário senha acesso permissão administrador login",
             Cadastros.Usuarios, SoAdmin: true),
-        new("ConfiguracoesForm", "Configurações", "Sistema", "parâmetros configuração empresa impressora tef ciot e-mail backup banco senha",
+        new("ConfiguracoesForm", "Configurações", "Sistema", "parâmetros configuração empresa impressora tef ciot e-mail backup banco senha trocar minha conta",
             () => new ConfiguracoesForm()),
         new("LogForm", "Log de atividades", "Sistema", "log auditoria histórico atividades quem fez rastreio registro usuário ações",
             () => new LogForm(), SoAdmin: true),
@@ -99,32 +99,48 @@ public static class Navegacao
         return new string(n.Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark).ToArray());
     }
 
+    /// <summary>Palavras de ligação ignoradas na busca ("como cadastrar cliente" procura "cadastrar cliente").</summary>
+    static readonly HashSet<string> PalavrasVazias =
+        ["a", "o", "as", "os", "de", "do", "da", "dos", "das", "e", "em", "no", "na", "nos", "nas", "um", "uma", "para", "pra", "por",
+         "com", "como", "onde", "fica", "ficam", "quero", "fazer", "faco", "meu", "minha", "meus", "minhas", "eu", "que", "qual", "tela"];
+
     /// <summary>
-    /// Busca por palavra-chave: cada termo precisa aparecer no título, nas palavras-chave, no módulo ou no texto de ajuda da tela.
-    /// Pontuação: título (10, ou 15 se começar com o termo) &gt; palavras-chave (6) &gt; módulo (3) &gt; ajuda (1).
+    /// Busca por palavra-chave no título, nas palavras-chave, no módulo e no texto de ajuda da tela. Palavras de ligação são ignoradas
+    /// e verbos/plurais casam pelo radical ("cadastrar" acha "cadastro", "vender" acha "venda").
+    /// Telas que casam com mais termos vêm primeiro; depois, pontuação: título (10, ou 15 se começar com o termo) &gt;
+    /// palavras-chave (6) &gt; módulo (3) &gt; ajuda (1).
     /// </summary>
     public static List<(Tela Tela, int Pontos, string Trecho)> Buscar(string termo, bool admin)
     {
-        var termos = Normalizar(termo).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var todosTermos = Normalizar(termo).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var termos = todosTermos.Where(x => !PalavrasVazias.Contains(x)).ToArray();
+        if (termos.Length == 0)
+            termos = todosTermos;
+        if (termos.Length == 0)
+            return Telas().Where(t => admin || !t.SoAdmin).Select(t => (t, 0, "")).ToList();
         var resultado = new List<(Tela, int, string)>();
         foreach (var t in Telas().Where(t => admin || !t.SoAdmin))
         {
             var ajuda = Ajuda.Topicos.FirstOrDefault(a => a.Chave == t.Chave)?.Texto ?? "";
             string titulo = Normalizar(t.Titulo), palavras = Normalizar(t.Palavras), modulo = Normalizar(t.Modulo), texto = Normalizar(ajuda);
+            int Pontuar(string x) => (titulo.StartsWith(x) ? 15 : titulo.Contains(x) ? 10 : 0) + (palavras.Contains(x) ? 6 : 0) +
+                                     (modulo.Contains(x) ? 3 : 0) + (texto.Contains(x) ? 1 : 0);
             int pontos = 0;
-            var todos = true;
             foreach (var x in termos)
             {
-                var p = (titulo.StartsWith(x) ? 15 : titulo.Contains(x) ? 10 : 0) + (palavras.Contains(x) ? 6 : 0) +
-                        (modulo.Contains(x) ? 3 : 0) + (texto.Contains(x) ? 1 : 0);
-                if (p == 0)
+                var p = Pontuar(x);
+                if (p > 0)
                 {
-                    todos = false;
-                    break;
+                    pontos += 100 + p;
+                    continue;
                 }
-                pontos += p;
+                // radical: tira até 3 letras do fim (cadastrar → cadastr, vender → vend), sem ficar com menos de 4; vale menos que a palavra exata
+                for (var corte = 2; p == 0 && x.Length >= 5 && corte <= 3; corte++)
+                    p = Pontuar(x[..Math.Max(4, x.Length - corte)]);
+                if (p > 0)
+                    pontos += 50 + p / 2;
             }
-            if (!todos)
+            if (pontos == 0)
                 continue;
             var trecho = "";
             if (termos.Length > 0 && texto.IndexOf(termos[0], StringComparison.Ordinal) is var i and >= 0)

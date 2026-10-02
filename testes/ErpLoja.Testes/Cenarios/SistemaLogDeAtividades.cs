@@ -17,7 +17,10 @@ public class SistemaAdminConsultaLog : ICenario
         u.Teclar(principal, Keys.Control | Keys.W);
         Navegacao.Abridor!(SistemaUtil.Tela("ConfiguracoesForm"));
         var config = principal.TelaAtiva!;
+        ConfigUtil.Parametro<TextBox>(config, "nome_loja").Text = "Mercadinho Novo";
         u.Clicar(ConfigUtil.Aba(config, Parametros.Empresa), "Salvar");
+        u.Ok(principal.Text.Contains("Mercadinho Novo") && Usuario.Todos(principal).OfType<Label>().Any(l => l.Text == "Mercadinho Novo"),
+            "salvar o nome da loja atualiza na hora o cabeçalho da janela principal: " + principal.Text);
 
         var tela = Log.Consultar(DateTime.Today, DateTime.Today, Log.Tela, null, null).Rows.Cast<DataRow>().Select(r => Ui.Txt(r["Ação"])).ToList();
         u.Ok(tela.Contains("Abriu Relatórios") && tela.Contains("Fechou Relatórios"), "o log registra abrir e fechar Relatórios");

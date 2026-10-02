@@ -8,6 +8,9 @@ public class ConfiguracoesForm : Form
     readonly TabControl abas = new() { Dock = DockStyle.Fill, Padding = new Point(16, 6) };
     readonly Dictionary<string, Control> campos = new();
 
+    /// <summary>Avisado depois de salvar parâmetros (a janela principal atualiza o nome da loja no cabeçalho).</summary>
+    public static event Action? ParametrosSalvos;
+
     public ConfiguracoesForm()
     {
         Ui.Estilizar(this, "Configurações", 900, 680, nameof(ConfiguracoesForm));
@@ -94,6 +97,7 @@ public class ConfiguracoesForm : Form
         }
         foreach (var d in definicoes)
             Db.SalvarConfig(d.Chave, campos[d.Chave].Text.Trim());
+        ParametrosSalvos?.Invoke();
         if (!silencioso)
             Ui.Feito("Configurações salvas.");
         return true;

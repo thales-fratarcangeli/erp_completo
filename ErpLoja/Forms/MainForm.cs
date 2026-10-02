@@ -105,6 +105,8 @@ public class MainForm : Form
             AtualizarCabecalho();
             AtualizarAjuda();
         };
+        ConfiguracoesForm.ParametrosSalvos += AtualizarCabecalho;
+        Disposed += (_, _) => ConfiguracoesForm.ParametrosSalvos -= AtualizarCabecalho;
         FormClosing += (_, e) =>
         {
             // fecha as telas embutidas uma a uma: cada uma pode pedir confirmação (ex.: venda em andamento no PDV)
@@ -265,6 +267,8 @@ public class MainForm : Form
 
     void AtualizarCabecalho()
     {
+        if (IsDisposed)
+            return;
         titulo.Text = Db.Config("nome_loja");
         Text = "ERP Loja - " + titulo.Text + (ativa is null ? "" : " - " + ativa.Text);
     }
