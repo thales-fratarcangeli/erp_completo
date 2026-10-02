@@ -58,7 +58,7 @@ public static class Cadastros
                 return "Motorista precisa de CPF e CNH.";
             if (r["cnh_validade"] is string v && !DateTime.TryParseExact(v, "dd/MM/yyyy", null, System.Globalization.DateTimeStyles.None, out _))
                 return "Validade da CNH no formato dd/mm/aaaa.";
-            return null;
+            return RegrasCadastro.PessoaDuplicada(r["cpf_cnpj"] as string, r["id"] as long?);
         },
         Dica = "Uma mesma pessoa pode ser cliente e fornecedor ao mesmo tempo: marque os dois papéis em vez de cadastrar duas vezes.",
     };
@@ -79,14 +79,14 @@ public static class Cadastros
         new Campo("tipo", "Tipo", TipoCampo.Opcoes, Obrigatorio: true, Opcoes: ["MERCADORIA", "PRODUTO_ACABADO", "INSUMO"], Padrao: "MERCADORIA"),
         new Campo("categoria_id", "Categoria", TipoCampo.Lookup, Lookup: "SELECT id, nome FROM categorias ORDER BY nome"),
         new Campo("unidade", "Unidade (UN, KG, CX...)", Obrigatorio: true, Padrao: "UN"),
-        new Campo("preco_custo", "Preço de custo (R$)", TipoCampo.Decimal),
+        new Campo("preco_custo", "Preço de custo (R$, custo médio)", TipoCampo.Decimal, Casas: 4),
         new Campo("preco_venda", "Preço de venda (R$)", TipoCampo.Decimal),
         new Campo("estoque_minimo", "Estoque mínimo", TipoCampo.Decimal),
         new Campo("ativo", "Ativo", TipoCampo.Booleano, Padrao: true),
-        new Campo("ncm", "NCM (8 dígitos) — fiscal"),
+        new Campo("ncm", "NCM (8 dígitos) — fiscal", Validacao: RegrasCadastro.Ncm),
         new Campo("cest", "CEST"),
         new Campo("origem", "Origem (0 = nacional, 1/2 = estrangeira)", TipoCampo.Inteiro),
-        new Campo("cst", "CST / CSOSN (ex.: 102 no Simples)", Obrigatorio: true, Padrao: Parametros.CstPadrao),
+        new Campo("cst", "CST / CSOSN (ex.: 102 no Simples)", Obrigatorio: true, Padrao: Parametros.CstPadrao, Validacao: RegrasCadastro.Cst),
         new Campo("aliq_icms", "Alíquota ICMS %", TipoCampo.Decimal),
         new Campo("aliq_ipi", "Alíquota IPI %", TipoCampo.Decimal),
         new Campo("aliq_pis", "Alíquota PIS %", TipoCampo.Decimal),
@@ -102,6 +102,10 @@ public static class Cadastros
             ("Ativos", "p.ativo = 1"), ("Mercadorias", "p.tipo = 'MERCADORIA' AND p.ativo = 1"),
             ("Produzidos", "p.tipo = 'PRODUTO_ACABADO' AND p.ativo = 1"), ("Insumos", "p.tipo = 'INSUMO' AND p.ativo = 1"), ("Inativos", "p.ativo = 0"),
         ],
+        ValidarRegistro = r =>
+            RegrasCadastro.CodigoBarrasProduto(r["codigo_barras"] as string, r["id"] as long?)
+            ?? RegrasCadastro.CustoProduto(r["id"] as long?, Ui.Dec(r["preco_custo"]))
+            ??(Ui.Dec(r["red_ibs_pct"]) > 100 || Ui.Dec(r["red_cbs_pct"]) > 100 ? "Redução de alíquota IBS/CBS vai de 0 a 100%." : null),
         Dica = "O saldo de estoque é alterado por compras, vendas, produção e ajustes (tela Estoque). " +
                "O custo é recalculado pelo custo médio a cada entrada. Produto acabado precisa de ficha técnica para ser produzido.",
     };
@@ -110,7 +114,12 @@ public static class Cadastros
         SELECT c.id, c.nome AS "Categoria", (SELECT COUNT(*) FROM produtos p WHERE p.categoria_id = c.id) AS "Produtos"
         FROM categorias c ORDER BY c.nome
         """,
-        new Campo("nome", "Nome", Obrigatorio: true));
+        new Campo("nome", "Nome", Obrigatorio: true))
+    {
+        ValidarExclusao = id => Convert.ToInt64(Db.Scalar("SELECT COUNT(*) FROM produtos WHERE categoria_id = @p0", id)) is var n and > 0
+            ? $"Esta categoria tem {n} produto(s). Troque a categoria deles no cadastro de produtos antes de excluí-la (ou apenas renomeie a categoria)."
+            : null,
+    };
 
     public static Form Veiculos() => new CrudForm("Veículos", "veiculos", $"""
         SELECT v.id, v.placa AS "Placa", v.tipo AS "Tipo", v.marca_modelo AS "Modelo", v.ano AS "Ano",
@@ -181,11 +190,12 @@ public static class Cadastros
         new Campo("username", "Username", Obrigatorio: true,
             Validacao: u => System.Text.RegularExpressions.Regex.IsMatch(u, @"^[A-Za-z0-9._-]{3,30}$")
                 ? null : "Username deve ter de 3 a 30 caracteres: letras, números, ponto, hífen ou sublinhado (sem espaços)."),
-        new Campo("senha", "Senha", TipoCampo.Senha, Obrigatorio: true),
+        new Campo("senha", "Senha (mínimo 4 caracteres)", TipoCampo.Senha, Obrigatorio: true, Validacao: RegrasCadastro.Senha),
         new Campo("email", "E-mail (recuperação de senha)", Obrigatorio: true, Validacao: ValidarEmail),
         new Campo("admin", "Administrador (acessa usuários, configurações e cancelamentos)", TipoCampo.Booleano),
         new Campo("ativo", "Ativo", TipoCampo.Booleano, Padrao: true))
     {
-        ValidarExclusao = id => id == Sessao.UsuarioId ? "Você não pode excluir o próprio usuário." : null,
+        ValidarRegistro = r => RegrasCadastro.AlteracaoUsuario(r["id"] as long?, Marcado(r, "admin"), Marcado(r, "ativo"), Sessao.UsuarioId),
+        ValidarExclusao = id => RegrasCadastro.ExclusaoUsuario(id, Sessao.UsuarioId),
     };
 }

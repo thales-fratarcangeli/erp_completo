@@ -4,9 +4,12 @@ namespace ErpLoja.Forms;
 
 public enum TipoCampo { Texto, MultiLinha, Inteiro, Decimal, Booleano, Lookup, Senha, Opcoes }
 
-/// <summary>Campo editável de um cadastro. Lookup = SQL "SELECT id, nome ..." para um combo.</summary>
+/// <summary>
+/// Campo editável de um cadastro. Lookup = SQL "SELECT id, nome ..." para um combo. Casas = casas decimais do campo
+/// Decimal (use as mesmas do banco para não arredondar o valor gravado ao salvar).
+/// </summary>
 public record Campo(string Coluna, string Rotulo, TipoCampo Tipo = TipoCampo.Texto, bool Obrigatorio = false,
-    string? Lookup = null, object? Padrao = null, Func<string, string?>? Validacao = null, string[]? Opcoes = null);
+    string? Lookup = null, object? Padrao = null, Func<string, string?>? Validacao = null, string[]? Opcoes = null, int Casas = 2);
 
 /// <summary>Tela genérica de cadastro: lista com pesquisa à esquerda, edição à direita.</summary>
 public class CrudForm : Form
@@ -30,7 +33,10 @@ public class CrudForm : Form
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public (string Rotulo, string Condicao)[]? Filtros { get; init; }
 
-    /// <summary>Validação do registro completo (coluna → valor) antes de salvar. Devolve a mensagem de erro ou null.</summary>
+    /// <summary>
+    /// Validação do registro completo (coluna → valor, mais "id" = registro em edição ou null se novo) antes de salvar.
+    /// Devolve a mensagem de erro ou null.
+    /// </summary>
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Func<IReadOnlyDictionary<string, object?>, string?>? ValidarRegistro { get; init; }
 
@@ -64,7 +70,7 @@ public class CrudForm : Form
                 TipoCampo.MultiLinha => new TextBox { Multiline = true, Height = 70, ScrollBars = ScrollBars.Vertical, Width = 350 },
                 TipoCampo.Senha => new TextBox { UseSystemPasswordChar = true, Width = 350 },
                 TipoCampo.Inteiro => Ui.Numero(0),
-                TipoCampo.Decimal => Ui.Numero(2),
+                TipoCampo.Decimal => Ui.Numero(c.Casas),
                 TipoCampo.Booleano => new CheckBox { Text = c.Rotulo, AutoSize = true },
                 TipoCampo.Lookup => Ui.Combo(350),
                 TipoCampo.Opcoes => OpcoesCombo(c.Opcoes ?? []),
@@ -249,6 +255,12 @@ public class CrudForm : Form
                     }
                     continue; // mantém a senha atual
                 }
+                if (c.Validacao?.Invoke((string)v) is string erroSenha) // valida a senha digitada, não o hash
+                {
+                    Ui.Erro(erroSenha);
+                    ed.Focus();
+                    return;
+                }
                 v = Senhas.Hash((string)v);
             }
             else if (c.Obrigatorio && v is null)
@@ -257,7 +269,7 @@ public class CrudForm : Form
                 ed.Focus();
                 return;
             }
-            if (v is string texto && c.Validacao?.Invoke(texto) is string erro)
+            if (v is string texto && c.Tipo != TipoCampo.Senha && c.Validacao?.Invoke(texto) is string erro)
             {
                 Ui.Erro(erro);
                 ed.Focus();
@@ -267,7 +279,9 @@ public class CrudForm : Form
             valores.Add(v);
         }
 
-        if (ValidarRegistro?.Invoke(colunas.Zip(valores).ToDictionary(x => x.First, x => x.Second)) is string erroRegistro)
+        var registro = colunas.Zip(valores).ToDictionary(x => x.First, x => x.Second);
+        registro["id"] = idAtual; // null = registro novo (permite conferir duplicidade com os demais)
+        if (ValidarRegistro?.Invoke(registro) is string erroRegistro)
         {
             Ui.Erro(erroRegistro);
             return;
@@ -290,7 +304,13 @@ public class CrudForm : Form
         }
         catch (SqliteException ex) when (ex.SqliteErrorCode == 19)
         {
-            Ui.Erro("Não foi possível salvar: já existe um registro com este valor (ex.: código, username ou e-mail repetido).");
+            // "UNIQUE constraint failed: tabela.coluna" → diz qual campo está repetido
+            var repetido = campos.FirstOrDefault(c => ex.Message.Contains($"{tabela}.{c.Coluna}", StringComparison.OrdinalIgnoreCase));
+            Ui.Erro(repetido != null && ex.Message.Contains("UNIQUE", StringComparison.OrdinalIgnoreCase)
+                ? $"Não foi possível salvar: já existe outro registro com este \"{repetido.Rotulo}\". Informe outro valor."
+                : "Não foi possível salvar: já existe um registro com este valor (ex.: código, username ou e-mail repetido).");
+            if (repetido != null)
+                editores[repetido].Focus();
             return;
         }
 

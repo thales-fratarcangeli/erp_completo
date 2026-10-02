@@ -297,6 +297,11 @@ public static class Fiscal
     public static long Salvar(NotaFiscal n)
     {
         using var s = new DbSessao(transacao: true);
+        foreach (var (coluna, origem, nome) in new[] { ("venda_id", n.VendaId, "venda"), ("compra_id", n.CompraId, "compra") })
+            if (origem is long o && s.Scalar($"SELECT id FROM notas_fiscais WHERE {coluna} = @p0 AND status <> 'CANCELADA' AND id <> @p1 LIMIT 1",
+                    o, n.Id ?? 0) is long outra)
+                throw new InvalidOperationException(
+                    $"A {nome} nº {o} já tem nota fiscal (registro {outra}). Abra a nota existente em Notas fiscais em vez de criar outra.");
         object?[] cab =
         [
             n.Tipo, n.Modelo, n.Serie, n.DataEmissao, n.Natureza, n.ClienteId, n.FornecedorId, n.VendaId, n.CompraId,
@@ -359,16 +364,52 @@ public static class Fiscal
         if (n.Itens.Count == 0) erros.Add("A nota não tem itens.");
         if (string.IsNullOrWhiteSpace(n.Natureza)) erros.Add("Informe a natureza da operação.");
         if (n.Modelo == "55" && string.IsNullOrWhiteSpace(n.PartNome)) erros.Add("Informe o destinatário/remetente.");
+        if (!DocumentoValido(n.PartDocumento))
+            erros.Add($"CPF/CNPJ do {(n.Tipo == Saida ? "destinatário" : "remetente")} inválido ({n.PartDocumento}): confira os dígitos ou deixe em branco.");
+        foreach (var (tabela, origem, nome) in new[] { ("vendas", n.VendaId, "venda"), ("compras", n.CompraId, "compra") })
+            if (origem is long o && Convert.ToString(Db.Scalar($"SELECT status FROM {tabela} WHERE id = @p0", o)) == "CANCELADA")
+                erros.Add($"A {nome} nº {o} foi cancelada: não emita nota para ela (exclua este rascunho).");
+        if (n.Modelo == "65" && n.Tipo != Saida)
+            erros.Add("NFC-e (modelo 65) é só para venda ao consumidor: use NF-e (modelo 55) na nota de entrada.");
         foreach (var i in n.Itens)
         {
             if (SoDigitos(i.Ncm).Length != 8) erros.Add($"Item \"{i.Descricao}\": NCM deve ter 8 dígitos.");
             if (SoDigitos(i.Cfop).Length != 4) erros.Add($"Item \"{i.Descricao}\": CFOP deve ter 4 dígitos.");
+            else if (ErroCfop(n, SoDigitos(i.Cfop)) is string erroCfop) erros.Add($"Item \"{i.Descricao}\": {erroCfop}");
             if (string.IsNullOrWhiteSpace(i.Cst)) erros.Add($"Item \"{i.Descricao}\": informe o CST/CSOSN.");
             if (i.Quantidade <= 0) erros.Add($"Item \"{i.Descricao}\": quantidade inválida.");
+            if (i.ValorUnitario < 0) erros.Add($"Item \"{i.Descricao}\": valor unitário não pode ser negativo.");
+            if (i.Desconto < 0 || i.Desconto > Math.Round(i.Quantidade * i.ValorUnitario, 2))
+                erros.Add($"Item \"{i.Descricao}\": desconto deve ficar entre zero e o valor do item ({Math.Round(i.Quantidade * i.ValorUnitario, 2):N2}).");
             if (Parametros.ReformaAtiva && (SoDigitos(i.CstIbsCbs).Length != 3 || SoDigitos(i.CClassTrib).Length != 6))
                 erros.Add($"Item \"{i.Descricao}\": reforma tributária exige CST IBS/CBS (3 dígitos) e cClassTrib (6 dígitos).");
         }
+        var liquidoItens = n.Itens.Sum(i => i.ValorTotal);
+        if (n.Desconto > Math.Max(0, liquidoItens))
+            erros.Add($"O desconto adicional ({n.Desconto:N2}) é maior que o valor dos produtos ({liquidoItens:N2}).");
         return erros;
+    }
+
+    /// <summary>
+    /// RN-FIS-10: o 1º dígito do CFOP indica entrada (1/2/3) ou saída (5/6/7) e dentro do estado (1/5),
+    /// outro estado (2/6) ou exterior (3/7). Participante sem UF = mesma UF da loja (RN-FIS-02).
+    /// </summary>
+    static string? ErroCfop(NotaFiscal n, string cfop)
+    {
+        var saida = n.Tipo == Saida;
+        var (dentro, fora, exterior) = saida ? ('5', '6', '7') : ('1', '2', '3');
+        var primeiro = cfop[0];
+        if (primeiro != dentro && primeiro != fora && primeiro != exterior)
+            return $"CFOP {cfop} é de {(saida ? "entrada" : "saída")}; numa nota de {(saida ? "saída use 5xxx, 6xxx ou 7xxx" : "entrada use 1xxx, 2xxx ou 3xxx")}.";
+        var ufLoja = Db.Config("uf");
+        if (string.IsNullOrWhiteSpace(ufLoja) || primeiro == exterior)
+            return null;
+        var foraDoEstado = !string.IsNullOrWhiteSpace(n.PartUf) && !n.PartUf.Equals(ufLoja, StringComparison.OrdinalIgnoreCase);
+        if (foraDoEstado && primeiro == dentro)
+            return $"CFOP {cfop} é de operação dentro do estado, mas o participante é de {n.PartUf.ToUpper()} (loja em {ufLoja.ToUpper()}): use {fora}{cfop[1..]}.";
+        if (!foraDoEstado && primeiro == fora)
+            return $"CFOP {cfop} é de operação com outro estado, mas o participante é de {(string.IsNullOrWhiteSpace(n.PartUf) ? ufLoja.ToUpper() + " (sem UF = mesma UF)" : n.PartUf.ToUpper())}: use {dentro}{cfop[1..]}.";
+        return null;
     }
 
     /// <summary>Atribui número e chave de acesso e muda para EMITIDA.</summary>
@@ -397,8 +438,12 @@ public static class Fiscal
         s.Commit();
     }
 
-    public static void Cancelar(long id) =>
-        Db.Exec("UPDATE notas_fiscais SET status = 'CANCELADA' WHERE id = @p0", id);
+    /// <summary>Cancela uma nota emitida (rascunho é excluído, não cancelado). Não desfaz a venda/compra (RN-FIS-08).</summary>
+    public static void Cancelar(long id)
+    {
+        if (Db.Exec("UPDATE notas_fiscais SET status = 'CANCELADA' WHERE id = @p0 AND status = 'EMITIDA'", id) == 0)
+            throw new InvalidOperationException("Somente notas emitidas podem ser canceladas (rascunho se exclui; nota cancelada já está cancelada).");
+    }
 
     /// <summary>Chave de 44 dígitos (layout NF-e). Null se a UF/CNPJ da empresa não estiverem configurados.</summary>
     public static string? ChaveAcesso(string uf, DateTime data, string cnpj, string modelo, int serie, long numero)

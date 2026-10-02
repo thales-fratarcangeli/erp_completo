@@ -252,10 +252,22 @@ public class NotasForm : Form
                     Db.Exec("DELETE FROM notas_fiscais WHERE id = @p0 AND status = 'DIGITADA'", sel.Id);
                 break;
             default:
+                if (!Sessao.Admin)
+                {
+                    Ui.Erro("Somente um administrador pode cancelar nota fiscal emitida. Peça a um administrador.");
+                    return;
+                }
                 if (!Ui.Confirmar("Cancelar a nota?" + (sel.Propria ? "" :
                         "\n\nAtenção: isso não desfaz a compra lançada. Para estornar estoque e contas, cancele a compra em Compras realizadas.")))
                     return;
-                Fiscal.Cancelar(sel.Id);
+                try
+                {
+                    Fiscal.Cancelar(sel.Id);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    Ui.Erro(ex.Message);
+                }
                 break;
         }
         Carregar();
