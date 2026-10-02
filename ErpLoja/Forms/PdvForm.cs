@@ -493,7 +493,7 @@ public class PdvForm : Form
         }
 
         ResultadoTef? tef = null;
-        if (Parametros.TefAtivo && pagamento.Modalidade is ModalidadeTef modalidade)
+        if (Parametros.TefAtivo && pagamento.Modalidade is ModalidadeTef modalidade && Total > 0) // nada a cobrar no cartão/PIX
         {
             tef = Tef.Pagar(this, Total, modalidade, pagamento.Parcelas);
             if (!tef.Aprovada)

@@ -196,6 +196,12 @@ public class PedidoEditorForm : Form
             Ui.Erro("Selecione o fornecedor.");
             return false;
         }
+        if (p.Itens.FirstOrDefault(i => i.Total < 0) is { } negativo)
+        {
+            Ui.Erro($"O desconto do item \"{negativo.Produto}\" ({Ui.Moeda(negativo.Desconto)}) é maior que o valor dele " +
+                    $"({Ui.Moeda(Math.Round(negativo.Quantidade * negativo.Unitario, 2))}). Corrija o desconto do item ou use o desconto geral.");
+            return false;
+        }
         if (p.Total <= 0 && p.Subtotal > 0)
         {
             Ui.Erro("Os descontos não podem ser maiores que o valor dos itens.");

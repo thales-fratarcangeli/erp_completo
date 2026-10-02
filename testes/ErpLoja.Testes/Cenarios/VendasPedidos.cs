@@ -236,3 +236,61 @@ public class VendasComprovanteComFrete : ICenario
         tela.Close();
     }
 }
+
+/// <summary>Vendedor novato digita no desconto do item um valor maior que o próprio item (o outro item "esconde" o erro no total).</summary>
+public class VendasNovatoDescontoDoItem : ICenario
+{
+    public string Area => "Vendas";
+
+    public void Executar(Usuario u)
+    {
+        var a = VendasUtil.Produto();
+        var b = VendasUtil.Produto(pular: 1);
+        var antes = VendasUtil.Contar("SELECT COUNT(*) FROM pedidos");
+        var tela = u.AbrirTela("pedidos_ORCAMENTO");
+        u.QuandoAbrir<PedidoEditorForm>(ed =>
+        {
+            var cod = Usuario.Achar<TextBox>(ed);
+            u.Digitar(cod, a.Codigo, enter: true);
+            Usuario.Achar<NumericUpDown>(ed, n => n.DecimalPlaces == 3).Value = 10;
+            u.Digitar(cod, b.Codigo, enter: true);
+            var itens = (System.ComponentModel.BindingList<PedidoItem>)Usuario.Achar<DataGridView>(ed).DataSource!;
+            itens[0].Desconto = a.Preco + 5; // erro de digitação: desconto maior que o item
+            var salvar = Usuario.Achar<Button>(ed, x => x.Text == "Salvar");
+            salvar.PerformClick();
+            u.Ok(ed.DialogResult != DialogResult.OK && u.Viu("ERRO", "maior que o valor dele"), "desconto do item maior que o item é recusado ao salvar");
+            itens[0].Desconto = 0;
+            salvar.PerformClick();
+            if (ed.DialogResult != DialogResult.OK)
+                ed.DialogResult = DialogResult.Cancel;
+        });
+        u.Clicar(tela, "Novo");
+        u.ConferirJanelas();
+        u.Ok(VendasUtil.Contar("SELECT COUNT(*) FROM pedidos") == antes + 1, "corrigido o desconto, o orçamento é salvo" + VendasUtil.Erros(u));
+        u.Ok(VendasUtil.Contar("SELECT COUNT(*) FROM pedido_itens WHERE total < 0") == 0, "nenhum item de orçamento/pedido com total negativo");
+        tela.Close();
+    }
+}
+
+/// <summary>Gerente cancela uma venda a prazo que já teve parcela recebida: o sistema avisa antes de cancelar.</summary>
+public class VendasCancelarAPrazoComParcelaRecebida : ICenario
+{
+    public string Area => "Vendas";
+
+    public void Executar(Usuario u)
+    {
+        var a = VendasUtil.Produto();
+        var cliente = VendasUtil.Cliente("Cliente Parcela Paga", 0);
+        var venda = Operacoes.RegistrarVenda(cliente, [new ItemDoc(a.Id, 2, a.Preco, 0)], 0, Operacoes.APrazo, 2, DateTime.Today.AddDays(30));
+        var parcela = Convert.ToInt64(Db.Scalar("SELECT MIN(id) FROM contas WHERE venda_id = @p0", venda));
+        Operacoes.BaixarConta(parcela, DateTime.Today, Ui.Dec(Db.Scalar("SELECT valor FROM contas WHERE id = @p0", parcela)), "Dinheiro");
+
+        var tela = u.AbrirTela("vendas");
+        VendasPedidosUtil.Selecionar(tela, venda);
+        u.RespostasConfirmacao.Enqueue(false);
+        u.Clicar(tela, "Cancelar venda");
+        u.Ok(u.Viu("CONFIRMAR", "já recebida"), "ao cancelar venda a prazo com parcela recebida, a confirmação avisa do valor já recebido");
+        u.Ok(Ui.Txt(Db.Scalar("SELECT status FROM vendas WHERE id = @p0", venda)) == "FINALIZADA", "respondendo Não, a venda continua finalizada");
+        tela.Close();
+    }
+}

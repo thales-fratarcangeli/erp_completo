@@ -338,3 +338,25 @@ public class VendasSemEstoque : ICenario
         pdv.Close();
     }
 }
+
+/// <summary>Gerente dá 100% de desconto (brinde) e a operadora tecla PIX: não há o que cobrar, o TEF não pode ser acionado.</summary>
+public class VendasTotalZeroSemTef : ICenario
+{
+    public string Area => "Vendas";
+
+    public void Executar(Usuario u)
+    {
+        Db.SalvarConfig("imprimir_cupom", "NUNCA");
+        var a = VendasUtil.Produto();
+        var tef = VendasUtil.Contar("SELECT COUNT(*) FROM transacoes_tef");
+        var vendas = VendasUtil.Contar("SELECT COUNT(*) FROM vendas");
+        var pdv = u.AbrirTela("PdvForm");
+        VendasUtil.Lancar(u, pdv, a.Codigo);
+        u.Ok(VendasUtil.Desconto(u, pdv, percentual: 100), "administrador dá 100% de desconto");
+        VendasUtil.Pagar(u, pdv, Keys.D2); // se o simulador abrir, a vigia reprova ("janela inesperada")
+        u.Ok(VendasUtil.Contar("SELECT COUNT(*) FROM vendas") == vendas + 1, "venda de total zero é gravada" + VendasUtil.Erros(u));
+        u.Ok(VendasUtil.Contar("SELECT COUNT(*) FROM transacoes_tef") == tef, "venda de total zero não aciona o TEF (nenhuma transação de R$ 0,00)");
+        u.Ok(VendasUtil.Contar("SELECT COUNT(*) FROM contas WHERE venda_id = (SELECT MAX(id) FROM vendas)") == 0, "venda de total zero não gera conta (RN-VEN-09)");
+        pdv.Close();
+    }
+}
