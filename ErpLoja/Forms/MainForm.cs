@@ -279,6 +279,12 @@ public class MainForm : Form
     /// <summary>Abre a tela no palco (ou traz para frente se já estiver aberta).</summary>
     void Abrir(Tela tela)
     {
+        if (tela.SoAdmin && !Sessao.Admin)
+        {
+            Log.Registrar(Log.Acesso, "Acesso negado a " + tela.Titulo, "tela exclusiva de administrador", tela: tela.Titulo);
+            Ui.Erro($"\"{tela.Titulo}\" é exclusiva de administradores. Peça a um administrador para fazer isso.");
+            return;
+        }
         if (tela.Acao is { } acao)
         {
             Log.Registrar(Log.Tela, "Abriu " + tela.Titulo, tela: tela.Titulo);
