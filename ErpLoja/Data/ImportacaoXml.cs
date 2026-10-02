@@ -170,15 +170,18 @@ public static class ImportacaoXml
         foreach (var item in n.Itens)
         {
             if (n.FornecedorId is long forn &&
-                Db.Query("SELECT produto_id, fator FROM produtos_fornecedor WHERE fornecedor_id = @p0 AND codigo_fornecedor = @p1",
-                    forn, item.CodigoFornecedor).Rows is { Count: > 0 } vinculo)
+                Db.Query("""
+                    SELECT v.produto_id, v.fator FROM produtos_fornecedor v JOIN produtos p ON p.id = v.produto_id
+                    WHERE v.fornecedor_id = @p0 AND v.codigo_fornecedor = @p1 AND p.ativo = 1
+                    """, forn, item.CodigoFornecedor).Rows is { Count: > 0 } vinculo)
             {
                 item.ProdutoId = (long)vinculo[0]["produto_id"];
                 item.Fator = Ui.Dec(vinculo[0]["fator"]);
                 continue;
             }
             if (item.Ean.Length > 0)
-                item.ProdutoId = Db.Scalar("SELECT id FROM produtos WHERE codigo_barras = @p0 OR codigo = @p0 LIMIT 1", item.Ean) as long?;
+                // só produtos ativos: a conferência só lista ativos (inativo sugerido quebrava a grade)
+                item.ProdutoId = Db.Scalar("SELECT id FROM produtos WHERE ativo = 1 AND (codigo_barras = @p0 OR codigo = @p0) LIMIT 1", item.Ean) as long?;
         }
     }
 

@@ -122,3 +122,39 @@ public class ComprasXmlArquivoInvalido : ICenario
         }
     }
 }
+
+/// <summary>
+/// O dono inativou produtos antigos (o do código de barras do arroz e o vinculado ao óleo do fornecedor).
+/// Ao importar o XML, a conferência não pode sugerir produto inativo (a grade só lista ativos e quebrava).
+/// </summary>
+public class ComprasXmlProdutoInativo : ICenario
+{
+    public string Area => "Compras";
+
+    public void Executar(Usuario u)
+    {
+        var prods = ComprasUtil.Produtos(2);
+        Db.Exec("UPDATE produtos SET codigo_barras = '78900011', ativo = 0 WHERE id = @p0", prods[0].Id);
+        Db.Exec("UPDATE produtos SET ativo = 0 WHERE id = @p0", prods[1].Id);
+        Db.Exec("INSERT INTO pessoas(nome, cpf_cnpj, eh_fornecedor) VALUES('Atacadão', '12345678000195', 1)");
+        var forn = Convert.ToInt64(Db.Scalar("SELECT MAX(id) FROM pessoas"));
+        Db.Exec("INSERT INTO produtos_fornecedor(fornecedor_id, codigo_fornecedor, produto_id, fator) VALUES(@p0, 'B-12', @p1, 6)", forn, prods[1].Id);
+
+        var nota = ImportacaoXml.Ler(ComprasUtil.CaminhoNfeExemplo);
+        ImportacaoXml.SugerirVinculos(nota);
+        u.Ok(nota.Itens[0].ProdutoId != prods[0].Id, "não sugere produto inativo pelo código de barras");
+        u.Ok(nota.Itens[1].ProdutoId != prods[1].Id, "não sugere produto inativo pelo vínculo memorizado");
+
+        var erros = 0;
+        var conf = (Form)Activator.CreateInstance(typeof(ImportarXmlForm), BindingFlags.NonPublic | BindingFlags.Instance, null, [nota], null)!;
+        var grid = Usuario.Achar<DataGridView>(conf);
+        grid.DataError += (_, e) => { erros++; e.ThrowException = false; };
+        conf.Show();
+        Usuario.Esperar();
+        u.Ok(erros == 0, "conferência abre sem erro de grade");
+        u.Clicar(conf, "Importar");
+        u.Ok(u.Viu("INFO", "Nota importada"), "importação concluída cadastrando produtos novos");
+        u.Ok(Convert.ToInt64(Db.Scalar("SELECT COUNT(*) FROM produtos_fornecedor WHERE fornecedor_id = @p0 AND produto_id = @p1", forn, prods[1].Id)) == 0,
+            "vínculo com o produto inativo é substituído pelo produto novo");
+    }
+}
