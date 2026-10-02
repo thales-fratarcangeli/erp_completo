@@ -281,7 +281,8 @@ public static class Ajuda
             - Nova NF de saída: a partir de uma venda sem nota, ou avulsa.
             - Nova NF de entrada: a partir de uma compra sem nota, ou avulsa.
             - Emitir: valida a nota, atribui o próximo número da série, gera a chave de acesso de 44 dígitos e mostra o DANFE. Depois de emitida a nota não pode ser alterada.
-            - Cancelar: notas emitidas são canceladas; rascunhos em digitação são excluídos. Cancelar a nota não desfaz a venda/compra.
+            - Cancelar: notas emitidas são canceladas (somente administrador); rascunhos em digitação são excluídos. Cancelar a nota não desfaz a venda/compra.
+            - Uma venda/compra tem uma única nota não cancelada: pedir a nota de novo abre a existente.
 
             ## Importante
             A transmissão à SEFAZ (assinatura com certificado digital A1) ainda não está ativa: a numeração e o controle ficam no sistema e o DANFE sai marcado "sem valor fiscal".
@@ -291,6 +292,8 @@ public static class Ajuda
         new("NotaEditorForm", "Editar nota fiscal", """
             - Destinatário/remetente: escolha do cadastro (preenche os dados) ou digite.
             - CFOP: 5102/6102 na saída e 1102/2102 na entrada, conforme a UF do participante ser igual ou diferente da UF da loja. Muda sozinho ao trocar a UF.
+            - Ao emitir, o sistema confere o CFOP digitado: saída começa por 5/6/7 e entrada por 1/2/3; dentro do estado 5/1, outro estado 6/2 (exterior 7/3).
+            - Também confere: CPF/CNPJ do participante (se informado), desconto do item entre zero e o valor do item, desconto adicional até o valor dos produtos e NFC-e (65) só em nota de saída.
             - NCM (8 dígitos), CST/CSOSN e alíquotas vêm do cadastro do produto e podem ser editados na grade.
             - Impostos: ICMS, IPI, PIS e COFINS = valor do item × alíquota. O IPI soma no total da nota.
             - Reforma tributária: IBS (estadual e municipal), CBS e Imposto Seletivo por item, com CST IBS/CBS e cClassTrib. Em 2026 ficam destacados sem somar ao total.
@@ -347,7 +350,8 @@ public static class Ajuda
             Cadastro único de pessoas e empresas. Uma mesma pessoa pode ter vários papéis — marque cliente, fornecedor, transportador e/ou motorista em vez de cadastrar duas vezes.
 
             - Use o filtro "Mostrar" para ver só clientes, fornecedores, transportadores, motoristas ou inativos.
-            - CPF/CNPJ é conferido pelos dígitos verificadores. UF e inscrição estadual definem o CFOP das notas.
+            - CPF/CNPJ é conferido pelos dígitos verificadores e não pode repetir: se a pessoa já existe, o aviso diz qual é — edite-a e marque o papel que falta.
+            - UF e inscrição estadual definem o CFOP das notas.
             - Limite de crédito: quanto o cliente pode ter em aberto em vendas a prazo (0 = sem limite).
             - Transportador: informe o RNTRC (exigido no CIOT). Motorista: CPF e CNH obrigatórios.
             - Quem tem histórico (vendas, compras, fretes) não pode ser excluído: o sistema oferece inativar.
@@ -360,7 +364,8 @@ public static class Ajuda
             - Tipo: Mercadoria (revenda), Produto acabado (fabricado com ficha técnica) ou Insumo (matéria-prima, não aparece para venda na ficha).
             - Preço de custo é o custo médio, atualizado a cada compra recebida ou produção concluída. A margem é calculada sobre o custo.
             - Estoque mínimo define a situação BAIXO e a sugestão de compra. O saldo muda só por vendas, compras, produção e ajustes.
-            - Dados fiscais (NCM, CST/CSOSN, alíquotas) preenchem as notas automaticamente.
+            - Código de barras: EAN/GTIN de 8, 12, 13 ou 14 dígitos com dígito verificador correto, sem repetir o de outro produto. Deixe em branco se não houver.
+            - Dados fiscais (NCM, CST/CSOSN, alíquotas) preenchem as notas automaticamente. NCM, se informado, tem 8 dígitos; CST tem 2 dígitos (regime normal) ou CSOSN 3 (Simples).
             - Reforma tributária: CST IBS/CBS, classificação tributária (cClassTrib), reduções de alíquota (regimes diferenciados) e Imposto Seletivo.
             - Produto com movimentação não pode ser excluído: o sistema oferece inativar.
             """),
@@ -391,10 +396,11 @@ public static class Ajuda
 
         new("cadastro_usuarios", "Cadastro de usuários", """
             - Username: usado para entrar (3 a 30 caracteres: letras, números, ponto, hífen ou sublinhado).
-            - Senha: obrigatória no cadastro; ao editar, deixe em branco para manter a atual (é assim que o administrador redefine a senha de alguém).
+            - Senha: obrigatória no cadastro (mínimo 4 caracteres); ao editar, deixe em branco para manter a atual (é assim que o administrador redefine a senha de alguém).
             - E-mail: obrigatório e único; é para onde vai o código de recuperação de senha.
             - Administrador: acessa usuários e configurações, cancela vendas/compras e concede descontos acima do limite.
-            - Ativo: usuário inativo não consegue entrar. Você não pode excluir o próprio usuário.
+            - Ativo: usuário inativo não consegue entrar. Você não pode excluir nem inativar o próprio usuário, nem tirar o seu acesso de administrador (peça a outro administrador).
+            - O sistema nunca fica sem administrador ativo: antes de inativar, excluir ou rebaixar o último, marque outro usuário como administrador.
             """),
 
         new("ajuste_estoque", "Ajuste de estoque", """

@@ -33,6 +33,8 @@ Sumário: [Cadastros](#cadastros-rn-cad) · [Estoque](#estoque-rn-est) · [Custo
 | RN-CAD-07 | Saldo e custo do produto **não são editáveis** no cadastro (ver RN-EST e RN-CUS). CST padrão de produto novo = `cst_padrao`; CST IBS/CBS = `cst_ibscbs_padrao`; cClassTrib = `cclass_trib_padrao`. |
 | RN-CAD-08 | Veículo de terceiro exige proprietário (pessoa com papel transportador). Placa no padrão Mercosul (ABC1D23) ou antigo (ABC1234). |
 | RN-CAD-09 | Limite de crédito do cliente: 0 = sem limite (ver RN-VEN-08). |
+| RN-CAD-10 | CPF/CNPJ não se repete entre pessoas (comparação só pelos dígitos); o aviso diz qual cadastro já usa o documento. |
+| RN-CAD-11 | Código de barras do produto: EAN/GTIN de 8, 12, 13 ou 14 dígitos com DV módulo 10 válido, sem repetir o código de barras (ou o código interno) de outro produto. NCM, se informado, tem 8 dígitos; CST com 2 dígitos ou CSOSN com 3; reduções de IBS/CBS de 0 a 100%. |
 
 ## Estoque (RN-EST)
 
@@ -171,6 +173,8 @@ Sumário: [Cadastros](#cadastros-rn-cad) · [Estoque](#estoque-rn-est) · [Custo
 | RN-FIS-07 | Chave de acesso (44 dígitos): cUF + AAMM + CNPJ + modelo + série(3) + número(9) + tpEmis(1) + código numérico aleatório(8) + DV módulo 11. Só gerada com UF e CNPJ da empresa configurados. |
 | RN-FIS-08 | Nota emitida não é alterada; rascunho pode ser excluído; cancelar nota não desfaz venda/compra. |
 | RN-FIS-09 | **Não há transmissão à SEFAZ**: o DANFE de nota própria é marcado "SEM VALOR FISCAL". |
+| RN-FIS-10 | Para emitir, o CFOP deve ser coerente: saída começa por 5/6/7 e entrada por 1/2/3; com a UF da loja configurada, participante da mesma UF (ou sem UF) usa 5/1 e de outra UF usa 6/2 (exterior 7/3 sem conferência de UF). Também: CPF/CNPJ do participante válido (se informado), valor unitário ≥ 0, desconto do item entre 0 e qtd × unitário, desconto adicional ≤ valor dos itens, NFC-e (65) só em saída. |
+| RN-FIS-11 | Cancelar nota emitida é exclusivo do administrador; só nota EMITIDA é cancelada (rascunho é excluído). |
 
 ## Reforma tributária (RN-REF)
 
@@ -202,6 +206,7 @@ Base legal: EC 132/2023 e LC 214/2025 (IBS, CBS e Imposto Seletivo). Valores pad
 | RN-USU-04 | Administrador: usuários, todas as configurações, contas bancárias, cancelamentos, descontos e crédito acima do limite. Ninguém exclui o próprio usuário. |
 | RN-USU-05 | Banco novo vem com admin/admin; a tela de entrada avisa enquanto a senha não for trocada. |
 | RN-USU-06 | **Recuperação de senha**: código de 6 dígitos (gerador criptográfico) enviado ao e-mail pelo Resend; válido 15 min; 5 tentativas; um novo pedido invalida os anteriores; uso único; nova senha com ≥ 4 caracteres; e-mail exibido mascarado. |
+| RN-USU-07 | O sistema nunca fica sem administrador ativo: o último não pode ser inativado, rebaixado nem excluído. Ninguém inativa o próprio usuário nem tira o próprio acesso de administrador. Senha do cadastro com ≥ 4 caracteres. |
 
 ## Banco de dados (RN-BD)
 
