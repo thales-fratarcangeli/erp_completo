@@ -30,7 +30,7 @@ Sumário: [Cadastros](#cadastros-rn-cad) · [Estoque](#estoque-rn-est) · [Custo
 | RN-CAD-04 | Registros com histórico (vendas, compras, notas, fretes, movimentações) **não são excluídos**: o sistema oferece **inativar**. Inativos somem das listas de seleção e permanecem nos históricos. |
 | RN-CAD-05 | Código de produto, username, e-mail de usuário e placa de veículo são únicos (sem diferenciar maiúsculas). |
 | RN-CAD-06 | Produto tem tipo: **Mercadoria** (revenda), **Produto acabado** (fabricado) ou **Insumo** (matéria-prima). Salvar uma ficha técnica torna a mercadoria um produto acabado. |
-| RN-CAD-07 | Saldo e custo do produto **não são editáveis** no cadastro (ver RN-EST e RN-CUS). CST padrão de produto novo = `cst_padrao`; CST IBS/CBS = `cst_ibscbs_padrao`; cClassTrib = `cclass_trib_padrao`. |
+| RN-CAD-07 | Saldo e custo do produto **não são editáveis** no cadastro (ver RN-EST e RN-CUS); o custo só pode ser informado como custo inicial enquanto o produto não tem movimentação de estoque, e é exibido/gravado com 4 casas (editar outro campo não o arredonda). Categoria com produtos não é excluída. CST padrão de produto novo = `cst_padrao`; CST IBS/CBS = `cst_ibscbs_padrao`; cClassTrib = `cclass_trib_padrao`. |
 | RN-CAD-08 | Veículo de terceiro exige proprietário (pessoa com papel transportador). Placa no padrão Mercosul (ABC1D23) ou antigo (ABC1234). |
 | RN-CAD-09 | Limite de crédito do cliente: 0 = sem limite (ver RN-VEN-08). |
 | RN-CAD-10 | CPF/CNPJ não se repete entre pessoas (comparação só pelos dígitos); o aviso diz qual cadastro já usa o documento. |

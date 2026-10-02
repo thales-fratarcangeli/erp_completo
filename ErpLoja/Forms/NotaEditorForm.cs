@@ -98,6 +98,12 @@ public class NotaEditorForm : Form
         desconto.ValueChanged += (_, _) => AtualizarTotais();
         cadastro.SelectedIndexChanged += (_, _) => TrocarParticipante();
         uf.SelectedIndexChanged += (_, _) => AjustarCfops();
+        modelo.SelectedIndexChanged += (_, _) =>
+        {
+            // cada modelo tem a sua série configurada (serie_55 / serie_65)
+            if (!carregando && int.TryParse(Db.Config(modelo.SelectedIndex == 1 ? "serie_65" : "serie_55"), out var s))
+                serie.Value = Math.Clamp(s, serie.Minimum, serie.Maximum);
+        };
         codigo.KeyDown += (_, e) =>
         {
             if (e.KeyCode == Keys.Enter) { Adicionar(); e.SuppressKeyPress = true; }

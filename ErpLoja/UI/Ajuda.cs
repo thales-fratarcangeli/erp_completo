@@ -292,6 +292,7 @@ public static class Ajuda
         new("NotaEditorForm", "Editar nota fiscal", """
             - Destinatário/remetente: escolha do cadastro (preenche os dados) ou digite.
             - CFOP: 5102/6102 na saída e 1102/2102 na entrada, conforme a UF do participante ser igual ou diferente da UF da loja. Muda sozinho ao trocar a UF.
+            - Modelo: ao trocar entre NF-e (55) e NFC-e (65), a série passa a ser a configurada para o modelo (Configurações > Fiscal).
             - Ao emitir, o sistema confere o CFOP digitado: saída começa por 5/6/7 e entrada por 1/2/3; dentro do estado 5/1, outro estado 6/2 (exterior 7/3).
             - Também confere: CPF/CNPJ do participante (se informado), desconto do item entre zero e o valor do item, desconto adicional até o valor dos produtos e NFC-e (65) só em nota de saída.
             - NCM (8 dígitos), CST/CSOSN e alíquotas vêm do cadastro do produto e podem ser editados na grade.
@@ -363,6 +364,7 @@ public static class Ajuda
 
             - Tipo: Mercadoria (revenda), Produto acabado (fabricado com ficha técnica) ou Insumo (matéria-prima, não aparece para venda na ficha).
             - Preço de custo é o custo médio, atualizado a cada compra recebida ou produção concluída. A margem é calculada sobre o custo.
+              Pode ser informado como custo inicial enquanto o produto não tiver movimentação de estoque; depois disso não é alterado à mão.
             - Estoque mínimo define a situação BAIXO e a sugestão de compra. O saldo muda só por vendas, compras, produção e ajustes.
             - Código de barras: EAN/GTIN de 8, 12, 13 ou 14 dígitos com dígito verificador correto, sem repetir o de outro produto. Deixe em branco se não houver.
             - Dados fiscais (NCM, CST/CSOSN, alíquotas) preenchem as notas automaticamente. NCM, se informado, tem 8 dígitos; CST tem 2 dígitos (regime normal) ou CSOSN 3 (Simples).

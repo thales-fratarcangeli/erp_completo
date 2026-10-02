@@ -79,7 +79,7 @@ public static class Cadastros
         new Campo("tipo", "Tipo", TipoCampo.Opcoes, Obrigatorio: true, Opcoes: ["MERCADORIA", "PRODUTO_ACABADO", "INSUMO"], Padrao: "MERCADORIA"),
         new Campo("categoria_id", "Categoria", TipoCampo.Lookup, Lookup: "SELECT id, nome FROM categorias ORDER BY nome"),
         new Campo("unidade", "Unidade (UN, KG, CX...)", Obrigatorio: true, Padrao: "UN"),
-        new Campo("preco_custo", "Preço de custo (R$)", TipoCampo.Decimal),
+        new Campo("preco_custo", "Preço de custo (R$, custo médio)", TipoCampo.Decimal, Casas: 4),
         new Campo("preco_venda", "Preço de venda (R$)", TipoCampo.Decimal),
         new Campo("estoque_minimo", "Estoque mínimo", TipoCampo.Decimal),
         new Campo("ativo", "Ativo", TipoCampo.Booleano, Padrao: true),
@@ -104,7 +104,8 @@ public static class Cadastros
         ],
         ValidarRegistro = r =>
             RegrasCadastro.CodigoBarrasProduto(r["codigo_barras"] as string, r["id"] as long?)
-            ?? (Ui.Dec(r["red_ibs_pct"]) > 100 || Ui.Dec(r["red_cbs_pct"]) > 100 ? "Redução de alíquota IBS/CBS vai de 0 a 100%." : null),
+            ?? RegrasCadastro.CustoProduto(r["id"] as long?, Ui.Dec(r["preco_custo"]))
+            ??(Ui.Dec(r["red_ibs_pct"]) > 100 || Ui.Dec(r["red_cbs_pct"]) > 100 ? "Redução de alíquota IBS/CBS vai de 0 a 100%." : null),
         Dica = "O saldo de estoque é alterado por compras, vendas, produção e ajustes (tela Estoque). " +
                "O custo é recalculado pelo custo médio a cada entrada. Produto acabado precisa de ficha técnica para ser produzido.",
     };
@@ -113,7 +114,12 @@ public static class Cadastros
         SELECT c.id, c.nome AS "Categoria", (SELECT COUNT(*) FROM produtos p WHERE p.categoria_id = c.id) AS "Produtos"
         FROM categorias c ORDER BY c.nome
         """,
-        new Campo("nome", "Nome", Obrigatorio: true));
+        new Campo("nome", "Nome", Obrigatorio: true))
+    {
+        ValidarExclusao = id => Convert.ToInt64(Db.Scalar("SELECT COUNT(*) FROM produtos WHERE categoria_id = @p0", id)) is var n and > 0
+            ? $"Esta categoria tem {n} produto(s). Troque a categoria deles no cadastro de produtos antes de excluí-la (ou apenas renomeie a categoria)."
+            : null,
+    };
 
     public static Form Veiculos() => new CrudForm("Veículos", "veiculos", $"""
         SELECT v.id, v.placa AS "Placa", v.tipo AS "Tipo", v.marca_modelo AS "Modelo", v.ano AS "Ano",

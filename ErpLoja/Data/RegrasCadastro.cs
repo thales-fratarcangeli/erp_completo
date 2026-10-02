@@ -48,6 +48,23 @@ public static class RegrasCadastro
         return null;
     }
 
+    /// <summary>
+    /// RN-CAD-07: o custo é o custo médio das entradas. No cadastro ele só pode ser informado como custo inicial,
+    /// enquanto o produto não tem movimentação de estoque; depois disso não é alterado à mão.
+    /// </summary>
+    public static string? CustoProduto(long? id, decimal custoDigitado)
+    {
+        if (id is null)
+            return null;
+        var atual = Ui.Dec(Db.Scalar("SELECT preco_custo FROM produtos WHERE id = @p0", id));
+        if (Math.Round(atual, 4) == Math.Round(custoDigitado, 4))
+            return null;
+        return Db.Scalar("SELECT 1 FROM movimentacoes_estoque WHERE produto_id = @p0 LIMIT 1", id) != null
+            ? $"O preço de custo deste produto é o custo médio ({atual:N2}), calculado pelas compras e produções: não pode ser alterado no cadastro.\n" +
+              "Para corrigir, lance a entrada com o custo certo (compra) ou fale com o administrador."
+            : null;
+    }
+
     /// <summary>NCM opcional no cadastro, mas se informado deve ter 8 dígitos (a nota exige).</summary>
     public static string? Ncm(string? ncm) =>
         string.IsNullOrWhiteSpace(ncm) || System.Text.RegularExpressions.Regex.IsMatch(ncm.Trim(), @"^\d{4}\.?\d{2}\.?\d{2}$")

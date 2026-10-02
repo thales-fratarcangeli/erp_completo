@@ -4,9 +4,12 @@ namespace ErpLoja.Forms;
 
 public enum TipoCampo { Texto, MultiLinha, Inteiro, Decimal, Booleano, Lookup, Senha, Opcoes }
 
-/// <summary>Campo editável de um cadastro. Lookup = SQL "SELECT id, nome ..." para um combo.</summary>
+/// <summary>
+/// Campo editável de um cadastro. Lookup = SQL "SELECT id, nome ..." para um combo. Casas = casas decimais do campo
+/// Decimal (use as mesmas do banco para não arredondar o valor gravado ao salvar).
+/// </summary>
 public record Campo(string Coluna, string Rotulo, TipoCampo Tipo = TipoCampo.Texto, bool Obrigatorio = false,
-    string? Lookup = null, object? Padrao = null, Func<string, string?>? Validacao = null, string[]? Opcoes = null);
+    string? Lookup = null, object? Padrao = null, Func<string, string?>? Validacao = null, string[]? Opcoes = null, int Casas = 2);
 
 /// <summary>Tela genérica de cadastro: lista com pesquisa à esquerda, edição à direita.</summary>
 public class CrudForm : Form
@@ -67,7 +70,7 @@ public class CrudForm : Form
                 TipoCampo.MultiLinha => new TextBox { Multiline = true, Height = 70, ScrollBars = ScrollBars.Vertical, Width = 350 },
                 TipoCampo.Senha => new TextBox { UseSystemPasswordChar = true, Width = 350 },
                 TipoCampo.Inteiro => Ui.Numero(0),
-                TipoCampo.Decimal => Ui.Numero(2),
+                TipoCampo.Decimal => Ui.Numero(c.Casas),
                 TipoCampo.Booleano => new CheckBox { Text = c.Rotulo, AutoSize = true },
                 TipoCampo.Lookup => Ui.Combo(350),
                 TipoCampo.Opcoes => OpcoesCombo(c.Opcoes ?? []),
