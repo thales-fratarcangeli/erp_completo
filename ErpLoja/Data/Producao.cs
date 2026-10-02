@@ -64,8 +64,15 @@ public static class Producao
             throw new InvalidOperationException("O produto não pode ser insumo da própria ficha.");
         if (f.Insumos.Any(i => i.Quantidade <= 0))
             throw new InvalidOperationException("Todos os insumos precisam de quantidade maior que zero.");
+        if (f.Insumos.FirstOrDefault(i => i.PerdaPct is < 0 or > 100) is { } perda)
+            throw new InvalidOperationException($"Perda inválida no insumo \"{perda.Insumo}\": informe de 0 a 100%.");
         if (f.Insumos.GroupBy(i => i.InsumoId).Any(g => g.Count() > 1))
             throw new InvalidOperationException("Há insumo repetido na ficha.");
+        foreach (var i in f.Insumos)
+            if (UsaNaFabricacao(i.InsumoId, f.ProdutoId))
+                throw new InvalidOperationException(
+                    $"O insumo \"{i.Insumo}\" é fabricado (direta ou indiretamente) com este produto: a receita ficaria circular. " +
+                    "Remova esse insumo ou corrija a ficha técnica dele.");
 
         using var s = new DbSessao(transacao: true);
         var id = s.Scalar("SELECT id FROM fichas_tecnicas WHERE produto_id = @p0", f.ProdutoId) as long?;
@@ -83,6 +90,17 @@ public static class Producao
         s.Exec("UPDATE produtos SET tipo = 'PRODUTO_ACABADO' WHERE id = @p0 AND tipo = 'MERCADORIA'", f.ProdutoId);
         s.Commit();
     }
+
+    /// <summary>true se a ficha técnica do produto (ou de algum insumo dela, em qualquer nível) usa o insumo procurado.</summary>
+    static bool UsaNaFabricacao(long produtoId, long procurado) =>
+        Db.Scalar("""
+            WITH RECURSIVE usa(id) AS (
+                SELECT @p0
+                UNION
+                SELECT fi.insumo_id FROM ficha_itens fi JOIN fichas_tecnicas ft ON ft.id = fi.ficha_id JOIN usa ON ft.produto_id = usa.id
+            )
+            SELECT 1 FROM usa WHERE id = @p1 LIMIT 1
+            """, produtoId, procurado) is not null;
 
     /// <summary>Cria uma OP planejada, já com a necessidade de insumos calculada pela ficha (proporção + perdas).</summary>
     public static long CriarOrdem(long produtoId, decimal quantidade, DateTime previsao, string observacoes, long? pedidoId = null)
@@ -125,12 +143,21 @@ public static class Producao
         s.Commit();
     }
 
-    /// <summary>Insumos cujo saldo não cobre o consumo previsto (nome, necessário, saldo).</summary>
-    public static List<(string Insumo, decimal Necessario, decimal Saldo)> Faltas(long op) =>
-        Db.Query("""
+    /// <summary>
+    /// Insumos cujo saldo não cobre o consumo (nome, necessário, saldo). Sem quantidade produzida, usa o previsto da OP;
+    /// com ela, o consumo real = previsto × produzido ÷ planejado (produzir mais que o planejado consome mais).
+    /// </summary>
+    public static List<(string Insumo, decimal Necessario, decimal Saldo)> Faltas(long op, decimal? quantidadeProduzida = null)
+    {
+        var planejado = Ui.Dec(Db.Scalar("SELECT quantidade FROM ordens_producao WHERE id = @p0", op));
+        var proporcao = quantidadeProduzida is decimal q && planejado > 0 ? q / planejado : 1;
+        return Db.Query("""
             SELECT p.nome, i.quantidade_prevista, p.estoque FROM op_itens i JOIN produtos p ON p.id = i.insumo_id
-            WHERE i.op_id = @p0 AND i.quantidade_prevista > p.estoque
-            """, op).Rows.Cast<DataRow>().Select(r => (Ui.Txt(r[0]), Ui.Dec(r[1]), Ui.Dec(r[2]))).ToList();
+            WHERE i.op_id = @p0 ORDER BY p.nome
+            """, op).Rows.Cast<DataRow>()
+            .Select(r => (Insumo: Ui.Txt(r[0]), Necessario: Math.Round(Ui.Dec(r[1]) * proporcao, 4), Saldo: Ui.Dec(r[2])))
+            .Where(x => x.Necessario > x.Saldo).ToList();
+    }
 
     /// <summary>
     /// Conclui a OP: baixa os insumos (consumo real = previsto × produzido ÷ planejado), dá entrada no produto acabado
@@ -144,6 +171,10 @@ public static class Producao
         var o = s.Query("SELECT * FROM ordens_producao WHERE id = @p0", op).Rows[0];
         if (Ui.Txt(o["status"]) is not (Planejada or EmProducao))
             throw new InvalidOperationException("Só OP planejada ou em produção pode ser concluída.");
+        if (Parametros.ProducaoSemEstoque == Parametros.Bloquear && Faltas(op, quantidadeProduzida) is { Count: > 0 } faltas)
+            throw new InvalidOperationException($"Insumos insuficientes para produzir {quantidadeProduzida:N3}:\n" +
+                string.Join("\n", faltas.Select(f => $"• {f.Insumo}: precisa {f.Necessario:N3}, saldo {f.Saldo:N3}")) +
+                "\n\nA produção sem insumo está bloqueada em Configurações. Dê entrada nos insumos ou produza menos.");
         var produtoId = (long)o["produto_id"];
         var proporcao = quantidadeProduzida / Ui.Dec(o["quantidade"]);
         var ficha = s.Query("SELECT rendimento, custo_adicional FROM fichas_tecnicas WHERE produto_id = @p0", produtoId).Rows[0];

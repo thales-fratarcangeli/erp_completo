@@ -25,15 +25,20 @@ public class FretesForm : Form
         var acoes = Ui.Barra();
         acoes.Controls.AddRange([
             Ui.Botao("Novo frete", (_, _) => Editar(null), primario: true),
-            Ui.Botao("Abrir / editar", (_, _) => { if (Ui.IdLinha(fretes) is long id) Editar(id); }),
+            Ui.Botao("Abrir / editar", (_, _) => { if (Selecionado() is long id) Editar(id); }),
             Ui.Botao("Declarar CIOT", async (_, _) => await Ciot(Fretes.DeclararCiot, "declarado")),
             Ui.Botao("Encerrar CIOT", async (_, _) => await Ciot(Fretes.EncerrarCiot, "encerrado")),
             Ui.Botao("Cancelar CIOT", async (_, _) => await CancelarCiot()),
             Ui.Botao("Gerar contas a pagar", (_, _) => Executar(id => Ui.Feito($"{Fretes.GerarContas(id)} conta(s) a pagar gerada(s).")) ),
             Ui.Botao("Em trânsito", (_, _) => Executar(id => Fretes.MudarStatus(id, "EM_TRANSITO"))),
-            Ui.Botao("Entregue", (_, _) => Executar(id => Fretes.MudarStatus(id, "ENTREGUE"))),
+            Ui.Botao("Entregue", (_, _) => Executar(id =>
+            {
+                Fretes.MudarStatus(id, "ENTREGUE");
+                if (Convert.ToString(Db.Scalar("SELECT ciot_status FROM fretes WHERE id = @p0", id)) == "DECLARADO")
+                    Ui.Aviso("Frete entregue. Lembre de encerrar o CIOT (botão \"Encerrar CIOT\", filtro Entregues ou Todos).");
+            })),
             Ui.Botao("Cancelar frete", (_, _) => Executar(id => { if (Ui.Confirmar("Cancelar este frete?")) Fretes.MudarStatus(id, "CANCELADO"); })),
-            Ui.Botao("Imprimir", (_, _) => { if (Ui.IdLinha(fretes) is long id) CupomForm.Visualizar(this, $"Frete nº {id}", Texto(id), 80); }),
+            Ui.Botao("Imprimir", (_, _) => { if (Selecionado() is long id) CupomForm.Visualizar(this, $"Frete nº {id}", Texto(id), 80); }),
         ]);
         Ui.ColorirSituacao(fretes);
         Controls.Add(fretes);
@@ -79,6 +84,15 @@ public class FretesForm : Form
                     fretes.ClearSelection();
                     r.Selected = true;
                 }
+    }
+
+    /// <summary>Frete selecionado; sem seleção, avisa em vez de não fazer nada.</summary>
+    long? Selecionado()
+    {
+        if (Ui.IdLinha(fretes) is long id)
+            return id;
+        Ui.Erro("Selecione um frete.");
+        return null;
     }
 
     void Executar(Action<long> acao)
@@ -131,7 +145,7 @@ public class FretesForm : Form
         using var d = new Dialogo("Cancelar CIOT", "FretesForm", "Cancelar CIOT");
         var motivo = d.Adicionar("Motivo:", new TextBox());
         d.Validar = () => motivo.Text.Trim().Length >= 15 || Falhar("Descreva o motivo (pelo menos 15 caracteres).");
-        if (Ui.IdLinha(fretes) is null || d.ShowDialog(this) != DialogResult.OK)
+        if (Selecionado() is null || d.ShowDialog(this) != DialogResult.OK)
             return;
         await Ciot(id => Fretes.CancelarCiot(id, motivo.Text.Trim()), "cancelado");
     }
@@ -194,11 +208,13 @@ public static class FreteEditor
         modalidade.Items.AddRange(["CONTRATADO", "PROPRIO"]);
         modalidade.SelectedItem = f is null ? "CONTRATADO" : Ui.Txt(f["modalidade"]);
         var transportador = d.Adicionar("Transportador:", Ui.Combo());
-        Ui.Preencher(transportador, Db.Query("SELECT id, nome || COALESCE(' (' || cpf_cnpj || ')', '') FROM pessoas WHERE eh_transportador = 1 AND ativo = 1 ORDER BY nome"), "(nenhum)");
+        // os já gravados no frete entram mesmo se foram desativados depois (senão salvar apagaria o vínculo sem aviso)
+        object? Atual(string coluna) => f?[coluna] is long v ? v : null;
+        Ui.Preencher(transportador, Db.Query("SELECT id, nome || COALESCE(' (' || cpf_cnpj || ')', '') FROM pessoas WHERE (eh_transportador = 1 AND ativo = 1) OR id = @p0 ORDER BY nome", Atual("transportador_id")), "(nenhum)");
         var motorista = d.Adicionar("Motorista:", Ui.Combo());
-        Ui.Preencher(motorista, Db.Query("SELECT id, nome FROM pessoas WHERE eh_motorista = 1 AND ativo = 1 ORDER BY nome"), "(nenhum)");
+        Ui.Preencher(motorista, Db.Query("SELECT id, nome FROM pessoas WHERE (eh_motorista = 1 AND ativo = 1) OR id = @p0 ORDER BY nome", Atual("motorista_id")), "(nenhum)");
         var veiculo = d.Adicionar("Veículo:", Ui.Combo());
-        Ui.Preencher(veiculo, Db.Query("SELECT id, placa || ' - ' || tipo || COALESCE(' ' || marca_modelo, '') FROM veiculos WHERE ativo = 1 ORDER BY placa"), "(nenhum)");
+        Ui.Preencher(veiculo, Db.Query("SELECT id, placa || ' - ' || tipo || COALESCE(' ' || marca_modelo, '') FROM veiculos WHERE ativo = 1 OR id = @p0 ORDER BY placa", Atual("veiculo_id")), "(nenhum)");
         var origem = d.Adicionar("Origem (cidade):", new TextBox { Text = f is null ? Db.Config("cidade") : Ui.Txt(f["origem_cidade"]) });
         var origemUf = d.Adicionar("Origem (UF):", Ui.Combo(80));
         var destino = d.Adicionar("Destino (cidade):", new TextBox { Text = f is null ? "" : Ui.Txt(f["destino_cidade"]) });
@@ -243,13 +259,25 @@ public static class FreteEditor
         transportador.SelectedIndexChanged += (_, _) => AtualizarCiot();
         AtualizarCiot();
         if (ciotDeclarado)
-            foreach (var c in new Control[] { modalidade, transportador, motorista, veiculo, valor, pedagio, adiantamento })
+            foreach (var c in new Control[] { modalidade, transportador, motorista, veiculo, valor, pedagio, adiantamento, origem, origemUf, destino, destinoUf })
                 c.Enabled = false;
+        // contas a pagar já geradas: os valores ficariam diferentes das contas (que não são refeitas)
+        if (f != null && Ui.Dec(f["contas_geradas"]) == 1)
+        {
+            foreach (var c in new Control[] { modalidade, transportador, valor, pedagio, adiantamento, outras })
+                c.Enabled = false;
+            d.Nota("As contas a pagar deste frete já foram geradas: valores e transportador ficam travados. " +
+                   "Para corrigir, ajuste as contas em Financeiro.");
+        }
 
         d.Validar = () =>
         {
             if (modalidade.Text == "CONTRATADO" && Ui.Id(transportador) is null) { Ui.Erro("Frete contratado precisa do transportador."); return false; }
             if (adiantamento.Value > valor.Value) { Ui.Erro("O adiantamento não pode ser maior que o frete."); return false; }
+            if (Ui.Id(veiculo) is long vei && Ui.Dec(Db.Scalar("SELECT capacidade_kg FROM veiculos WHERE id = @p0", vei)) is > 0 and var capacidade
+                && peso.Value > capacidade
+                && !Ui.Confirmar($"O peso da carga ({peso.Value:N0} kg) passa da capacidade do veículo ({capacidade:N0} kg). Salvar assim mesmo?"))
+                return false;
             return true;
         };
         if (d.ShowDialog(dono) != DialogResult.OK)

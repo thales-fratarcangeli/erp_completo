@@ -26,7 +26,7 @@ public class OrdensProducaoForm : Form
             Ui.Botao("Iniciar produção", (_, _) => Executar(id => { Producao.Iniciar(id); Ui.Feito($"OP nº {id} em produção."); })),
             Ui.Botao("Concluir", (_, _) => Concluir(), primario: true),
             Ui.Botao("Cancelar OP", (_, _) => Executar(id => { if (Ui.Confirmar($"Cancelar a OP nº {id}?")) Producao.Cancelar(id); })),
-            Ui.Botao("Imprimir", (_, _) => { if (Ui.IdLinha(ordens) is long id) CupomForm.Visualizar(this, $"OP nº {id}", Producao.Texto(id), 80); }),
+            Ui.Botao("Imprimir", (_, _) => { if (Selecionada() is long id) CupomForm.Visualizar(this, $"OP nº {id}", Producao.Texto(id), 80); }),
             Ui.Botao("Exportar CSV", (_, _) => Ui.ExportarCsv(ordens, "ordens_producao")),
         ]);
 
@@ -94,6 +94,15 @@ public class OrdensProducaoForm : Form
             """, id);
     }
 
+    /// <summary>OP selecionada; sem seleção, avisa em vez de não fazer nada.</summary>
+    long? Selecionada()
+    {
+        if (Ui.IdLinha(ordens) is long id)
+            return id;
+        Ui.Erro("Selecione uma ordem de produção.");
+        return null;
+    }
+
     void Executar(Action<long> acao)
     {
         if (Ui.IdLinha(ordens) is not long id)
@@ -117,15 +126,16 @@ public class OrdensProducaoForm : Form
         var o = Db.Query("SELECT quantidade, status FROM ordens_producao WHERE id = @p0", id).Rows[0];
         if (Ui.Txt(o["status"]) is not ("PLANEJADA" or "EM_PRODUCAO"))
             throw new InvalidOperationException("Só OP planejada ou em produção pode ser concluída.");
-        var faltas = Producao.Faltas(id);
-        if (faltas.Count > 0 && !Parametros.PodeProduzirSemEstoque("Insumos insuficientes:\n" +
-                string.Join("\n", faltas.Select(f => $"• {f.Insumo}: precisa {f.Necessario:N3}, saldo {f.Saldo:N3}"))))
-            return;
         using var d = new Dialogo($"Concluir OP nº {id}", "OrdensProducaoForm", "Concluir");
         var produzido = d.Adicionar("Quantidade produzida:", Ui.Numero(3, 9_999_999, 0.001m));
         produzido.Value = Ui.Dec(o["quantidade"]);
         d.Nota("Os insumos são baixados na proporção do que foi produzido. O custo real recalcula o custo médio do produto.");
         if (d.ShowDialog(this) != DialogResult.OK)
+            return;
+        // a falta é conferida com o que foi produzido de fato (produzir mais que o planejado consome mais insumo)
+        var faltas = Producao.Faltas(id, produzido.Value);
+        if (faltas.Count > 0 && !Parametros.PodeProduzirSemEstoque($"Insumos insuficientes para produzir {produzido.Value:N3}:\n" +
+                string.Join("\n", faltas.Select(f => $"• {f.Insumo}: precisa {f.Necessario:N3}, saldo {f.Saldo:N3}"))))
             return;
         var custo = Producao.Concluir(id, produzido.Value);
         Ui.Feito($"OP nº {id} concluída. Custo unitário real: {Ui.Moeda(custo)}.");
