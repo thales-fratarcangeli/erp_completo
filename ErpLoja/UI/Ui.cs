@@ -251,16 +251,28 @@ public static class Ui
     public static string Txt(object? v) => v is null or DBNull ? "" : Convert.ToString(v) ?? "";
     public static string Moeda(decimal v) => v.ToString("C2");
 
+    /// <summary>
+    /// Para testes automatizados: quando definido, Erro/Info/Confirmar não abrem caixa de mensagem (que travaria o teste).
+    /// Recebe (tipo: ERRO, INFO ou CONFIRMAR; texto) e devolve a resposta usada por Confirmar.
+    /// </summary>
+    public static Func<string, string, bool>? Interceptar { get; set; }
+
     public static void Erro(string m)
     {
         Log.Registrar(Log.Erro, "Aviso exibido ao usuário", m);
-        MessageBox.Show(m, "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        if (Interceptar is { } i)
+            i("ERRO", m);
+        else
+            MessageBox.Show(m, "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
     }
 
     public static void Info(string m)
     {
         Log.Registrar(Log.Acao, "Mensagem exibida", m);
-        MessageBox.Show(m, "ERP Loja", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        if (Interceptar is { } i)
+            i("INFO", m);
+        else
+            MessageBox.Show(m, "ERP Loja", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     /// <summary>Confirmação rápida e não bloqueante (aviso no canto da tela).</summary>
@@ -278,7 +290,7 @@ public static class Ui
 
     public static bool Confirmar(string m)
     {
-        var sim = MessageBox.Show(m, "Confirmação", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes;
+        var sim = Interceptar is { } i ? i("CONFIRMAR", m) : MessageBox.Show(m, "Confirmação", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes;
         Log.Registrar(Log.Acao, sim ? "Confirmou" : "Não confirmou", m);
         return sim;
     }

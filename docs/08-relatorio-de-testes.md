@@ -4,11 +4,11 @@
 
 | Item | Valor |
 |---|---|
-| Data da execução | 02/10/2026 00:34 |
+| Data da execução | 02/10/2026 00:39 |
 | Versão do sistema | 1.1.0.0 (banco v12) |
 | Ambiente | Microsoft Windows 10.0.19045 · .NET 10.0.12 |
-| Verificações | 255 |
-| Aprovadas | 255 |
+| Verificações | 259 |
+| Aprovadas | 259 |
 | Reprovadas | 0 |
 | Resultado | **APROVADO** |
 
@@ -271,3 +271,7 @@
 | 253 | ✅ | insumos não ficam negativos na demonstração |
 | 254 | ✅ | CPF/CNPJ da demonstração são válidos |
 | 255 | ✅ | modelo de dados (dicionário + diagrama ER) gerado em docs/06-modelo-de-dados.md |
+| 256 | ✅ | [PDV] lançar 2*código mostra o total da venda |
+| 257 | ✅ | [PDV] F10 + dinheiro grava a venda |
+| 258 | ✅ | [PDV] total gravado = 2 × preço |
+| 259 | ✅ | [PDV] nenhuma mensagem de erro durante a venda |

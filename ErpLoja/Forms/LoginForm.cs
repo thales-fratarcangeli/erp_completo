@@ -44,7 +44,7 @@ public static class LoginForm
             Sessao.Admin = (long)r["admin"] == 1;
             Log.Registrar(Log.Acesso, "Entrou no sistema", Sessao.Admin ? "administrador" : "usuário comum", tela: "Acesso");
             if (!Email.Valido(Ui.Txt(r["email"])))
-                Ui.Info("Seu usuário não tem e-mail cadastrado. Cadastre em Configurações > Minha conta para poder recuperar a senha se esquecer.");
+                Ui.Aviso("Seu usuário não tem e-mail cadastrado. Cadastre em Configurações > Minha conta para poder recuperar a senha.");
             return true;
         };
 

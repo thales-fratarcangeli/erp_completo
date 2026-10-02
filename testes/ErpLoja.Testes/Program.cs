@@ -667,6 +667,27 @@ var t = new Thread(() =>
             f.Dispose();
         }
 
+        // ---------- cenários de uso (Cenarios/*.cs): cada um num banco próprio, operando as telas como um usuário
+        foreach (var tipo in typeof(ErpLoja.Testes.Cenarios.ICenario).Assembly.GetTypes()
+                     .Where(x => typeof(ErpLoja.Testes.Cenarios.ICenario).IsAssignableFrom(x) && !x.IsAbstract && !x.IsInterface).OrderBy(x => x.Name))
+        {
+            var cenario = (ErpLoja.Testes.Cenarios.ICenario)Activator.CreateInstance(tipo)!;
+            var bancoCenario = Path.Combine(Temp, "cenarios", tipo.Name, "loja.db");
+            try
+            {
+                LocalBanco.CriarNovo(bancoCenario);
+                Sessao.UsuarioId = 1;
+                Sessao.Nome = "Administrador";
+                Sessao.Admin = true;
+                if (cenario.ComDadosDemo)
+                    DadosDemo.Gerar();
+                using var usuario = new ErpLoja.Testes.Cenarios.Usuario(Ok, cenario.Area);
+                cenario.Executar(usuario);
+                usuario.ConferirJanelas();
+            }
+            catch (Exception ex) { Ok(false, $"[{cenario.Area}] cenário {tipo.Name} interrompido: {(ex is TargetInvocationException { InnerException: { } ie } ? ie : ex)}"); }
+        }
+
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
         try { Directory.Delete(Temp, recursive: true); } catch { }
     }

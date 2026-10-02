@@ -43,6 +43,13 @@ function Esperar([string]$nome, [int]$segundos = 25) {
     while ((Get-Date) -lt $fim) {
         foreach ($w in (Janelas)) {
             $n = $w.Current.Name
+            # caixas de mensagem informativas ("ERP Loja"): clica OK sozinho para o teste nunca travar
+            if ($n -eq 'ERP Loja') {
+                $texto = ($w.FindAll($Escopo::Descendants, [System.Windows.Automation.Condition]::TrueCondition) | ForEach-Object { $_.Current.Name } | Where-Object { $_ }) -join ' | '
+                $log.Add('mensagem fechada automaticamente: ' + $texto)
+                try { (Localizar $w 'OK').GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke() } catch { }
+                continue
+            }
             if ($n -eq 'Atenção' -or $n -like '*.NET*') {
                 $texto = ($w.FindAll($Escopo::Descendants, [System.Windows.Automation.Condition]::TrueCondition) | ForEach-Object { $_.Current.Name } | Where-Object { $_ }) -join ' | '
                 throw "janela de erro '$n': $texto"
