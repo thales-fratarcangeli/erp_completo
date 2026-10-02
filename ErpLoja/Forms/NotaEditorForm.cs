@@ -15,6 +15,7 @@ public class NotaEditorForm : Form
     readonly Label lblTotais = Ui.Rotulo("");
     readonly Label lblTotal = new() { AutoSize = true, Font = new Font("Segoe UI Semibold", 16F), ForeColor = Ui.Primaria, Margin = new Padding(16, 4, 8, 0) };
     bool carregando = true;
+    bool alterado; // o usuário mexeu na nota desde que abriu (pergunta antes de fechar sem salvar)
 
     public long? IdSalvo => n.Id;
 
@@ -92,8 +93,16 @@ public class NotaEditorForm : Form
                 col.MinimumWidth = col.DataPropertyName == nameof(NotaItem.Descricao) ? 200 : 60;
             }
         };
-        grid.CellEndEdit += (_, e) => { grid.InvalidateRow(e.RowIndex); AtualizarTotais(); };
-        n.Itens.ListChanged += (_, _) => AtualizarTotais();
+        grid.CellEndEdit += (_, e) => { grid.InvalidateRow(e.RowIndex); alterado = true; AtualizarTotais(); };
+        n.Itens.ListChanged += (_, _) => { alterado |= !carregando; AtualizarTotais(); };
+        foreach (var ctl in new Control[] { modelo, serie, natureza, cadastro, nome, documento, ie, endereco, cidade, uf, frete, desconto, info })
+            ctl.TextChanged += (_, _) => alterado |= !carregando;
+        FormClosing += (_, e) =>
+        {
+            if (editavel && alterado && DialogResult != DialogResult.OK &&
+                !Ui.Confirmar("A nota tem alterações que não foram salvas.\n\nFechar mesmo assim e descartar as alterações?"))
+                e.Cancel = true;
+        };
         frete.ValueChanged += (_, _) => AtualizarTotais();
         desconto.ValueChanged += (_, _) => AtualizarTotais();
         cadastro.SelectedIndexChanged += (_, _) => TrocarParticipante();

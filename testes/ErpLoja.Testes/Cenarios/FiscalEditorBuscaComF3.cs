@@ -23,28 +23,35 @@ public class FiscalEditorBuscaComF3 : ICenario
 
         int linhasInativo = -1;
         NotaItem? item = null;
-        u.QuandoAbrir<NotaEditorForm>(ed =>
+        var continuouAberto = false;
+        var ed = new NotaEditorForm(Fiscal.Nova(Fiscal.Entrada));
+        ed.Show();
+        Usuario.Esperar();
+        u.QuandoAbrir<BuscaProdutoForm>(busca =>
         {
-            u.QuandoAbrir<BuscaProdutoForm>(busca =>
-            {
-                var campo = Usuario.Todos(busca).OfType<TextBox>().First();
-                u.Digitar(campo, Ui.Txt(inativo["codigo"]));
-                linhasInativo = Usuario.Achar<DataGridView>(busca).Rows.Count;
-                u.Digitar(campo, Ui.Txt(alvo["nome"]));
-                u.Teclar(busca, Keys.Enter);
-            });
-            u.Teclar(ed, Keys.F3);
-            Usuario.Esperar(300);
-            item = ((System.ComponentModel.BindingList<NotaItem>)Usuario.Achar<DataGridView>(ed).DataSource!).FirstOrDefault();
-            ed.Close();
+            var campo = Usuario.Todos(busca).OfType<TextBox>().First();
+            u.Digitar(campo, Ui.Txt(inativo["codigo"]));
+            linhasInativo = Usuario.Achar<DataGridView>(busca).Rows.Count;
+            u.Digitar(campo, Ui.Txt(alvo["nome"]));
+            u.Teclar(busca, Keys.Enter);
         });
-        using (var f = new NotaEditorForm(Fiscal.Nova(Fiscal.Entrada)))
-            f.ShowDialog(tela);
+        u.Teclar(ed, Keys.F3);
+        Usuario.Esperar(300);
+        item = ((System.ComponentModel.BindingList<NotaItem>)Usuario.Achar<DataGridView>(ed).DataSource!).FirstOrDefault();
+        u.RespostasConfirmacao.Enqueue(false);
+        ed.Close();
+        Usuario.Esperar();
+        continuouAberto = !ed.IsDisposed && ed.Visible && u.Viu("CONFIRMAR", "não foram salvas");
+        u.RespostasConfirmacao.Enqueue(true);
+        ed.Close();
+        Usuario.Esperar();
+        u.Ok(ed.IsDisposed || !ed.Visible, "respondendo \"Sim\" o editor fecha descartando a nota");
         Usuario.Esperar(200);
         u.ConferirJanelas();
         u.Ok(linhasInativo == 0, "produto inativo não aparece na busca (F3)");
         u.Ok(item != null && item.ProdutoId == (long)alvo["id"] && item.Cfop == "1102" && item.ValorUnitario == Ui.Dec(alvo["preco_custo"]),
             "F3 + nome + Enter adiciona o produto pelo custo com CFOP 1102");
+        u.Ok(continuouAberto, "fechar o editor com item não salvo pergunta antes e \"Não\" mantém a nota aberta");
         tela.Close();
     }
 }

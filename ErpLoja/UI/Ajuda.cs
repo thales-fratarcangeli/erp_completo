@@ -292,6 +292,7 @@ public static class Ajuda
         new("NotaEditorForm", "Editar nota fiscal", """
             - Destinatário/remetente: escolha do cadastro (preenche os dados) ou digite.
             - CFOP: 5102/6102 na saída e 1102/2102 na entrada, conforme a UF do participante ser igual ou diferente da UF da loja. Muda sozinho ao trocar a UF.
+            - Fechar com alterações não salvas pede confirmação (para não perder a nota digitada).
             - Modelo: ao trocar entre NF-e (55) e NFC-e (65), a série passa a ser a configurada para o modelo (Configurações > Fiscal).
             - Ao emitir, o sistema confere o CFOP digitado: saída começa por 5/6/7 e entrada por 1/2/3; dentro do estado 5/1, outro estado 6/2 (exterior 7/3).
             - Também confere: venda/compra de origem não cancelada, CPF/CNPJ do participante (se informado), desconto do item entre zero e o valor do item, desconto adicional até o valor dos produtos e NFC-e (65) só em nota de saída.
