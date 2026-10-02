@@ -93,7 +93,13 @@ public class PagamentoForm : Form
         recebido.Width = 180;
         recebido.ValueChanged += (_, _) => AtualizarTroco();
         recebido.KeyUp += (_, _) => AtualizarTroco();
-        Shown += (_, _) => Escolher(0);
+        // abre em dinheiro sem pôr o cursor no valor recebido: assim as teclas 1 a 5 escolhem a forma (2 = PIX...).
+        // Tecle 1 (ou clique no campo) para digitar o valor recebido.
+        Shown += (_, _) =>
+        {
+            Escolher(0, focarValor: false);
+            botoes[0].Focus();
+        };
     }
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
@@ -117,7 +123,7 @@ public class PagamentoForm : Form
         return base.ProcessCmdKey(ref msg, keyData);
     }
 
-    void Escolher(int i)
+    void Escolher(int i, bool focarValor = true)
     {
         escolha = i;
         for (int k = 0; k < botoes.Count; k++)
@@ -143,8 +149,11 @@ public class PagamentoForm : Form
                 Campo("Valor recebido R$:", recebido);
                 Campo("Troco:", troco);
                 AtualizarTroco();
-                aviso.Text = "Informe o valor entregue pelo cliente para calcular o troco (opcional).";
-                BeginInvoke(() => { recebido.Focus(); recebido.Select(0, recebido.Text.Length); });
+                aviso.Text = focarValor
+                    ? "Informe o valor entregue pelo cliente para calcular o troco (opcional)."
+                    : "Enter confirma em dinheiro. Tecle 1 para informar o valor recebido (troco) ou 2 a 5 para outra forma.";
+                if (focarValor)
+                    BeginInvoke(() => { recebido.Focus(); recebido.Select(0, recebido.Text.Length); });
                 break;
             case "Cartão de crédito":
                 parcelas.Value = 1;

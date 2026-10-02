@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace ErpLoja.Forms;
@@ -295,6 +296,8 @@ public class PdvForm : Form
             Animacao.Pulsar(painelTotal, ColorTranslator.FromHtml("#bbf7d0"), 450);
     }
 
+    const decimal QuantidadeMaxima = 99_999;
+
     static readonly Regex Multiplicador = new(@"^\s*(\d+(?:[.,]\d+)?)\s*[*xX]\s*(.+)$");
 
     void Adicionar(bool buscar = false)
@@ -303,7 +306,14 @@ public class PdvForm : Form
         var quantidade = proximaQuantidade;
         if (Multiplicador.Match(texto) is { Success: true } m)
         {
-            quantidade = decimal.Parse(m.Groups[1].Value.Replace('.', ','));
+            // quantidade digitada errada (ex.: código lido duas vezes) não pode derrubar o caixa
+            if (!decimal.TryParse(m.Groups[1].Value.Replace('.', ','), NumberStyles.Number, CultureInfo.GetCultureInfo("pt-BR"), out quantidade) ||
+                quantidade > QuantidadeMaxima)
+            {
+                Ui.Erro($"Quantidade \"{m.Groups[1].Value}\" inválida: use de 0,001 a {QuantidadeMaxima:N0} (ex.: 3*código).");
+                codigo.SelectAll();
+                return;
+            }
             texto = m.Groups[2].Value.Trim();
         }
         if (!buscar && texto.Length == 0)
@@ -354,6 +364,8 @@ public class PdvForm : Form
         var linha = itens.IndexOf(item);
         if (linha >= 0 && linha < grid.Rows.Count)
         {
+            // a linha atual (CurrentCell) é a que o F6 remove: tem de ser a mesma que aparece selecionada
+            grid.CurrentCell = grid.Rows[linha].Cells.Cast<DataGridViewCell>().First(c => c.Visible);
             grid.ClearSelection();
             grid.Rows[linha].Selected = true;
             grid.FirstDisplayedScrollingRowIndex = Math.Max(0, linha - 8);
@@ -385,7 +397,7 @@ public class PdvForm : Form
     void DefinirQuantidade()
     {
         using var d = new Dialogo("Quantidade do próximo item", "PdvForm");
-        var q = d.Adicionar("Quantidade:", Ui.Numero(3, 99_999, 0.001m));
+        var q = d.Adicionar("Quantidade:", Ui.Numero(3, QuantidadeMaxima, 0.001m));
         q.Value = proximaQuantidade;
         q.Select(0, q.Text.Length);
         if (d.ShowDialog(this) != DialogResult.OK)
@@ -460,16 +472,23 @@ public class PdvForm : Form
             Ui.Aviso("Adicione pelo menos um item antes do pagamento.");
             return;
         }
+        // o desconto pode ter passado do limite depois de remover itens (F6): revalida antes de receber
+        if (Parametros.ValidarDesconto(desconto, Subtotal) is string erroDesconto)
+        {
+            Ui.Erro(erroDesconto + "\n\nAjuste o desconto com F5 antes do pagamento.");
+            codigo.Focus();
+            return;
+        }
         using var pagamento = new PagamentoForm(Total, clienteId != null);
         if (pagamento.ShowDialog(this) != DialogResult.OK)
         {
             codigo.Focus();
             return;
         }
-        if (pagamento.Forma == Operacoes.APrazo && clienteId is long cliente &&
-            Operacoes.CreditoDisponivel(cliente) is decimal disponivel && Total > disponivel && !Sessao.Admin)
+        if (Operacoes.ValidarLimiteCredito(clienteId, Total, pagamento.Forma) is string erroCredito)
         {
-            Ui.Erro($"Limite de crédito do cliente excedido (disponível: {Ui.Moeda(disponivel)}). Peça a um administrador.");
+            Ui.Erro(erroCredito);
+            codigo.Focus();
             return;
         }
 

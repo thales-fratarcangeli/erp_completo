@@ -264,6 +264,11 @@ public static class FluxoPedidos
                 Ui.Erro("Para vender a prazo o pedido precisa ter um cliente.");
                 return false;
             }
+            if (p.Tipo == Pedidos.Venda && Operacoes.ValidarLimiteCredito(p.ClienteId, p.Total, cbForma.Text) is string erroCredito)
+            {
+                Ui.Erro(erroCredito);
+                return false;
+            }
             return true;
         };
         var ok = d.ShowDialog(dono) == DialogResult.OK;

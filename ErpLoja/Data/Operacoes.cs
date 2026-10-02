@@ -181,6 +181,18 @@ public static class Operacoes
         return limite - aberto;
     }
 
+    /// <summary>
+    /// RN-VEN-08: venda a prazo acima do crédito disponível do cliente só com administrador.
+    /// Devolve a mensagem para o usuário, ou null se pode seguir. Vale para o PDV e para o faturamento de pedidos.
+    /// </summary>
+    public static string? ValidarLimiteCredito(long? clienteId, decimal total, string forma)
+    {
+        if (forma != APrazo || clienteId is not long cliente || Sessao.Admin || CreditoDisponivel(cliente) is not decimal disponivel || total <= disponivel)
+            return null;
+        return $"Limite de crédito do cliente excedido (disponível: {Ui.Moeda(Math.Max(0, disponivel))}, venda: {Ui.Moeda(total)}). " +
+               "Escolha outra forma de pagamento ou peça a um administrador.";
+    }
+
     public static void AjustarEstoque(long produtoId, string tipo, decimal delta, string motivo)
     {
         using var s = new DbSessao(transacao: true);
