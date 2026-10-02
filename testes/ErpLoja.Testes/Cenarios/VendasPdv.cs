@@ -192,6 +192,15 @@ public class VendasTefSimulador : ICenario
         u.Ok(VendasUtil.Contar("SELECT COUNT(*) FROM contas WHERE venda_id = @p0 AND status = 'PAGA'", venda["id"]) == 1,
             "crédito no TEF gera a conta a receber já paga (a operadora recebe da adquirente)");
         pdv.Close();
+
+        // gerente cancela a venda em Vendas realizadas: o cartão é estornado
+        var vendas2 = u.AbrirTela("vendas");
+        VendasPedidosUtil.Selecionar(vendas2, Convert.ToInt64(venda["id"]));
+        u.RespostaConfirmacao = true;
+        u.Clicar(vendas2, "Cancelar venda");
+        u.Ok(Ui.Txt(Db.Scalar("SELECT status FROM transacoes_tef WHERE venda_id = @p0", venda["id"])) == "CANCELADA" && u.Viu("INFO", "Estorno"),
+            "cancelar a venda estorna a transação TEF e informa o estorno");
+        vendas2.Close();
     }
 }
 

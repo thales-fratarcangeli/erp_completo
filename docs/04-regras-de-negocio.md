@@ -66,8 +66,8 @@ Sumário: [Cadastros](#cadastros-rn-cad) · [Estoque](#estoque-rn-est) · [Custo
 | RN-VEN-03 | **Estoque insuficiente** (quantidade acumulada do produto na venda > saldo) segue `venda_sem_estoque`: PERGUNTAR, PERMITIR ou BLOQUEAR. |
 | RN-VEN-04 | Entrada "N*código" (ou "Nxcódigo") lança N unidades; repetir o produto soma na mesma linha. |
 | RN-VEN-05 | Dinheiro: valor recebido, se informado, ≥ total; troco = recebido − total. |
-| RN-VEN-06 | À vista (dinheiro, PIX, cartões): conta a receber já **PAGA** na data. A prazo: parcelas (RN-FIN-02); 1º vencimento = hoje + `prazo_vencimento_dias`; até `max_parcelas`. |
-| RN-VEN-07 | Venda a prazo exige cliente identificado. |
+| RN-VEN-06 | À vista (dinheiro, PIX, cartões): conta a receber já **PAGA** na data. A prazo e **boleto** (pedido faturado no boleto): parcelas em aberto (RN-FIN-02); 1º vencimento = hoje + `prazo_vencimento_dias`; até `max_parcelas`. |
+| RN-VEN-07 | Venda a prazo ou no boleto exige cliente identificado (e segue RN-VEN-08). |
 | RN-VEN-08 | **Limite de crédito**: com limite > 0, venda a prazo só se `total ≤ limite − contas a receber em aberto do cliente`; acima disso só administrador. Vale para o PDV e para o faturamento de pedidos. |
 | RN-VEN-09 | Venda com total zero não gera conta. O comprovante é não fiscal. |
 | RN-VEN-10 | **Cancelamento** (só administrador, só venda FINALIZADA): devolve itens ao estoque, cancela as contas a receber da venda, reabre o pedido de origem e estorna as transações TEF confirmadas. A nota fiscal não é cancelada automaticamente. |

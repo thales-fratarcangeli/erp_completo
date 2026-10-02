@@ -272,6 +272,46 @@ public class VendasNovatoDescontoDoItem : ICenario
     }
 }
 
+/// <summary>Pedido faturado no boleto: o dinheiro ainda não entrou, então a conta fica em aberto; sem cliente é recusado.</summary>
+public class VendasPedidoNoBoleto : ICenario
+{
+    public string Area => "Vendas";
+
+    public void Executar(Usuario u)
+    {
+        var a = VendasUtil.Produto();
+        var cliente = VendasUtil.Cliente("Cliente Boleto Teste", 0);
+        long NovoPedido(long? clienteId)
+        {
+            var p = new Pedido { Tipo = Pedidos.Venda, ClienteId = clienteId, Forma = Operacoes.Boleto };
+            p.Itens.Add(new PedidoItem { ProdutoId = a.Id, Codigo = a.Codigo, Produto = "x", Quantidade = 1, Unitario = a.Preco });
+            return Pedidos.Salvar(p);
+        }
+        var semCliente = NovoPedido(null);
+        var comCliente = NovoPedido(cliente);
+
+        var tela = u.AbrirTela("pedidos_VENDA");
+        VendasPedidosUtil.Selecionar(tela, semCliente);
+        var aceitou = true;
+        VendasPedidosUtil.Faturar(u, Operacoes.Boleto, ok => aceitou = ok);
+        u.Clicar(tela, "Faturar");
+        u.ConferirJanelas();
+        u.Ok(!aceitou && u.Viu("ERRO", "boleto") && Ui.Txt(Db.Scalar("SELECT status FROM pedidos WHERE id = @p0", semCliente)) == "ABERTO",
+            "faturar no boleto sem cliente é recusado");
+
+        VendasPedidosUtil.Selecionar(tela, comCliente);
+        VendasPedidosUtil.Faturar(u, Operacoes.Boleto, ok => aceitou = ok);
+        u.RespostasConfirmacao.Enqueue(false); // não emitir nota agora
+        u.Clicar(tela, "Faturar");
+        u.ConferirJanelas();
+        var venda = Convert.ToInt64(Db.Scalar("SELECT COALESCE(venda_id, 0) FROM pedidos WHERE id = @p0", comCliente));
+        u.Ok(aceitou && venda > 0, "faturar no boleto com cliente gera a venda" + VendasUtil.Erros(u));
+        u.Ok(VendasUtil.Contar("SELECT COUNT(*) FROM contas WHERE venda_id = @p0 AND status = 'ABERTA' AND data_pagamento IS NULL AND cliente_id = @p1", venda, cliente) == 1,
+            "venda no boleto fica em aberto no contas a receber (não entra como recebida)");
+        tela.Close();
+    }
+}
+
 /// <summary>Gerente cancela uma venda a prazo que já teve parcela recebida: o sistema avisa antes de cancelar.</summary>
 public class VendasCancelarAPrazoComParcelaRecebida : ICenario
 {

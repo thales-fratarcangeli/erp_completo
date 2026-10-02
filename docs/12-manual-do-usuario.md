@@ -163,6 +163,7 @@ Histórico de vendas (PDV e pedidos faturados) por período, com os itens e o lu
 
 - Comprovante: reimprime o comprovante não fiscal.
 - Cancelar venda (somente administrador): devolve os produtos ao estoque, cancela as contas a receber da venda e reabre o pedido de origem, se houver. A nota fiscal emitida para a venda deve ser cancelada em Fiscal > Notas fiscais.
+- Pagamentos de cartão/PIX feitos pelo TEF são estornados junto. Se a venda era a prazo e alguma parcela já foi recebida, a confirmação avisa o valor: ele também é cancelado no financeiro e deve ser acertado com o cliente.
 
 ## Compras realizadas
 

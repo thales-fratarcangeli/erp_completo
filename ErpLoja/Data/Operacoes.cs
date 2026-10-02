@@ -8,7 +8,10 @@ public record ItemDoc(long ProdutoId, decimal Quantidade, decimal Unitario, deci
 /// <summary>Regras de negócio que mexem em várias tabelas (sempre dentro de uma transação).</summary>
 public static class Operacoes
 {
-    public const string APrazo = "A prazo";
+    public const string APrazo = "A prazo", Boleto = "Boleto";
+
+    /// <summary>Formas de venda em que o dinheiro entra depois (RN-VEN-06): geram parcelas em aberto e exigem cliente.</summary>
+    public static bool RecebeDepois(string forma) => forma is APrazo or Boleto;
 
     public static void MovimentarEstoque(DbSessao s, long produtoId, string tipo, decimal delta, string origem, long? referencia = null)
     {
@@ -80,7 +83,7 @@ public static class Operacoes
             MovimentarEstoque(s, i.ProdutoId, "SAIDA", -i.Quantidade, $"Venda nº {id}", id);
         }
 
-        GerarContas(s, "RECEBER", $"Venda nº {id}", total, forma, forma == APrazo, parcelas, vencimento,
+        GerarContas(s, "RECEBER", $"Venda nº {id}", total, forma, RecebeDepois(forma), parcelas, vencimento,
             clienteId, null, id, null);
         return id;
     }
@@ -187,7 +190,7 @@ public static class Operacoes
     /// </summary>
     public static string? ValidarLimiteCredito(long? clienteId, decimal total, string forma)
     {
-        if (forma != APrazo || clienteId is not long cliente || Sessao.Admin || CreditoDisponivel(cliente) is not decimal disponivel || total <= disponivel)
+        if (!RecebeDepois(forma) || clienteId is not long cliente || Sessao.Admin || CreditoDisponivel(cliente) is not decimal disponivel || total <= disponivel)
             return null;
         return $"Limite de crédito do cliente excedido (disponível: {Ui.Moeda(Math.Max(0, disponivel))}, venda: {Ui.Moeda(total)}). " +
                "Escolha outra forma de pagamento ou peça a um administrador.";
