@@ -26,7 +26,7 @@ public class OrdensProducaoForm : Form
             Ui.Botao("Iniciar produção", (_, _) => Executar(id => { Producao.Iniciar(id); Ui.Feito($"OP nº {id} em produção."); })),
             Ui.Botao("Concluir", (_, _) => Concluir(), primario: true),
             Ui.Botao("Cancelar OP", (_, _) => Executar(id => { if (Ui.Confirmar($"Cancelar a OP nº {id}?")) Producao.Cancelar(id); })),
-            Ui.Botao("Imprimir", (_, _) => { if (Ui.IdLinha(ordens) is long id) CupomForm.Visualizar(this, $"OP nº {id}", Producao.Texto(id), 80); }),
+            Ui.Botao("Imprimir", (_, _) => { if (Selecionada() is long id) CupomForm.Visualizar(this, $"OP nº {id}", Producao.Texto(id), 80); }),
             Ui.Botao("Exportar CSV", (_, _) => Ui.ExportarCsv(ordens, "ordens_producao")),
         ]);
 
@@ -92,6 +92,15 @@ public class OrdensProducaoForm : Form
                    CASE WHEN i.quantidade_consumida IS NULL AND p.estoque < i.quantidade_prevista THEN 'BAIXO' ELSE 'OK' END AS "Situação"
             FROM op_itens i JOIN produtos p ON p.id = i.insumo_id WHERE i.op_id = @p0 ORDER BY p.nome
             """, id);
+    }
+
+    /// <summary>OP selecionada; sem seleção, avisa em vez de não fazer nada.</summary>
+    long? Selecionada()
+    {
+        if (Ui.IdLinha(ordens) is long id)
+            return id;
+        Ui.Erro("Selecione uma ordem de produção.");
+        return null;
     }
 
     void Executar(Action<long> acao)

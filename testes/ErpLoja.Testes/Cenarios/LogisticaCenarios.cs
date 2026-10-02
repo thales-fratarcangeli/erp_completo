@@ -297,6 +297,34 @@ public class LogisticaCadastraVeiculo : ICenario
 }
 
 /// <summary>
+/// Regressão: Abrir/editar, Imprimir e Cancelar CIOT (fretes) e Imprimir (OP) sem linha selecionada não faziam nada;
+/// agora avisam para selecionar.
+/// </summary>
+public class LogisticaBotoesSemSelecao : ICenario
+{
+    public string Area => "Logística";
+
+    public void Executar(Usuario u)
+    {
+        var f = u.AbrirTela("FretesForm");
+        Usuario.Achar<DataGridView>(f).ClearSelection();
+        foreach (var botao in new[] { "Abrir / editar", "Imprimir", "Cancelar CIOT" })
+        {
+            var antes = u.Mensagens.Count;
+            u.Clicar(f, botao);
+            u.Ok(u.Mensagens.Count == antes + 1 && u.Viu("ERRO", "Selecione um frete"), $"fretes: '{botao}' sem seleção avisa para selecionar");
+        }
+        f.Close();
+
+        var o = u.AbrirTela("OrdensProducaoForm");
+        Usuario.Achar<DataGridView>(o, g => g.Columns.Contains("Planejado")).ClearSelection();
+        u.Clicar(o, "Imprimir");
+        u.Ok(u.Viu("ERRO", "Selecione uma ordem de produção"), "OP: Imprimir sem seleção avisa para selecionar");
+        o.Close();
+    }
+}
+
+/// <summary>
 /// Editor do frete: (1) regressão — editar um frete cujo veículo foi desativado depois apagava o veículo ao salvar;
 /// (2) carga acima da capacidade do veículo pede confirmação (respondendo Não, o diálogo continua aberto para corrigir).
 /// </summary>

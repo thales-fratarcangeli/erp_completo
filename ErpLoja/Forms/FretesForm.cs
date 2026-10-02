@@ -25,7 +25,7 @@ public class FretesForm : Form
         var acoes = Ui.Barra();
         acoes.Controls.AddRange([
             Ui.Botao("Novo frete", (_, _) => Editar(null), primario: true),
-            Ui.Botao("Abrir / editar", (_, _) => { if (Ui.IdLinha(fretes) is long id) Editar(id); }),
+            Ui.Botao("Abrir / editar", (_, _) => { if (Selecionado() is long id) Editar(id); }),
             Ui.Botao("Declarar CIOT", async (_, _) => await Ciot(Fretes.DeclararCiot, "declarado")),
             Ui.Botao("Encerrar CIOT", async (_, _) => await Ciot(Fretes.EncerrarCiot, "encerrado")),
             Ui.Botao("Cancelar CIOT", async (_, _) => await CancelarCiot()),
@@ -38,7 +38,7 @@ public class FretesForm : Form
                     Ui.Aviso("Frete entregue. Lembre de encerrar o CIOT (botão \"Encerrar CIOT\", filtro Entregues ou Todos).");
             })),
             Ui.Botao("Cancelar frete", (_, _) => Executar(id => { if (Ui.Confirmar("Cancelar este frete?")) Fretes.MudarStatus(id, "CANCELADO"); })),
-            Ui.Botao("Imprimir", (_, _) => { if (Ui.IdLinha(fretes) is long id) CupomForm.Visualizar(this, $"Frete nº {id}", Texto(id), 80); }),
+            Ui.Botao("Imprimir", (_, _) => { if (Selecionado() is long id) CupomForm.Visualizar(this, $"Frete nº {id}", Texto(id), 80); }),
         ]);
         Ui.ColorirSituacao(fretes);
         Controls.Add(fretes);
@@ -84,6 +84,15 @@ public class FretesForm : Form
                     fretes.ClearSelection();
                     r.Selected = true;
                 }
+    }
+
+    /// <summary>Frete selecionado; sem seleção, avisa em vez de não fazer nada.</summary>
+    long? Selecionado()
+    {
+        if (Ui.IdLinha(fretes) is long id)
+            return id;
+        Ui.Erro("Selecione um frete.");
+        return null;
     }
 
     void Executar(Action<long> acao)
@@ -136,7 +145,7 @@ public class FretesForm : Form
         using var d = new Dialogo("Cancelar CIOT", "FretesForm", "Cancelar CIOT");
         var motivo = d.Adicionar("Motivo:", new TextBox());
         d.Validar = () => motivo.Text.Trim().Length >= 15 || Falhar("Descreva o motivo (pelo menos 15 caracteres).");
-        if (Ui.IdLinha(fretes) is null || d.ShowDialog(this) != DialogResult.OK)
+        if (Selecionado() is null || d.ShowDialog(this) != DialogResult.OK)
             return;
         await Ciot(id => Fretes.CancelarCiot(id, motivo.Text.Trim()), "cancelado");
     }
