@@ -266,7 +266,7 @@ Boletos, remessa e retorno no padrão CNAB 240 Febraban — serve para qualquer 
 - Conta a receber baixada ou cancelada no Financeiro encerra o boleto dela: o não enviado é cancelado; o já enviado ganha pedido de baixa na próxima remessa.
 
 ### Homologação
-Siga o roteiro da aba: boletos de teste, remessa de teste, validador CNAB 240 (confere tamanho das linhas, lotes, quantidades e totais) e simulação do retorno do banco. Aprovado pelo banco, mude a conta para PRODUCAO.
+Siga o roteiro da aba: boletos de teste, remessa de teste, validador CNAB 240 (confere tamanho das linhas, lotes, quantidades e totais) e simulação do retorno do banco (só no ambiente HOMOLOGACAO, para não baixar contas sem o dinheiro ter entrado). Aprovado pelo banco, mude a conta para PRODUCAO (antes, cancele os boletos de teste não enviados: a remessa de produção os recusa).
 
 ## Buscar tela
 

@@ -46,6 +46,10 @@ public class CobrancaHomologacaoAteProducao : ICenario
             u.Ok(ex.Message.Contains("boleto(s) de teste"), "remessa de produção recusa boletos de teste esquecidos");
         }
         u.Ok(Convert.ToInt64(Db.Scalar("SELECT COUNT(*) FROM boletos WHERE status = 'EMITIDO'")) == 3, "boletos de teste continuam só emitidos (nada foi enviado)");
+        var retornos = Convert.ToInt64(Db.Scalar("SELECT COUNT(*) FROM retornos"));
+        u.Clicar(f, "4. Simular retorno (confirmar e pagar)");
+        u.Ok(u.Viu("ERRO", "só existe no ambiente HOMOLOGACAO") && Convert.ToInt64(Db.Scalar("SELECT COUNT(*) FROM retornos")) == retornos,
+            "em produção a simulação de retorno é recusada (não baixa contas sem dinheiro)");
         f.Close();
 
         // estorno de conta liquidada pelo banco: avisa, e depois permite novo boleto

@@ -347,7 +347,16 @@ public class CobrancaForm : Form
             Ui.Erro("Gere uma remessa primeiro.");
             return;
         }
-        var conteudo = Cobranca.SimularRetorno(remessa.Value, liquidar);
+        string conteudo;
+        try
+        {
+            conteudo = Cobranca.SimularRetorno(remessa.Value, liquidar);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Ui.Erro(ex.Message);
+            return;
+        }
         Registrar($"Retorno simulado para a remessa {remessa} ({(liquidar ? "entradas confirmadas e pagas" : "entradas confirmadas")}).");
         Processar(c, $"SIMULADO_REMESSA_{remessa}.ret", conteudo);
     }

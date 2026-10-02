@@ -627,6 +627,9 @@ public static class Cobranca
     {
         var rem = Db.Query("SELECT * FROM remessas WHERE id = @p0", remessaId).Rows[0];
         var c = ContaBancaria.Carregar((long)rem["conta_bancaria_id"]);
+        // em produção um retorno simulado daria baixa em contas sem o dinheiro ter entrado
+        if (!c.Homologacao)
+            throw new InvalidOperationException("A simulação de retorno só existe no ambiente HOMOLOGACAO. Em produção, importe o arquivo de retorno enviado pelo banco.");
         var boletos = Db.Query("SELECT * FROM boletos WHERE remessa_id = @p0 ORDER BY id", remessaId);
         // movimento de cada título na remessa (segmento P, uso da empresa = id do boleto): 01 = entrada, 02 = pedido de baixa
         var movimentoRemessa = Ui.Txt(rem["conteudo"]).Replace("\r\n", "\n").Split('\n')
