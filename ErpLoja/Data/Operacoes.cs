@@ -8,7 +8,10 @@ public record ItemDoc(long ProdutoId, decimal Quantidade, decimal Unitario, deci
 /// <summary>Regras de negócio que mexem em várias tabelas (sempre dentro de uma transação).</summary>
 public static class Operacoes
 {
-    public const string APrazo = "A prazo";
+    public const string APrazo = "A prazo", Boleto = "Boleto";
+
+    /// <summary>Formas de venda em que o dinheiro entra depois (RN-VEN-06): geram parcelas em aberto e exigem cliente.</summary>
+    public static bool RecebeDepois(string forma) => forma is APrazo or Boleto;
 
     public static void MovimentarEstoque(DbSessao s, long produtoId, string tipo, decimal delta, string origem, long? referencia = null)
     {
@@ -80,7 +83,7 @@ public static class Operacoes
             MovimentarEstoque(s, i.ProdutoId, "SAIDA", -i.Quantidade, $"Venda nº {id}", id);
         }
 
-        GerarContas(s, "RECEBER", $"Venda nº {id}", total, forma, forma == APrazo, parcelas, vencimento,
+        GerarContas(s, "RECEBER", $"Venda nº {id}", total, forma, RecebeDepois(forma), parcelas, vencimento,
             clienteId, null, id, null);
         return id;
     }
@@ -223,6 +226,21 @@ public static class Operacoes
             return null;
         var aberto = Convert.ToDecimal(Db.Scalar("SELECT COALESCE(SUM(valor), 0) FROM contas WHERE tipo = 'RECEBER' AND status = 'ABERTA' AND cliente_id = @p0", clienteId) ?? 0);
         return limite - aberto;
+    }
+
+    /// <summary>
+    /// RN-VEN-08: venda a prazo/boleto acima do crédito disponível do cliente. Usuário comum é barrado (com a explicação);
+    /// administrador confirma a liberação. Devolve true se pode seguir. Vale para o PDV e para o faturamento de pedidos.
+    /// </summary>
+    public static bool ConferirLimiteCredito(long? clienteId, decimal total, string forma)
+    {
+        if (!RecebeDepois(forma) || clienteId is not long cliente || CreditoDisponivel(cliente) is not decimal disponivel || total <= disponivel)
+            return true;
+        var texto = $"Limite de crédito do cliente excedido (disponível: {Ui.Moeda(Math.Max(0, disponivel))}, venda: {Ui.Moeda(total)}).";
+        if (Sessao.Admin)
+            return Ui.Confirmar(texto + "\n\nLiberar a venda acima do limite (administrador)?");
+        Ui.Erro(texto + " Escolha outra forma de pagamento ou peça a um administrador.");
+        return false;
     }
 
     public static void AjustarEstoque(long produtoId, string tipo, decimal delta, string motivo)

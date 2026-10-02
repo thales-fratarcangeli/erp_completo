@@ -111,6 +111,8 @@ public class CupomForm : Form
         Lados("Subtotal", Ui.Dec(v["subtotal"]).ToString("N2"));
         if (Ui.Dec(v["desconto"]) > 0)
             Lados("Desconto", "-" + Ui.Dec(v["desconto"]).ToString("N2"));
+        if (Ui.Dec(v["frete"]) > 0) // venda faturada de pedido com frete: sem esta linha a conta do comprovante não fecha
+            Lados("Frete", "+" + Ui.Dec(v["frete"]).ToString("N2"));
         sb.Append("[N]");
         Lados("TOTAL R$", Ui.Dec(v["total"]).ToString("N2"));
         Lados("Pagamento", Ui.Txt(v["forma_pagamento"]));

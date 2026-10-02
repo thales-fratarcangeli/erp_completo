@@ -88,19 +88,21 @@ public static class Ajuda
             - F2 cliente · F3 buscar · F4 quantidade · F5 desconto (em R$ ou %) · F6 remover item · F7 cancelar venda · F10 pagamento · Esc sair.
 
             ## Pagamento (F10)
-            - Escolha a forma com as teclas 1 a 5: dinheiro, PIX, débito, crédito ou a prazo.
-            - Em dinheiro, informe o valor recebido para ver o troco.
+            - Escolha a forma com as teclas 1 a 5: dinheiro, PIX, débito, crédito ou a prazo. A janela abre em dinheiro: Enter já confirma.
+            - Para calcular o troco, tecle 1 (o cursor vai para o valor recebido), digite o valor entregue e tecle Enter.
             - Cartão e PIX acionam o TEF (se ativo em Configurações). Se a venda não puder ser gravada, a transação do cartão é desfeita automaticamente.
             - O comprovante é impresso conforme Configurações (perguntar, sempre ou nunca), na impressora de cupom; em dinheiro a gaveta pode abrir sozinha.
 
             ## Regras
-            - A venda baixa o estoque e lança o recebimento no financeiro. A prazo exige cliente e respeita o limite de crédito dele.
+            - A venda baixa o estoque e lança o recebimento no financeiro. A prazo exige cliente e respeita o limite de crédito dele (acima do limite, só um administrador libera, confirmando). Produto sem preço de venda não é lançado.
             - Estoque insuficiente segue a regra de Configurações (perguntar, permitir ou bloquear). Desconto acima do limite só com administrador.
+            - Se, depois do desconto, itens forem removidos e o desconto passar do limite, o F10 avisa: ajuste o desconto com F5.
+            - Quantidade em "N*código" vai de 0,001 a 99.999; um valor fora disso é recusado com aviso.
             """),
 
         new("PagamentoForm", "Pagamento e TEF", """
             ## Formas de pagamento
-            - 1 Dinheiro: informe o valor recebido para calcular o troco.
+            - 1 Dinheiro (já vem escolhido; Enter confirma). Tecle 1 de novo para ir ao valor recebido e calcular o troco.
             - 2 PIX, 3 Débito, 4 Crédito: o TEF é acionado ao confirmar (se estiver ativo). No crédito, informe as parcelas.
             - 5 A prazo: gera parcelas no contas a receber do cliente (exige cliente identificado com F2).
 
@@ -142,7 +144,7 @@ public static class Ajuda
 
             ## Regras
             - Descontos do pedido (por item + geral) e frete passam para a venda.
-            - Venda a prazo exige cliente. A regra de estoque insuficiente vale também aqui.
+            - Venda a prazo exige cliente e respeita o limite de crédito dele (acima do limite, só administrador). A regra de estoque insuficiente vale também aqui.
             """),
 
         new("pedidos_COMPRA", "Pedidos de compra", """
@@ -173,6 +175,7 @@ public static class Ajuda
 
             - Comprovante: reimprime o comprovante não fiscal.
             - Cancelar venda (somente administrador): devolve os produtos ao estoque, cancela as contas a receber da venda e reabre o pedido de origem, se houver. A nota fiscal emitida para a venda deve ser cancelada em Fiscal > Notas fiscais.
+            - Pagamentos de cartão/PIX feitos pelo TEF são estornados junto. Se a venda era a prazo e alguma parcela já foi recebida, a confirmação avisa o valor: ele também é cancelado no financeiro e deve ser acertado com o cliente.
             """),
 
         new("compras", "Compras realizadas", """

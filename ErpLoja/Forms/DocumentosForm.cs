@@ -107,6 +107,15 @@ public class DocumentosForm : Form
             ? $"Cancelar a venda nº {id}?\nOs produtos voltarão ao estoque e as contas a receber serão canceladas."
             : $"Cancelar a compra nº {id}?\nOs produtos sairão do estoque e as contas a pagar serão canceladas." +
               (Operacoes.AvisosCancelamentoCompra(id) is { Length: > 0 } avisos ? "\n\nATENÇÃO:\n" + avisos : "");
+        // parcelas a prazo já baixadas também são canceladas: o usuário precisa saber que há dinheiro a devolver/acertar
+        var baixadas = Db.Query($"""
+            SELECT COUNT(*) AS n, COALESCE(SUM(c.valor_pago), 0) AS valor FROM contas c
+            JOIN {(venda ? "vendas" : "compras")} d ON d.id = c.{(venda ? "venda_id" : "compra_id")}
+            WHERE d.id = @p0 AND d.forma_pagamento IN (@p1, @p2) AND c.status = 'PAGA'
+            """, id, Operacoes.APrazo, Operacoes.Boleto).Rows[0];
+        if (venda && Convert.ToInt64(baixadas["n"]) > 0) // na compra o aviso vem de AvisosCancelamentoCompra
+            aviso += $"\n\nAtenção: {baixadas["n"]} parcela(s) já {(venda ? "recebida(s)" : "paga(s)")} ({Ui.Moeda(Ui.Dec(baixadas["valor"]))}) " +
+                     $"também serão canceladas. Acerte esse valor com o {(venda ? "cliente" : "fornecedor")} fora do sistema.";
         if (!Ui.Confirmar(aviso))
             return;
         try

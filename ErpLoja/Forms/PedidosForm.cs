@@ -256,15 +256,15 @@ public static class FluxoPedidos
         nudParcelas.Value = Math.Clamp(p.Parcelas, 1, Parametros.MaxParcelas);
         var dtVenc = d.Adicionar("1º vencimento:", Ui.Data(DateTime.Today.AddDays(Parametros.PrazoVencimentoDias)));
         var tbNota = p.Tipo == Pedidos.Compra ? d.Adicionar("Nº da nota fiscal:", new TextBox()) : null;
-        d.Nota("Parcelas e vencimento valem para pagamento a prazo.");
+        d.Nota(p.Tipo == Pedidos.Compra ? "Parcelas e vencimento valem para pagamento a prazo." : "Parcelas e vencimento valem para a prazo e boleto (ficam em aberto no contas a receber).");
         d.Validar = () =>
         {
-            if (p.Tipo == Pedidos.Venda && cbForma.Text == Operacoes.APrazo && p.ClienteId is null)
+            if (p.Tipo == Pedidos.Venda && Operacoes.RecebeDepois(cbForma.Text) && p.ClienteId is null)
             {
-                Ui.Erro("Para vender a prazo o pedido precisa ter um cliente.");
+                Ui.Erro($"Para vender {(cbForma.Text == Operacoes.Boleto ? "no boleto" : "a prazo")} o pedido precisa ter um cliente. Abra o pedido e escolha o cliente.");
                 return false;
             }
-            return true;
+            return p.Tipo != Pedidos.Venda || Operacoes.ConferirLimiteCredito(p.ClienteId, p.Total, cbForma.Text);
         };
         var ok = d.ShowDialog(dono) == DialogResult.OK;
         forma = cbForma.Text;
