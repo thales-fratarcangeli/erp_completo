@@ -371,7 +371,7 @@ public static class DadosDemo
             """, Cobranca.ModeloCampoLivrePadrao));
         var paraBoleto = Db.Query("SELECT id FROM contas WHERE tipo = 'RECEBER' AND status = 'ABERTA' AND cliente_id IS NOT NULL ORDER BY vencimento LIMIT 8");
         foreach (DataRow c in paraBoleto.Rows)
-            Cobranca.Emitir(contaBanco, (long)c["id"]);
+            Cobranca.Emitir(contaBanco, (long)c["id"], DateTime.Today.AddDays(10)); // conta já vencida: boleto com novo vencimento
         if (paraBoleto.Rows.Count > 0)
         {
             var (remessa, _, _, _) = Cobranca.GerarRemessa(contaBanco);

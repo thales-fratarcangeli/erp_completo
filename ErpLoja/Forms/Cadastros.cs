@@ -177,6 +177,7 @@ public static class Cadastros
         new Campo("ambiente", "Ambiente", TipoCampo.Opcoes, Obrigatorio: true, Opcoes: ["HOMOLOGACAO", "PRODUCAO"], Padrao: "HOMOLOGACAO"),
         new Campo("ativo", "Ativo", TipoCampo.Booleano, Padrao: true))
     {
+        ValidarRegistro = Cobranca.ValidarContaBancaria,
         Dica = "O campo livre é a parte do código de barras definida por cada banco. Monte-o com as marcações do manual do seu banco, " +
                "por exemplo {agencia:4}{carteira:2}{nossonumero:11}{conta:7}{zeros:1}. Veja a ajuda (F1) para a lista de marcações.",
     };

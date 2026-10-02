@@ -49,6 +49,8 @@ public class FinanceiroForm : Form
         tipo.SelectedIndexChanged += (_, _) => Carregar();
         situacao.SelectedIndexChanged += (_, _) => Carregar();
         usarPeriodo.CheckedChanged += (_, _) => Carregar();
+        de.ValueChanged += (_, _) => { if (usarPeriodo.Checked) Carregar(); };
+        ate.ValueChanged += (_, _) => { if (usarPeriodo.Checked) Carregar(); };
         grid.CellDoubleClick += (_, e) => { if (e.RowIndex >= 0) Baixar(); };
         Load += (_, _) => Carregar();
     }
@@ -95,12 +97,13 @@ public class FinanceiroForm : Form
             SELECT
               COALESCE(SUM(CASE WHEN tipo = 'RECEBER' AND status = 'ABERTA' THEN valor END), 0) AS receber,
               COALESCE(SUM(CASE WHEN tipo = 'PAGAR' AND status = 'ABERTA' THEN valor END), 0) AS pagar,
+              COALESCE(SUM(CASE WHEN tipo = 'RECEBER' AND status = 'ABERTA' AND vencimento < date('now', 'localtime') THEN valor END), 0) AS vencido,
               COALESCE(SUM(CASE WHEN tipo = 'RECEBER' AND status = 'PAGA' AND data_pagamento >= @p0 THEN valor_pago END), 0) AS recebido,
               COALESCE(SUM(CASE WHEN tipo = 'PAGAR' AND status = 'PAGA' AND data_pagamento >= @p0 THEN valor_pago END), 0) AS pago
             FROM contas
             """, Db.Dia(new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1))).Rows[0];
         var (aReceber, aPagar) = (Ui.Dec(t["receber"]), Ui.Dec(t["pagar"]));
-        resumo.Text = $"Em aberto — a receber: {Ui.Moeda(aReceber)}   a pagar: {Ui.Moeda(aPagar)}   saldo previsto: {Ui.Moeda(aReceber - aPagar)}"
+        resumo.Text = $"Em aberto — a receber: {Ui.Moeda(aReceber)} (vencido: {Ui.Moeda(Ui.Dec(t["vencido"]))})   a pagar: {Ui.Moeda(aPagar)}   saldo previsto: {Ui.Moeda(aReceber - aPagar)}"
                     + $"        No mês — recebido: {Ui.Moeda(Ui.Dec(t["recebido"]))}   pago: {Ui.Moeda(Ui.Dec(t["pago"]))}";
     }
 
@@ -160,6 +163,9 @@ public class FinanceiroForm : Form
         var receber = Ui.Txt(linha["Tipo"]) == "A receber";
         using var d = new Dialogo(receber ? "Receber conta" : "Pagar conta", "conta_baixa", "Confirmar");
         d.Nota($"{linha["Descrição"]} — {Ui.Moeda(Ui.Dec(linha["Valor"]))}");
+        if (Db.Scalar("SELECT nosso_numero FROM boletos WHERE conta_id = @p0 AND status IN ('EMITIDO', 'ENVIADO', 'REGISTRADO')", id) is string nosso)
+            d.Nota($"Atenção: esta conta tem o boleto nosso número {nosso} em aberto. Ao confirmar, o boleto é cancelado " +
+                   "(ou a baixa é pedida ao banco na próxima remessa) para o cliente não pagar duas vezes.");
         var data = d.Adicionar(receber ? "Recebido em:" : "Pago em:", Ui.Data());
         var valor = d.Adicionar("Valor (R$):", Ui.Numero());
         valor.Value = Ui.Dec(linha["Valor"]);
@@ -167,11 +173,16 @@ public class FinanceiroForm : Form
         forma.Items.AddRange(Formas);
         forma.SelectedIndex = 0;
         d.Nota("Juros ou descontos podem ser lançados ajustando o valor.");
-        d.Validar = () => valor.Value > 0 || Fail("Informe o valor.");
+        d.Validar = () =>
+            valor.Value <= 0 ? Fail("Informe o valor.")
+            : data.Value.Date > DateTime.Today ? Fail("A data do pagamento não pode ser futura. Baixe a conta no dia em que o dinheiro entrar ou sair.")
+            // valor muito diferente costuma ser erro de digitação (ex.: 2.000 no lugar de 200)
+            : valor.Value > Ui.Dec(linha["Valor"]) * 2 || valor.Value < Ui.Dec(linha["Valor"]) / 2
+                ? Ui.Confirmar($"O valor informado ({Ui.Moeda(valor.Value)}) é muito diferente do valor da conta ({Ui.Moeda(Ui.Dec(linha["Valor"]))}). Confirma a baixa com esse valor?")
+            : true;
         if (d.ShowDialog(this) != DialogResult.OK)
             return;
-        Operacoes.BaixarConta(id, data.Value.Date, valor.Value, forma.Text);
-        Carregar();
+        Executar(() => Operacoes.BaixarConta(id, data.Value.Date, valor.Value, forma.Text));
     }
 
     void Estornar()
@@ -184,7 +195,10 @@ public class FinanceiroForm : Form
             Ui.Erro("Somente contas pagas podem ser estornadas.");
             return;
         }
-        if (Ui.Confirmar("Estornar a baixa? A conta voltará a ficar em aberto."))
+        var liquidadoNoBanco = Db.Scalar("SELECT nosso_numero FROM boletos WHERE conta_id = @p0 AND status = 'PAGO'", id) is string nn
+            ? $"\n\nAtenção: esta conta foi liquidada pelo banco (boleto nosso número {nn}). Estorne só se o banco confirmar que o pagamento não ocorreu."
+            : "";
+        if (Ui.Confirmar("Estornar a baixa? A conta voltará a ficar em aberto." + liquidadoNoBanco))
         {
             Operacoes.EstornarConta(id);
             Carregar();
@@ -201,11 +215,26 @@ public class FinanceiroForm : Form
             Ui.Erro("Somente contas em aberto podem ser canceladas.");
             return;
         }
-        if (Ui.Confirmar($"Cancelar a conta \"{linha["Descrição"]}\"?"))
+        var boleto = Db.Scalar("SELECT nosso_numero FROM boletos WHERE conta_id = @p0 AND status IN ('EMITIDO', 'ENVIADO', 'REGISTRADO')", id) is string nn
+            ? $"\n\nO boleto nosso número {nn} desta conta também será cancelado (ou a baixa será pedida ao banco)."
+            : "";
+        if (Ui.Confirmar($"Cancelar a conta \"{linha["Descrição"]}\"?" + boleto))
+            Executar(() => Operacoes.CancelarConta(id));
+    }
+
+    /// <summary>Executa a operação, mostra o erro de regra (se houver) ou o aviso sobre o boleto, e atualiza a lista.</summary>
+    void Executar(Func<string?> operacao)
+    {
+        try
         {
-            Operacoes.CancelarConta(id);
-            Carregar();
+            if (operacao() is string aviso)
+                Ui.Info(aviso);
         }
+        catch (InvalidOperationException ex)
+        {
+            Ui.Erro(ex.Message);
+        }
+        Carregar();
     }
 
     static bool Fail(string msg)

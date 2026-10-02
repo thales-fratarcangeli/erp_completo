@@ -143,22 +143,22 @@ Sumário: [Cadastros](#cadastros-rn-cad) · [Estoque](#estoque-rn-est) · [Custo
 |---|---|
 | RN-FIN-01 | Contas A RECEBER / A PAGAR com situação ABERTA, PAGA ou CANCELADA; VENCIDA é calculada (aberta e vencimento < hoje) com dias de atraso. |
 | RN-FIN-02 | **Parcelamento**: parcela = arredondar(total ÷ n, 2); a última recebe a diferença de centavos; vencimentos mensais a partir do 1º; descrição "… parcela k/n". |
-| RN-FIN-03 | Baixa: só conta aberta; registra data, valor pago (pode diferir: juros/desconto) e forma. Estorno: só paga → aberta (limpa pagamento). Cancelamento: só aberta. |
+| RN-FIN-03 | Baixa: só conta aberta; registra data (não futura), valor pago > 0 (pode diferir: juros/desconto) e forma. Estorno: só paga → aberta (limpa data, valor e forma do pagamento). Cancelamento: só aberta. Baixa manual ou cancelamento de conta a receber com boleto ativo encerra o boleto (RN-COB-08); o cancelamento de venda também. |
 | RN-FIN-04 | Fluxo realizado e "entradas × saídas" usam **valor pago** na **data do pagamento**; previsto usa contas abertas por vencimento. |
 
 ## Cobrança bancária (RN-COB)
 
 | ID | Regra |
 |---|---|
-| RN-COB-01 | Boleto só para conta a receber **aberta** com cliente; no máximo um boleto ativo por conta. |
+| RN-COB-01 | Boleto só para conta a receber **aberta** com cliente e valor > 0; no máximo um boleto ativo (EMITIDO, ENVIADO ou REGISTRADO) por conta — conta estornada depois de liquidada pode receber boleto novo. Conta já vencida: o boleto recebe um novo vencimento (hoje ou depois), pois o banco recusa vencimento passado; a conta mantém o vencimento original. |
 | RN-COB-02 | Nosso número = sequência da conta bancária + 1, com `nosso_numero_digitos` dígitos. |
 | RN-COB-03 | **Código de barras** (44 posições, Febraban): banco(3) + moeda 9 + DV + fator de vencimento(4) + valor em centavos(10) + campo livre(25). DV geral por módulo 11 (pesos 2–9); resultados 0, 10 e 11 viram 1. |
 | RN-COB-04 | **Fator de vencimento**: dias desde 07/10/1997 até 21/02/2025 (fator 9999); a partir de 22/02/2025 reinicia em 1000 (+1 por dia, ciclo de 9000). |
 | RN-COB-05 | **Linha digitável** (47 dígitos): três campos do campo livre com DV módulo 10 (pesos 2/1), DV geral e fator+valor. |
-| RN-COB-06 | **Campo livre** (específico de cada banco) montado pelo modelo da conta com marcações `{agencia:N}`, `{agenciadv:N}`, `{conta:N}`, `{contadv:N}`, `{carteira:N}`, `{convenio:N}`, `{nossonumero:N}`, `{zeros:N}` e dígitos fixos, totalizando 25. |
-| RN-COB-07 | Remessa CNAB 240 Febraban: header de arquivo, header de lote, segmentos P/Q/R por título, trailers; linhas de 240 posições; sequência de remessa por conta; inclui boletos EMITIDOS (movimento 01) e pedidos de baixa (02). Arquivo de homologação recebe prefixo `TESTE_`. A remessa é validada antes de ser gravada. |
-| RN-COB-08 | Cancelar boleto: EMITIDO → CANCELADO; ENVIADO/REGISTRADO → pedido de baixa na próxima remessa. |
-| RN-COB-09 | Retorno CNAB 240 (segmentos T/U): 02 confirma registro; 03 rejeita (com motivos); 06/17 liquidam (boleto PAGO e conta a receber baixada com valor pago e data da ocorrência); 09 baixa. Boleto localizado pelo identificador da empresa ou pelo nosso número; retorno de outro banco é recusado. |
+| RN-COB-06 | **Campo livre** (específico de cada banco) montado pelo modelo da conta com marcações `{agencia:N}`, `{agenciadv:N}`, `{conta:N}`, `{contadv:N}`, `{carteira:N}`, `{convenio:N}`, `{nossonumero:N}`, `{zeros:N}` e dígitos fixos, totalizando 25 e contendo `{nossonumero:N}`. Cadastro da conta: dígitos do nosso número de 1 a 20 e no máximo o N do modelo; último nosso número não pode ficar abaixo do maior já emitido; espécie com 2 dígitos; multa e juros de 0 a 100%; protesto de 0 a 99 dias. |
+| RN-COB-07 | Remessa CNAB 240 Febraban: header de arquivo, header de lote, segmentos P/Q/R por título, trailers; linhas de 240 posições; sequência de remessa por conta; inclui boletos EMITIDOS (movimento 01) e pedidos de baixa (02). Arquivo de homologação recebe prefixo `TESTE_`. Conta em PRODUCAO recusa a remessa enquanto houver boletos de teste da homologação (pagador de teste) não enviados. A remessa é validada antes de ser gravada. |
+| RN-COB-08 | Cancelar boleto: EMITIDO → CANCELADO; ENVIADO/REGISTRADO → pedido de baixa na próxima remessa (movimento 02; o simulador de retorno responde 09). Vale também quando a conta a receber é baixada no caixa ou cancelada. |
+| RN-COB-09 | Retorno CNAB 240 (segmentos T/U): 02 confirma registro; 03 rejeita (com motivos); 06/17 liquidam (boleto PAGO e conta a receber baixada com valor pago e data da ocorrência); 09 baixa. Boleto localizado pelo identificador da empresa ou pelo nosso número; retorno de outro banco é recusado; o mesmo arquivo de retorno não é processado duas vezes; liquidação de boleto já PAGO é ignorada; liquidação de conta que não está mais aberta não a altera e gera aviso de possível duplicidade. O simulador de retorno só funciona em conta no ambiente HOMOLOGACAO. |
 | RN-COB-10 | Validador CNAB 240: tamanho das linhas, ordem dos registros, código de banco, lotes, sequenciais, quantidades e totais dos trailers. |
 
 ## Fiscal (RN-FIS)

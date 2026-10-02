@@ -96,6 +96,15 @@ public class CobrancaForm : Form
 
     long? ContaId => Ui.Id(conta);
 
+    /// <summary>Conta bancária selecionada no topo; sem nenhuma, explica o que fazer.</summary>
+    long? ContaEscolhida()
+    {
+        if (ContaId is long c)
+            return c;
+        Ui.Erro("Nenhuma conta bancária selecionada. Cadastre uma em Financeiro > Contas bancárias e escolha-a no topo desta tela.");
+        return null;
+    }
+
     void Registrar(string texto) => log.AppendText($"[{DateTime.Now:HH:mm:ss}] {texto}\r\n");
 
     void Carregar()
@@ -141,7 +150,7 @@ public class CobrancaForm : Form
             SELECT ct.id, ct.descricao AS "Descrição", p.nome AS "Cliente", strftime('%d/%m/%Y', ct.vencimento) AS "Vencimento", ct.valor AS "Valor"
             FROM contas ct LEFT JOIN pessoas p ON p.id = ct.cliente_id
             WHERE ct.tipo = 'RECEBER' AND ct.status = 'ABERTA' AND ct.cliente_id IS NOT NULL
-              AND NOT EXISTS (SELECT 1 FROM boletos b WHERE b.conta_id = ct.id AND b.status NOT IN ('CANCELADO', 'BAIXADO', 'REJEITADO'))
+              AND NOT EXISTS (SELECT 1 FROM boletos b WHERE b.conta_id = ct.id AND b.status IN ('EMITIDO', 'ENVIADO', 'REGISTRADO'))
             ORDER BY ct.vencimento
             """);
         if (abertas.Rows.Count == 0)
@@ -159,6 +168,12 @@ public class CobrancaForm : Form
         var barra = Ui.Barra(DockStyle.Bottom);
         barra.Controls.Add(Ui.Botao("Emitir selecionados", (_, _) => { grade.EndEdit(); f.DialogResult = DialogResult.OK; }, primario: true));
         barra.Controls.Add(Ui.Botao("Cancelar", (_, _) => f.DialogResult = DialogResult.Cancel));
+        // o banco recusa boleto com vencimento passado: as contas já vencidas recebem um novo vencimento no boleto
+        var novoVencimento = Ui.Data(DateTime.Today.AddDays(Math.Max(1, Parametros.PrazoVencimentoDias)));
+        novoVencimento.MinDate = DateTime.Today;
+        var vencidas = abertas.Rows.Cast<DataRow>().Count(r => DateTime.ParseExact(Ui.Txt(r["Vencimento"]), "dd/MM/yyyy", null) < DateTime.Today);
+        if (vencidas > 0)
+            barra.Controls.AddRange([Ui.Rotulo($"   {vencidas} conta(s) já vencida(s) — novo vencimento no boleto:"), novoVencimento]);
         f.Controls.Add(grade);
         f.Controls.Add(barra);
         if (f.ShowDialog(this) != DialogResult.OK)
@@ -170,7 +185,7 @@ public class CobrancaForm : Form
                 continue;
             try
             {
-                Cobranca.Emitir(c, (long)r["id"]);
+                Cobranca.Emitir(c, (long)r["id"], novoVencimento.Value.Date);
                 emitidos++;
             }
             catch (Exception ex)
@@ -199,7 +214,7 @@ public class CobrancaForm : Form
 
     void GerarRemessa()
     {
-        if (ContaId is not long c)
+        if (ContaEscolhida() is not long c)
             return;
         try
         {
@@ -221,7 +236,7 @@ public class CobrancaForm : Form
 
     void ImportarRetorno()
     {
-        if (ContaId is not long c)
+        if (ContaEscolhida() is not long c)
             return;
         using var dlg = new OpenFileDialog { Filter = "Retorno CNAB (*.ret;*.txt)|*.ret;*.txt|Todos|*.*", Title = "Arquivo de retorno do banco" };
         if (dlg.ShowDialog(this) != DialogResult.OK)
@@ -263,19 +278,25 @@ public class CobrancaForm : Form
 
     void BoletosDeTeste()
     {
-        if (ContaId is not long c)
+        if (ContaEscolhida() is not long c)
             return;
-        if (!ContaBancaria.Carregar(c).Homologacao)
+        var banco = ContaBancaria.Carregar(c);
+        if (!banco.Homologacao)
         {
             Ui.Erro("Os boletos de teste só podem ser gerados em conta no ambiente HOMOLOGACAO.");
             return;
         }
+        if (Cobranca.ValidarModeloCampoLivre(banco.ModeloCampoLivre) is string erroModelo)
+        {
+            Ui.Erro("A conta bancária está com o modelo do campo livre inválido: " + erroModelo + "\nCorrija em Financeiro > Contas bancárias.");
+            return;
+        }
         using var s = new DbSessao(transacao: true);
-        var pagador = s.Scalar("SELECT id FROM pessoas WHERE nome = 'PAGADOR DE TESTE - HOMOLOGACAO'") as long?
+        var pagador = s.Scalar("SELECT id FROM pessoas WHERE nome = @p0", Cobranca.PagadorDeTeste) as long?
                       ?? s.Inserir("""
                           INSERT INTO pessoas(nome, cpf_cnpj, endereco, cidade, uf, cep, eh_cliente)
-                          VALUES('PAGADOR DE TESTE - HOMOLOGACAO', '111.444.777-35', 'RUA DO TESTE, 100', @p0, @p1, '01001000', 1)
-                          """, Db.Config("cidade") is { Length: > 0 } ci ? ci : "SAO PAULO", Db.Config("uf") is { Length: > 0 } u ? u : "SP");
+                          VALUES(@p2, '111.444.777-35', 'RUA DO TESTE, 100', @p0, @p1, '01001000', 1)
+                          """, Db.Config("cidade") is { Length: > 0 } ci ? ci : "SAO PAULO", Db.Config("uf") is { Length: > 0 } u ? u : "SP", Cobranca.PagadorDeTeste);
         var contas = new List<long>();
         foreach (var valor in new[] { 1.00m, 2.50m, 10.00m })
             contas.Add(s.Inserir("""
@@ -297,7 +318,16 @@ public class CobrancaForm : Form
         using var dlg = new OpenFileDialog { Filter = "CNAB 240 (*.rem;*.ret;*.txt)|*.rem;*.ret;*.txt|Todos|*.*", Title = "Arquivo CNAB 240 para validar" };
         if (dlg.ShowDialog(this) != DialogResult.OK)
             return;
-        var conteudo = File.ReadAllText(dlg.FileName, Encoding.Latin1);
+        string conteudo;
+        try
+        {
+            conteudo = File.ReadAllText(dlg.FileName, Encoding.Latin1);
+        }
+        catch (Exception ex)
+        {
+            Ui.Erro("Não foi possível ler o arquivo: " + ex.Message);
+            return;
+        }
         var linhas = conteudo.Replace("\r\n", "\n").Split('\n').Where(l => l.Length > 0).ToList();
         var remessa = linhas.Count > 0 && linhas[0].Length >= 143 && linhas[0][142] == '1';
         var erros = Cobranca.ValidarArquivo240(conteudo, remessa);
@@ -309,7 +339,7 @@ public class CobrancaForm : Form
 
     void Simular(bool liquidar)
     {
-        if (ContaId is not long c)
+        if (ContaEscolhida() is not long c)
             return;
         var remessa = Db.Scalar("SELECT id FROM remessas WHERE conta_bancaria_id = @p0 ORDER BY id DESC LIMIT 1", c) as long?;
         if (remessa is null)
@@ -317,7 +347,16 @@ public class CobrancaForm : Form
             Ui.Erro("Gere uma remessa primeiro.");
             return;
         }
-        var conteudo = Cobranca.SimularRetorno(remessa.Value, liquidar);
+        string conteudo;
+        try
+        {
+            conteudo = Cobranca.SimularRetorno(remessa.Value, liquidar);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Ui.Erro(ex.Message);
+            return;
+        }
         Registrar($"Retorno simulado para a remessa {remessa} ({(liquidar ? "entradas confirmadas e pagas" : "entradas confirmadas")}).");
         Processar(c, $"SIMULADO_REMESSA_{remessa}.ret", conteudo);
     }
