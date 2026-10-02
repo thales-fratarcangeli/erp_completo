@@ -330,6 +330,13 @@ public class PdvForm : Form
             return;
         }
         var p = Db.Query("SELECT codigo, nome, unidade, preco_venda, preco_custo, estoque FROM produtos WHERE id = @p0", produto).Rows[0];
+        if (Ui.Dec(p["preco_venda"]) <= 0)
+        {
+            // ex.: produto criado pela importação de XML (entra com preço zero): venderia de graça sem ninguém perceber
+            Ui.Erro($"\"{p["nome"]}\" está sem preço de venda. Cadastre o preço em Cadastros > Produtos antes de vender.");
+            codigo.SelectAll();
+            return;
+        }
         var existente = itens.FirstOrDefault(i => i.ProdutoId == produto);
         var estoque = Ui.Dec(p["estoque"]);
         if ((existente?.Quantidade ?? 0) + quantidade > estoque &&
@@ -485,9 +492,8 @@ public class PdvForm : Form
             codigo.Focus();
             return;
         }
-        if (Operacoes.ValidarLimiteCredito(clienteId, Total, pagamento.Forma) is string erroCredito)
+        if (!Operacoes.ConferirLimiteCredito(clienteId, Total, pagamento.Forma))
         {
-            Ui.Erro(erroCredito);
             codigo.Focus();
             return;
         }

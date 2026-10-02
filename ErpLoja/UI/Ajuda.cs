@@ -92,7 +92,7 @@ public static class Ajuda
             - O comprovante é impresso conforme Configurações (perguntar, sempre ou nunca), na impressora de cupom; em dinheiro a gaveta pode abrir sozinha.
 
             ## Regras
-            - A venda baixa o estoque e lança o recebimento no financeiro. A prazo exige cliente e respeita o limite de crédito dele.
+            - A venda baixa o estoque e lança o recebimento no financeiro. A prazo exige cliente e respeita o limite de crédito dele (acima do limite, só um administrador libera, confirmando). Produto sem preço de venda não é lançado.
             - Estoque insuficiente segue a regra de Configurações (perguntar, permitir ou bloquear). Desconto acima do limite só com administrador.
             - Se, depois do desconto, itens forem removidos e o desconto passar do limite, o F10 avisa: ajuste o desconto com F5.
             - Quantidade em "N*código" vai de 0,001 a 99.999; um valor fora disso é recusado com aviso.

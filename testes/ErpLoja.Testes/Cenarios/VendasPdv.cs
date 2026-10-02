@@ -300,8 +300,12 @@ public class VendasAPrazoLimiteCredito : ICenario
             u.Ok(Usuario.Achar<DataGridView>(pdv).Rows.Count == 1, "venda recusada por limite continua no PDV para outra forma de pagamento");
 
             Sessao.Admin = true;
+            u.RespostasConfirmacao.Enqueue(false);
             VendasUtil.Pagar(u, pdv, Keys.D5);
-            u.Ok(VendasUtil.Contar("SELECT COUNT(*) FROM vendas") == vendas + 2, "administrador vende acima do limite de crédito" + VendasUtil.Erros(u));
+            u.Ok(VendasUtil.Contar("SELECT COUNT(*) FROM vendas") == vendas + 1 && u.Viu("CONFIRMAR", "Liberar a venda acima do limite"),
+                "administrador é avisado do limite excedido; respondendo Não, a venda não sai");
+            VendasUtil.Pagar(u, pdv, Keys.D5);
+            u.Ok(VendasUtil.Contar("SELECT COUNT(*) FROM vendas") == vendas + 2, "administrador confirma e vende acima do limite de crédito" + VendasUtil.Erros(u));
             pdv.Close();
         }
         finally
@@ -344,6 +348,23 @@ public class VendasSemEstoque : ICenario
         u.Ok(VendasUtil.Total(pdv) == Ui.Moeda(a.Preco * 4) && u.Mensagens.Count(m => m.Tipo == "CONFIRMAR") == confirmacoes,
             "PERMITIR: lança sem perguntar");
         u.RespostaConfirmacao = true;
+        pdv.Close();
+    }
+}
+
+/// <summary>Produto importado do XML entra com preço zero: a operadora lê o código e o PDV não pode vendê-lo de graça.</summary>
+public class VendasProdutoSemPreco : ICenario
+{
+    public string Area => "Vendas";
+
+    public void Executar(Usuario u)
+    {
+        var a = VendasUtil.Produto();
+        Db.Exec("UPDATE produtos SET preco_venda = 0 WHERE id = @p0", a.Id);
+        var pdv = u.AbrirTela("PdvForm");
+        VendasUtil.Lancar(u, pdv, a.Codigo);
+        u.Ok(Usuario.Achar<DataGridView>(pdv).Rows.Count == 0 && u.Viu("ERRO", "sem preço de venda"), "produto sem preço de venda não é lançado no PDV e o motivo é explicado");
+        VendasUtil.CampoCodigo(pdv).Clear();
         pdv.Close();
     }
 }

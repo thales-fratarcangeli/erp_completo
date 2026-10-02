@@ -185,15 +185,18 @@ public static class Operacoes
     }
 
     /// <summary>
-    /// RN-VEN-08: venda a prazo acima do crédito disponível do cliente só com administrador.
-    /// Devolve a mensagem para o usuário, ou null se pode seguir. Vale para o PDV e para o faturamento de pedidos.
+    /// RN-VEN-08: venda a prazo/boleto acima do crédito disponível do cliente. Usuário comum é barrado (com a explicação);
+    /// administrador confirma a liberação. Devolve true se pode seguir. Vale para o PDV e para o faturamento de pedidos.
     /// </summary>
-    public static string? ValidarLimiteCredito(long? clienteId, decimal total, string forma)
+    public static bool ConferirLimiteCredito(long? clienteId, decimal total, string forma)
     {
-        if (!RecebeDepois(forma) || clienteId is not long cliente || Sessao.Admin || CreditoDisponivel(cliente) is not decimal disponivel || total <= disponivel)
-            return null;
-        return $"Limite de crédito do cliente excedido (disponível: {Ui.Moeda(Math.Max(0, disponivel))}, venda: {Ui.Moeda(total)}). " +
-               "Escolha outra forma de pagamento ou peça a um administrador.";
+        if (!RecebeDepois(forma) || clienteId is not long cliente || CreditoDisponivel(cliente) is not decimal disponivel || total <= disponivel)
+            return true;
+        var texto = $"Limite de crédito do cliente excedido (disponível: {Ui.Moeda(Math.Max(0, disponivel))}, venda: {Ui.Moeda(total)}).";
+        if (Sessao.Admin)
+            return Ui.Confirmar(texto + "\n\nLiberar a venda acima do limite (administrador)?");
+        Ui.Erro(texto + " Escolha outra forma de pagamento ou peça a um administrador.");
+        return false;
     }
 
     public static void AjustarEstoque(long produtoId, string tipo, decimal delta, string motivo)

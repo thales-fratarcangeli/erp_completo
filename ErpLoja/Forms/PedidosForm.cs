@@ -264,12 +264,7 @@ public static class FluxoPedidos
                 Ui.Erro($"Para vender {(cbForma.Text == Operacoes.Boleto ? "no boleto" : "a prazo")} o pedido precisa ter um cliente. Abra o pedido e escolha o cliente.");
                 return false;
             }
-            if (p.Tipo == Pedidos.Venda && Operacoes.ValidarLimiteCredito(p.ClienteId, p.Total, cbForma.Text) is string erroCredito)
-            {
-                Ui.Erro(erroCredito);
-                return false;
-            }
-            return true;
+            return p.Tipo != Pedidos.Venda || Operacoes.ConferirLimiteCredito(p.ClienteId, p.Total, cbForma.Text);
         };
         var ok = d.ShowDialog(dono) == DialogResult.OK;
         forma = cbForma.Text;
