@@ -105,7 +105,8 @@ public class DocumentosForm : Form
         }
         var aviso = venda
             ? $"Cancelar a venda nº {id}?\nOs produtos voltarão ao estoque e as contas a receber serão canceladas."
-            : $"Cancelar a compra nº {id}?\nOs produtos sairão do estoque e as contas a pagar serão canceladas.";
+            : $"Cancelar a compra nº {id}?\nOs produtos sairão do estoque e as contas a pagar serão canceladas." +
+              (Operacoes.AvisosCancelamentoCompra(id) is { Length: > 0 } avisos ? "\n\nATENÇÃO:\n" + avisos : "");
         if (!Ui.Confirmar(aviso))
             return;
         try

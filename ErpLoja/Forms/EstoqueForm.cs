@@ -94,7 +94,7 @@ public class EstoqueForm : Form
             return;
         }
         var id = Convert.ToInt64(linha["id"]);
-        var atual = Ui.Dec(linha["Estoque"]);
+        var atual = Ui.Dec(Db.Scalar("SELECT estoque FROM produtos WHERE id = @p0", id)); // saldo do momento (a grade pode estar desatualizada)
 
         using var d = new Dialogo("Ajustar estoque", "ajuste_estoque", "Aplicar");
         d.Nota($"{linha["Produto"]} — saldo atual: {atual:N3} {linha["Un."]}");
@@ -112,18 +112,29 @@ public class EstoqueForm : Form
         if (d.ShowDialog(this) != DialogResult.OK)
             return;
 
-        var (tipoMov, delta) = tipo.SelectedIndex switch
+        var texto = motivo.Text.Trim();
+        // saldo do banco, não o da grade: pode ter havido venda/compra desde que a tela foi carregada
+        var saldoAgora = Ui.Dec(Db.Scalar("SELECT estoque FROM produtos WHERE id = @p0", id));
+        switch (tipo.SelectedIndex)
         {
-            0 => ("ENTRADA", quantidade.Value),
-            1 => ("SAIDA", -quantidade.Value),
-            _ => ("AJUSTE", quantidade.Value - atual),
-        };
-        if (delta == 0)
-        {
-            Ui.Info("O saldo informado é igual ao atual. Nada foi alterado.");
-            return;
+            case 0:
+                Operacoes.AjustarEstoque(id, "ENTRADA", quantidade.Value, texto);
+                break;
+            case 1:
+                if (saldoAgora - quantidade.Value < 0 &&
+                    !Ui.Confirmar($"A saída de {quantidade.Value:N3} deixará o saldo negativo ({saldoAgora - quantidade.Value:N3} {linha["Un."]}).\n" +
+                                  $"O saldo atual é {saldoAgora:N3}. Confirma a saída mesmo assim?"))
+                    return;
+                Operacoes.AjustarEstoque(id, "SAIDA", -quantidade.Value, texto);
+                break;
+            default:
+                if (Operacoes.DefinirSaldo(id, quantidade.Value, texto) == 0)
+                {
+                    Ui.Info("O saldo informado é igual ao atual. Nada foi alterado.");
+                    return;
+                }
+                break;
         }
-        Operacoes.AjustarEstoque(id, tipoMov, delta, motivo.Text.Trim());
         Carregar();
     }
 }

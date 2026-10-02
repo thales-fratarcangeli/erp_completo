@@ -144,12 +144,12 @@ Compra de mercadoria do fornecedor. É também a forma de dar entrada manual de 
 - Cancelar: só para pedido em aberto. Se a compra gerada for cancelada depois, o pedido volta para ABERTO.
 
 ### Custo
-Frete e descontos do pedido são distribuídos proporcionalmente no custo dos itens.
+Frete e descontos do pedido são distribuídos proporcionalmente no custo dos itens. As contas a pagar somam exatamente o total do pedido.
 Para notas com XML, prefira Compras > Importar XML: cadastra produtos e lança tudo automaticamente.
 
 ## Editar orçamento / pedido
 
-- Adicione itens pelo código (Enter) ou pela busca (F3). Edite quantidade, preço e desconto do item direto na grade.
+- Adicione itens pelo código (Enter) ou pela busca (F3). Edite quantidade, preço e desconto do item direto na grade. O desconto de um item não pode passar do valor dele.
 - Desconto geral e frete ficam no rodapé. O total é recalculado na hora.
 - Pagamento e parcelas são a condição combinada (pode ser alterada ao faturar/receber).
 - Salvar e faturar / Salvar e receber: atalho para concluir o pedido sem voltar à lista.
@@ -167,6 +167,8 @@ Histórico de vendas (PDV e pedidos faturados) por período, com os itens e o lu
 Histórico de compras (pedidos recebidos e notas importadas) por período, com os itens.
 
 - Cancelar compra (somente administrador): retira os produtos do estoque, cancela as contas a pagar e reabre o pedido de origem, se houver. O custo médio não é recalculado retroativamente.
+- Antes de cancelar, o sistema avisa quais produtos ficarão com estoque negativo (mercadoria já vendida) e se há contas da compra já pagas.
+- Nota importada por XML com vínculo ou fator errado: cancele a compra aqui e importe o XML de novo.
 
 ## Importar XML da nota do fornecedor
 
@@ -182,7 +184,7 @@ Lê o arquivo XML da NF-e recebida do fornecedor e lança a compra.
 - Custo: valor dos produtos − desconto + frete + seguro + outras despesas + IPI + ICMS-ST, dividido pela quantidade; recalcula o custo médio.
 - Contas a pagar: uma conta por duplicata da nota (com os vencimentos dela), ou conforme a forma escolhida.
 - Os vínculos e fatores ficam memorizados para as próximas notas do mesmo fornecedor.
-- A mesma nota (chave de acesso) não pode ser importada duas vezes.
+- A mesma nota (chave de acesso) não pode ser importada duas vezes. Importou com vínculo ou fator errado? Cancele a compra em Compras > Compras realizadas e importe o XML de novo (a importação anterior fica no histórico como cancelada).
 - Produtos novos entram com preço de venda zero: ajuste em Cadastros > Produtos.
 
 ## Fichas técnicas
@@ -219,7 +221,8 @@ Posição do estoque, valor investido, sugestão de compra e histórico de movim
 
 ### Ajustar estoque
 - Entrada ou Saída (perda, quebra, uso interno) somam/subtraem do saldo.
-- Definir saldo (inventário) grava a diferença entre o contado e o saldo atual.
+- Definir saldo (inventário) grava a diferença entre o contado e o saldo atual do momento (se houve venda durante a contagem, ela é considerada).
+- Saída maior que o saldo pede confirmação antes de deixar o estoque negativo.
 - Todo ajuste exige motivo e fica no histórico com data e usuário.
 
 ## Fretes e CIOT

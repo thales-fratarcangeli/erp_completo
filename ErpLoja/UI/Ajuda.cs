@@ -175,6 +175,8 @@ public static class Ajuda
             Histórico de compras (pedidos recebidos e notas importadas) por período, com os itens.
 
             - Cancelar compra (somente administrador): retira os produtos do estoque, cancela as contas a pagar e reabre o pedido de origem, se houver. O custo médio não é recalculado retroativamente.
+            - Antes de cancelar, o sistema avisa quais produtos ficarão com estoque negativo (mercadoria já vendida) e se há contas da compra já pagas.
+            - Nota importada por XML com vínculo ou fator errado: cancele a compra aqui e importe o XML de novo.
             """),
 
         new("ImportarXmlForm", "Importar XML da nota do fornecedor", """
@@ -225,7 +227,8 @@ public static class Ajuda
 
             ## Ajustar estoque
             - Entrada ou Saída (perda, quebra, uso interno) somam/subtraem do saldo.
-            - Definir saldo (inventário) grava a diferença entre o contado e o saldo atual.
+            - Definir saldo (inventário) grava a diferença entre o contado e o saldo atual do momento (se houve venda durante a contagem, ela é considerada).
+            - Saída maior que o saldo pede confirmação antes de deixar o estoque negativo.
             - Todo ajuste exige motivo e fica no histórico com data e usuário.
             """),
 

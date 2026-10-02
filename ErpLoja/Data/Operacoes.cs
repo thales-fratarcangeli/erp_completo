@@ -158,6 +158,29 @@ public static class Operacoes
         s.Commit();
     }
 
+    /// <summary>
+    /// O que o administrador precisa saber antes de cancelar a compra: produtos que ficarão com saldo negativo
+    /// (mercadoria já vendida) e contas da compra que já foram pagas. Vazio = nada a avisar.
+    /// </summary>
+    public static string AvisosCancelamentoCompra(long id)
+    {
+        var avisos = new List<string>();
+        var negativos = Db.Query("""
+            SELECT p.nome, p.unidade, p.estoque, SUM(i.quantidade) AS q
+            FROM compra_itens i JOIN produtos p ON p.id = i.produto_id
+            WHERE i.compra_id = @p0 GROUP BY p.id HAVING p.estoque - SUM(i.quantidade) < 0
+            """, id);
+        if (negativos.Rows.Count > 0)
+            avisos.Add("Estes produtos ficarão com estoque NEGATIVO (parte da mercadoria já saiu):\n" + string.Join("\n",
+                negativos.Rows.Cast<DataRow>().Select(r =>
+                    $"• {r["nome"]}: saldo {Ui.Dec(r["estoque"]):N3} − {Ui.Dec(r["q"]):N3} = {Ui.Dec(r["estoque"]) - Ui.Dec(r["q"]):N3} {r["unidade"]}")));
+        var pagas = Db.Query("SELECT COUNT(*) AS n, COALESCE(SUM(COALESCE(valor_pago, valor)), 0) AS v FROM contas WHERE compra_id = @p0 AND status = 'PAGA'", id).Rows[0];
+        if (Convert.ToInt64(pagas["n"]) > 0)
+            avisos.Add($"{pagas["n"]} conta(s) desta compra já foram pagas ({Ui.Moeda(Ui.Dec(pagas["v"]))}) e também serão canceladas. " +
+                       "Combine a devolução do valor com o fornecedor e lance o reembolso no Financeiro.");
+        return string.Join("\n\n", avisos);
+    }
+
     public static void CancelarCompra(long id)
     {
         using var s = new DbSessao(transacao: true);
@@ -189,6 +212,22 @@ public static class Operacoes
         using var s = new DbSessao(transacao: true);
         MovimentarEstoque(s, produtoId, tipo, delta, "Ajuste manual: " + motivo);
         s.Commit();
+    }
+
+    /// <summary>
+    /// Inventário: grava como AJUSTE a diferença entre o contado e o saldo atual do banco (não o saldo que estava na
+    /// tela — pode ter havido venda/compra no meio da contagem). Devolve a diferença (0 = nada gravado).
+    /// </summary>
+    public static decimal DefinirSaldo(long produtoId, decimal contado, string motivo)
+    {
+        using var s = new DbSessao(transacao: true);
+        var atual = Convert.ToDecimal(s.Scalar("SELECT estoque FROM produtos WHERE id = @p0", produtoId) ?? 0);
+        var delta = Math.Round(contado - atual, 3);
+        if (delta == 0)
+            return 0;
+        MovimentarEstoque(s, produtoId, "AJUSTE", delta, "Ajuste manual: " + motivo);
+        s.Commit();
+        return delta;
     }
 
     public static void LancarConta(string tipo, string descricao, decimal valor, int parcelas, DateTime vencimento,
