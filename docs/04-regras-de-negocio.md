@@ -173,7 +173,7 @@ Sumário: [Cadastros](#cadastros-rn-cad) · [Estoque](#estoque-rn-est) · [Custo
 | RN-FIS-07 | Chave de acesso (44 dígitos): cUF + AAMM + CNPJ + modelo + série(3) + número(9) + tpEmis(1) + código numérico aleatório(8) + DV módulo 11. Só gerada com UF e CNPJ da empresa configurados. |
 | RN-FIS-08 | Nota emitida não é alterada; rascunho pode ser excluído; cancelar nota não desfaz venda/compra. |
 | RN-FIS-09 | **Não há transmissão à SEFAZ**: o DANFE de nota própria é marcado "SEM VALOR FISCAL". |
-| RN-FIS-10 | Para emitir, o CFOP deve ser coerente: saída começa por 5/6/7 e entrada por 1/2/3; com a UF da loja configurada, participante da mesma UF (ou sem UF) usa 5/1 e de outra UF usa 6/2 (exterior 7/3 sem conferência de UF). Também: CPF/CNPJ do participante válido (se informado), valor unitário ≥ 0, desconto do item entre 0 e qtd × unitário, desconto adicional ≤ valor dos itens, NFC-e (65) só em saída. |
+| RN-FIS-10 | Para emitir, o CFOP deve ser coerente: saída começa por 5/6/7 e entrada por 1/2/3; com a UF da loja configurada, participante da mesma UF (ou sem UF) usa 5/1 e de outra UF usa 6/2 (exterior 7/3 sem conferência de UF). Também: venda/compra de origem não cancelada; CPF/CNPJ do participante válido (se informado), valor unitário ≥ 0, desconto do item entre 0 e qtd × unitário, desconto adicional ≤ valor dos itens, NFC-e (65) só em saída. |
 | RN-FIS-11 | Cancelar nota emitida é exclusivo do administrador; só nota EMITIDA é cancelada (rascunho é excluído). |
 
 ## Reforma tributária (RN-REF)

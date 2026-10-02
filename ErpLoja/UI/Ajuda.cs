@@ -294,7 +294,7 @@ public static class Ajuda
             - CFOP: 5102/6102 na saída e 1102/2102 na entrada, conforme a UF do participante ser igual ou diferente da UF da loja. Muda sozinho ao trocar a UF.
             - Modelo: ao trocar entre NF-e (55) e NFC-e (65), a série passa a ser a configurada para o modelo (Configurações > Fiscal).
             - Ao emitir, o sistema confere o CFOP digitado: saída começa por 5/6/7 e entrada por 1/2/3; dentro do estado 5/1, outro estado 6/2 (exterior 7/3).
-            - Também confere: CPF/CNPJ do participante (se informado), desconto do item entre zero e o valor do item, desconto adicional até o valor dos produtos e NFC-e (65) só em nota de saída.
+            - Também confere: venda/compra de origem não cancelada, CPF/CNPJ do participante (se informado), desconto do item entre zero e o valor do item, desconto adicional até o valor dos produtos e NFC-e (65) só em nota de saída.
             - NCM (8 dígitos), CST/CSOSN e alíquotas vêm do cadastro do produto e podem ser editados na grade.
             - Impostos: ICMS, IPI, PIS e COFINS = valor do item × alíquota. O IPI soma no total da nota.
             - Reforma tributária: IBS (estadual e municipal), CBS e Imposto Seletivo por item, com CST IBS/CBS e cClassTrib. Em 2026 ficam destacados sem somar ao total.

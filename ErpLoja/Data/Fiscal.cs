@@ -366,6 +366,9 @@ public static class Fiscal
         if (n.Modelo == "55" && string.IsNullOrWhiteSpace(n.PartNome)) erros.Add("Informe o destinatário/remetente.");
         if (!DocumentoValido(n.PartDocumento))
             erros.Add($"CPF/CNPJ do {(n.Tipo == Saida ? "destinatário" : "remetente")} inválido ({n.PartDocumento}): confira os dígitos ou deixe em branco.");
+        foreach (var (tabela, origem, nome) in new[] { ("vendas", n.VendaId, "venda"), ("compras", n.CompraId, "compra") })
+            if (origem is long o && Convert.ToString(Db.Scalar($"SELECT status FROM {tabela} WHERE id = @p0", o)) == "CANCELADA")
+                erros.Add($"A {nome} nº {o} foi cancelada: não emita nota para ela (exclua este rascunho).");
         if (n.Modelo == "65" && n.Tipo != Saida)
             erros.Add("NFC-e (modelo 65) é só para venda ao consumidor: use NF-e (modelo 55) na nota de entrada.");
         foreach (var i in n.Itens)
