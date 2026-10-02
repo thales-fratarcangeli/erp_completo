@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Documento** | Base de conhecimento de suporte e registro de falhas de desenvolvimento |
-| **Sistema** | ERP Loja 1.1.0 |
+| **Sistema** | ERP Loja 1.2.0 |
 
 Duas partes: **(1) problemas que podem acontecer no uso** e como resolver; **(2) falhas encontradas durante o desenvolvimento**
 e como foram resolvidas (registro técnico, para não repetir).
@@ -138,6 +138,24 @@ Use **Imprimir página de teste** em *Configurações > Impressoras*.
 - Gere **somente em banco de teste**: o sistema faz backup antes, mas os dados fictícios se misturam aos reais.
 - Por linha de comando: `ErpLoja.exe --dados-demo C:\teste\demo.db`.
 
+### Telas e abas (1.2)
+| Situação | Causa | Resolução |
+|---|---|---|
+| "Cadê a janela que eu abri?" | As telas abrem como abas à direita do menu, não mais como janelas soltas | Clique na aba no topo; Ctrl+Tab alterna; abrir de novo pelo menu traz a aba para a frente |
+| Não consigo fechar o sistema | Há venda em andamento no PDV | Finalize ou cancele a venda (F7) e feche de novo; o sistema mostra a aba que impediu |
+| Atalho F2/F5 não abre a tela esperada | O PDV está em primeiro plano e usa as teclas de função para si | Troque de aba (Ctrl+Tab) ou use o menu |
+
+### Log de atividades
+| Situação | Causa | Resolução |
+|---|---|---|
+| Tela de log vazia | Período sem registros ou banco de log ainda não criado | Ajuste o período; o arquivo `<banco>_log.db` é criado na primeira ação |
+| Log cresceu demais | Retenção alta ou 0 (manter tudo) | *Configurações > Banco de dados > Dias de log mantidos*; a limpeza ocorre ao abrir o sistema |
+| Precisa auditar outro computador | Cada banco tem o seu log ao lado | Abra o mesmo banco; o log mostra a coluna Máquina |
+
+### Atalho na área de trabalho
+- **Não apareceu**: o sistema só cria na primeira execução de cada usuário do Windows. Para criar de novo, apague `%LOCALAPPDATA%\ErpLoja\atalho_criado.txt` e abra o sistema.
+- **Aponta para o lugar antigo** (executável movido): apague o atalho e o marcador acima e abra o executável no novo local.
+
 ---
 
 ## 2. Registro de falhas no desenvolvimento
@@ -176,6 +194,14 @@ Use **Imprimir página de teste** em *Configurações > Impressoras*.
 | 30 | Script de teste com acentos falhava no PowerShell 5.1 | Arquivo UTF-8 sem BOM lido como ANSI | Script gravado em UTF-8 com BOM |
 | 31 | Tela inicial "poluída" com indicadores (relatado pelo usuário) | Painel gerencial embutido na tela inicial | Tela inicial limpa (logo, saudação, busca); indicadores na tela *Painel gerencial* (F5) |
 | 32 | Botão "?" abria a ajuda de todas as telas (relatado pelo usuário) | Janela de ajuda com índice de tópicos | A ajuda mostra apenas o tópico da tela de origem; teste verifica |
+| 33 | Comandos longos com "heredoc" falhavam no terminal ("unexpected EOF") | Aspas e acentos dentro do bloco confundiam o interpretador do terminal da ferramenta | Scripts de edição gravados em arquivos `.py` e executados |
+| 34 | Teste de interface: "Os tipos de argumento não correspondem" | `New-Object OrCondition(a, b)` no PowerShell 5.1 não monta o vetor de condições | `-ArgumentList (, [Condition[]]@(a, b))` |
+| 35 | Teste de interface: mesmo erro ao percorrer a lista de janelas | `@($lista)` sobre `List<object>` no PowerShell 5.1 | `$lista.ToArray()` |
+| 36 | Risco de tela embutida invisível/preta | A entrada suave (Opacity) usa janela em camadas, que não se aplica a janelas filhas | Transparência só em janelas soltas (`TopLevel`) |
+| 37 | Aviso "usuário sem e-mail" travava testes sem supervisão (relatado pelo usuário) | `MessageBox` modal após o login | Virou notificação não bloqueante; o teste de interface fecha sozinho caixas informativas |
+| 38 | Cenários automatizados travariam em qualquer caixa de mensagem ou janela modal | `MessageBox.Show` e `ShowDialog` esperam clique | `Ui.Interceptar` nos testes; `Usuario.QuandoAbrir` responde janelas esperadas e cancela (e reprova) as inesperadas após 2 s |
+| 39 | Primeira rodada de agentes de teste parou no meio | Limite de uso da sessão (HTTP 429) e cópias de trabalho criadas a partir do último commit **enviado** ao GitHub, sem os commits locais (infraestrutura de cenários ausente) | Commit + push antes de lançar; agentes relançados com prazo e commits frequentes |
+| 40 | Cenário de exemplo não compilava (`Ui` desconhecido) | Projeto de testes não tem os `global using` do sistema | `using ErpLoja.UI;` no arquivo do cenário (documentado nas instruções aos agentes) |
 
 ### Revisão de redundância (versão 1.0.0)
 
