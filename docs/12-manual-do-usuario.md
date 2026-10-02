@@ -305,7 +305,7 @@ Relatórios em tabela, com totais e exportação para CSV (abre no Excel).
 - Fluxo de caixa realizado (contas pagas por dia) e previsto (contas em aberto por vencimento).
 - Produtos sem venda no período (insumos de produção ficam de fora, pois não são vendidos) e compras por fornecedor.
 
-Escolha o relatório à esquerda, o período no topo e clique em Gerar. Se a data final for anterior à inicial, o sistema avisa em vez de mostrar um relatório vazio.
+Escolha o relatório à esquerda e o período no topo: o relatório é atualizado na hora (o botão Gerar refaz a consulta). Se a data final for anterior à inicial, o sistema avisa em vez de mostrar um relatório vazio.
 
 Visões que já existem em outras telas não se repetem aqui: gráficos no painel inicial, estoque baixo/inventário na tela Estoque, contas vencidas no Financeiro.
 

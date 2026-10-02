@@ -114,8 +114,11 @@ public class GestaoGerenteTiraRelatorios : ICenario
         u.Ok(total == banco && total > 0, $"'Vendas por dia' soma {total:N2} = banco {banco:N2}");
 
         // período sem movimento
+        lista.SelectedIndex = 0;
         de.Value = new DateTime(2001, 1, 1);
         ate.Value = new DateTime(2001, 1, 31);
+        Usuario.Esperar();
+        u.Ok(grid.DataSource is DataTable { Rows.Count: 0 }, "trocar o período já atualiza o relatório, sem precisar clicar em Gerar");
         for (var i = 0; i < lista.Items.Count; i++)
         {
             lista.SelectedIndex = i;

@@ -107,7 +107,21 @@ public class RelatoriosForm : Form
         Controls.Add(rodape);
 
         lista.SelectedIndexChanged += (_, _) => Gerar();
+        // trocar o período já atualiza o relatório (datas invertidas só avisam no rodapé, sem caixa de mensagem a cada clique)
+        de.ValueChanged += (_, _) => PeriodoMudou();
+        ate.ValueChanged += (_, _) => PeriodoMudou();
         Load += (_, _) => lista.SelectedIndex = 0;
+    }
+
+    void PeriodoMudou()
+    {
+        if (ate.Value.Date < de.Value.Date)
+        {
+            grid.DataSource = null;
+            totais.Text = "A data final é anterior à inicial: corrija o período.";
+            return;
+        }
+        Gerar();
     }
 
     void Gerar()
