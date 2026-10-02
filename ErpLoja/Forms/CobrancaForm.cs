@@ -150,7 +150,7 @@ public class CobrancaForm : Form
             SELECT ct.id, ct.descricao AS "Descrição", p.nome AS "Cliente", strftime('%d/%m/%Y', ct.vencimento) AS "Vencimento", ct.valor AS "Valor"
             FROM contas ct LEFT JOIN pessoas p ON p.id = ct.cliente_id
             WHERE ct.tipo = 'RECEBER' AND ct.status = 'ABERTA' AND ct.cliente_id IS NOT NULL
-              AND NOT EXISTS (SELECT 1 FROM boletos b WHERE b.conta_id = ct.id AND b.status NOT IN ('CANCELADO', 'BAIXADO', 'REJEITADO'))
+              AND NOT EXISTS (SELECT 1 FROM boletos b WHERE b.conta_id = ct.id AND b.status IN ('EMITIDO', 'ENVIADO', 'REGISTRADO'))
             ORDER BY ct.vencimento
             """);
         if (abertas.Rows.Count == 0)
@@ -292,11 +292,11 @@ public class CobrancaForm : Form
             return;
         }
         using var s = new DbSessao(transacao: true);
-        var pagador = s.Scalar("SELECT id FROM pessoas WHERE nome = 'PAGADOR DE TESTE - HOMOLOGACAO'") as long?
+        var pagador = s.Scalar("SELECT id FROM pessoas WHERE nome = @p0", Cobranca.PagadorDeTeste) as long?
                       ?? s.Inserir("""
                           INSERT INTO pessoas(nome, cpf_cnpj, endereco, cidade, uf, cep, eh_cliente)
-                          VALUES('PAGADOR DE TESTE - HOMOLOGACAO', '111.444.777-35', 'RUA DO TESTE, 100', @p0, @p1, '01001000', 1)
-                          """, Db.Config("cidade") is { Length: > 0 } ci ? ci : "SAO PAULO", Db.Config("uf") is { Length: > 0 } u ? u : "SP");
+                          VALUES(@p2, '111.444.777-35', 'RUA DO TESTE, 100', @p0, @p1, '01001000', 1)
+                          """, Db.Config("cidade") is { Length: > 0 } ci ? ci : "SAO PAULO", Db.Config("uf") is { Length: > 0 } u ? u : "SP", Cobranca.PagadorDeTeste);
         var contas = new List<long>();
         foreach (var valor in new[] { 1.00m, 2.50m, 10.00m })
             contas.Add(s.Inserir("""

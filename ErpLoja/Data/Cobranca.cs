@@ -33,6 +33,9 @@ public static class Cobranca
     /// <summary>Exemplo de modelo (agência 4 + carteira 2 + nosso número 11 + conta 7 + zero = 25). Ajuste conforme o manual do banco.</summary>
     public const string ModeloCampoLivrePadrao = "{agencia:4}{carteira:2}{nossonumero:11}{conta:7}{zeros:1}";
 
+    /// <summary>Nome do pagador fictício usado nos boletos de teste da homologação.</summary>
+    public const string PagadorDeTeste = "PAGADOR DE TESTE - HOMOLOGACAO";
+
     static readonly string[] Marcacoes = ["agencia", "agenciadv", "conta", "contadv", "carteira", "convenio", "nossonumero", "zeros"];
     static readonly Regex Marca = new(@"\{(\w+):(\d{1,2})\}");
 
@@ -213,7 +216,7 @@ public static class Cobranca
             throw new InvalidOperationException("A conta não tem cliente: o boleto precisa de um pagador identificado. Informe o cliente na conta ou na venda.");
         if (Ui.Dec(conta["valor"]) <= 0)
             throw new InvalidOperationException("A conta está com valor zero: não há o que cobrar por boleto.");
-        if (s.Scalar("SELECT 1 FROM boletos WHERE conta_id = @p0 AND status NOT IN ('CANCELADO', 'BAIXADO', 'REJEITADO')", contaReceberId) != null)
+        if (s.Scalar("SELECT 1 FROM boletos WHERE conta_id = @p0 AND status IN ('EMITIDO', 'ENVIADO', 'REGISTRADO')", contaReceberId) != null)
             throw new InvalidOperationException("Esta conta já tem boleto ativo.");
 
         var sequencial = Convert.ToInt64(s.Scalar("SELECT nosso_numero_atual FROM contas_bancarias WHERE id = @p0", contaBancariaId)) + 1;
@@ -368,6 +371,12 @@ public static class Cobranca
             """, contaBancariaId);
         if (boletos.Rows.Count == 0)
             throw new InvalidOperationException("Não há boletos novos nem pedidos de baixa para enviar.");
+        // conta já em produção: boletos de teste que sobraram da homologação não podem ser registrados de verdade no banco
+        var deTeste = boletos.Rows.Cast<DataRow>().Where(b => Ui.Txt(b["status"]) == "EMITIDO" && Ui.Txt(b["pagador"]) == PagadorDeTeste)
+            .Select(b => Ui.Txt(b["nosso_numero"])).ToList();
+        if (!c.Homologacao && deTeste.Count > 0)
+            throw new InvalidOperationException($"A conta está em PRODUCAO, mas há {deTeste.Count} boleto(s) de teste da homologação ainda não enviados " +
+                                                $"(nosso número {string.Join(", ", deTeste)}). Cancele-os na aba Boletos e gere a remessa de novo.");
 
         var sequencia = Convert.ToInt32(s.Scalar("SELECT remessa_sequencia FROM contas_bancarias WHERE id = @p0", contaBancariaId)) + 1;
         var agora = DateTime.Now;

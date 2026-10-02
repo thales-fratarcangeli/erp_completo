@@ -271,7 +271,7 @@ public static class Ajuda
             - Conta a receber baixada ou cancelada no Financeiro encerra o boleto dela: o não enviado é cancelado; o já enviado ganha pedido de baixa na próxima remessa.
 
             ## Homologação
-            Siga o roteiro da aba: boletos de teste, remessa de teste, validador CNAB 240 (confere tamanho das linhas, lotes, quantidades e totais) e simulação do retorno do banco. Aprovado pelo banco, mude a conta para PRODUCAO.
+            Siga o roteiro da aba: boletos de teste, remessa de teste, validador CNAB 240 (confere tamanho das linhas, lotes, quantidades e totais) e simulação do retorno do banco. Aprovado pelo banco, mude a conta para PRODUCAO (antes, cancele os boletos de teste não enviados: a remessa de produção os recusa).
             """),
         new("LocalizarTelaForm", "Buscar tela", """
             Digite uma ou mais palavras (ex.: "boleto", "nota entrada", "senha"). Aparecem todas as telas relacionadas, ordenadas pela relevância — a busca considera o nome da tela, palavras-chave e o texto de ajuda dela.
