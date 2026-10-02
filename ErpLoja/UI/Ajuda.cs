@@ -252,14 +252,15 @@ public static class Ajuda
             - Estornar baixa: volta a conta para aberta (limpa data, valor e forma do pagamento).
             - Cancelar conta: somente contas em aberto.
             - Conta com boleto em aberto: ao baixar ou cancelar, o boleto é cancelado (se ainda não foi ao banco) ou tem a baixa pedida na próxima remessa, para o cliente não pagar duas vezes.
-            - O rodapé mostra o total em aberto a receber e a pagar, o saldo previsto e o realizado no mês.
+            - O rodapé mostra o total em aberto a receber (com quanto já está vencido) e a pagar, o saldo previsto e o realizado no mês.
+            - Com "Vencimento de" marcado, mudar as datas já atualiza a lista.
             """),
 
         new("CobrancaForm", "Cobrança bancária (boletos)", """
             Boletos, remessa e retorno no padrão CNAB 240 Febraban — serve para qualquer banco configurado em Financeiro > Contas bancárias.
 
             ## Boletos
-            - Emitir boletos: escolha as contas a receber em aberto (de clientes identificados). O sistema gera nosso número, código de barras e linha digitável.
+            - Emitir boletos: escolha as contas a receber em aberto (de clientes identificados). O sistema gera nosso número, código de barras e linha digitável. Contas já vencidas recebem no boleto o novo vencimento informado na janela (o banco recusa vencimento passado).
             - Visualizar/imprimir: ficha de compensação com código de barras.
             - Cancelar: boleto ainda não enviado é cancelado; já enviado vira pedido de baixa na próxima remessa.
 

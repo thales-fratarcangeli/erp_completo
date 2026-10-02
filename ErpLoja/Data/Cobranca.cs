@@ -34,7 +34,7 @@ public static class Cobranca
     public const string ModeloCampoLivrePadrao = "{agencia:4}{carteira:2}{nossonumero:11}{conta:7}{zeros:1}";
 
     static readonly string[] Marcacoes = ["agencia", "agenciadv", "conta", "contadv", "carteira", "convenio", "nossonumero", "zeros"];
-    static readonly Regex Marca = new(@"\{(\w+):(\d+)\}");
+    static readonly Regex Marca = new(@"\{(\w+):(\d{1,2})\}");
 
     // ------------------------------------------------------------------ campo livre
 
@@ -197,8 +197,11 @@ public static class Cobranca
 
     // ------------------------------------------------------------------ emissão
 
-    /// <summary>Emite o boleto de uma conta a receber em aberto. Devolve o id do boleto.</summary>
-    public static long Emitir(long contaBancariaId, long contaReceberId)
+    /// <summary>
+    /// Emite o boleto de uma conta a receber em aberto. Devolve o id do boleto.
+    /// Conta já vencida: o banco recusa título com vencimento passado, então o boleto usa vencimentoSeVencida (obrigatório nesse caso).
+    /// </summary>
+    public static long Emitir(long contaBancariaId, long contaReceberId, DateTime? vencimentoSeVencida = null)
     {
         var banco = ContaBancaria.Carregar(contaBancariaId);
         using var s = new DbSessao(transacao: true);
@@ -215,7 +218,16 @@ public static class Cobranca
 
         var sequencial = Convert.ToInt64(s.Scalar("SELECT nosso_numero_atual FROM contas_bancarias WHERE id = @p0", contaBancariaId)) + 1;
         var nossoNumero = sequencial.ToString().PadLeft(banco.DigitosNossoNumero, '0');
-        var vencimento = Db.LerData(conta["vencimento"]);
+        var vencimento = Db.LerData(conta["vencimento"]).Date;
+        if (vencimento < DateTime.Today)
+        {
+            if (vencimentoSeVencida is not DateTime novo)
+                throw new InvalidOperationException($"A conta venceu em {vencimento:dd/MM/yyyy} e o banco recusa boleto com vencimento passado. " +
+                                                    "Informe um novo vencimento para o boleto (campo \"Novo vencimento\" na janela Emitir boletos).");
+            if (novo.Date < DateTime.Today)
+                throw new InvalidOperationException("O novo vencimento do boleto não pode ser anterior a hoje.");
+            vencimento = novo.Date;
+        }
         var valor = Ui.Dec(conta["valor"]);
         var codigo = CodigoBarras(banco.Banco, vencimento, valor, CampoLivre(banco, nossoNumero));
         s.Exec("UPDATE contas_bancarias SET nosso_numero_atual = @p0 WHERE id = @p1", sequencial, contaBancariaId);
@@ -435,6 +447,14 @@ public static class Cobranca
             return erros;
 
         string Tipo(string l) => Pos(l, 8, 8);
+        // campo numérico: com espaços ou letras vira apontamento (e não exceção), para o validador sempre responder
+        long Num(int indice, int inicio, int fim, string campo)
+        {
+            if (long.TryParse(Pos(linhas[indice], inicio, fim), NumberStyles.None, CultureInfo.InvariantCulture, out var v))
+                return v;
+            erros.Add($"Linha {indice + 1}: {campo} (posições {inicio} a {fim}) deveria ser numérico.");
+            return -1;
+        }
         if (Tipo(linhas[0]) != "0") erros.Add("A primeira linha deve ser o header de arquivo (tipo 0).");
         if (Tipo(linhas[^1]) != "9") erros.Add("A última linha deve ser o trailer de arquivo (tipo 9).");
         if (Pos(linhas[0], 143, 143) != (remessa ? "1" : "2")) erros.Add($"Header de arquivo: código {(remessa ? "1 (remessa)" : "2 (retorno)")} esperado na posição 143.");
@@ -463,7 +483,7 @@ public static class Cobranca
                 if (segmento is "P" or "T")
                 {
                     titulos++;
-                    soma += decimal.Parse(Pos(linhas[i2], segmento == "P" ? 86 : 82, segmento == "P" ? 100 : 96)) / 100;
+                    soma += Math.Max(0, Num(i2, segmento == "P" ? 86 : 82, segmento == "P" ? 100 : 96, "valor do título")) / 100m;
                 }
                 i2++;
             }
@@ -472,17 +492,17 @@ public static class Cobranca
                 erros.Add($"Lote {lote}: trailer de lote (tipo 5) não encontrado.");
                 break;
             }
-            var qtdRegistros = int.Parse(Pos(linhas[i2], 18, 23));
-            if (qtdRegistros != i2 - inicio + 1) erros.Add($"Lote {lote}: trailer informa {qtdRegistros} registros, o lote tem {i2 - inicio + 1}.");
+            var qtdRegistros = Num(i2, 18, 23, "quantidade de registros do lote");
+            if (qtdRegistros >= 0 && qtdRegistros != i2 - inicio + 1) erros.Add($"Lote {lote}: trailer informa {qtdRegistros} registros, o lote tem {i2 - inicio + 1}.");
             if (remessa)
             {
-                if (int.Parse(Pos(linhas[i2], 24, 29)) != titulos) erros.Add($"Lote {lote}: quantidade de títulos do trailer não confere ({titulos}).");
-                if (decimal.Parse(Pos(linhas[i2], 30, 46)) / 100 != soma) erros.Add($"Lote {lote}: valor total do trailer não confere ({soma:N2}).");
+                if (Num(i2, 24, 29, "quantidade de títulos") is var qt and >= 0 && qt != titulos) erros.Add($"Lote {lote}: quantidade de títulos do trailer não confere ({titulos}).");
+                if (Num(i2, 30, 46, "valor total do lote") is var vt and >= 0 && vt / 100m != soma) erros.Add($"Lote {lote}: valor total do trailer não confere ({soma:N2}).");
             }
             i2++;
         }
-        if (int.Parse(Pos(linhas[^1], 18, 23)) != lotes) erros.Add($"Trailer de arquivo: quantidade de lotes não confere ({lotes}).");
-        if (int.Parse(Pos(linhas[^1], 24, 29)) != linhas.Count) erros.Add($"Trailer de arquivo: quantidade de registros não confere ({linhas.Count}).");
+        if (Num(linhas.Count - 1, 18, 23, "quantidade de lotes") is var ql and >= 0 && ql != lotes) erros.Add($"Trailer de arquivo: quantidade de lotes não confere ({lotes}).");
+        if (Num(linhas.Count - 1, 24, 29, "quantidade de registros") is var qr and >= 0 && qr != linhas.Count) erros.Add($"Trailer de arquivo: quantidade de registros não confere ({linhas.Count}).");
         return erros;
     }
 
@@ -556,8 +576,12 @@ public static class Cobranca
                     mensagens.Add($"Nosso número {nossoNumero}: liquidação já registrada antes; ignorada.");
                     break;
                 case "06" or "17":
-                    var pago = u is null ? decimal.Parse(Pos(t, 82, 96)) / 100 : decimal.Parse(Pos(u, 78, 92)) / 100;
-                    var data = u is null ? DateTime.Today : DateTime.ParseExact(Pos(u, 138, 145), "ddMMyyyy", CultureInfo.InvariantCulture);
+                    // valor pago (segmento U); ausente ou inválido = valor nominal do título (segmento T, já conferido pelo validador)
+                    var pago = (u is not null && long.TryParse(Pos(u, 78, 92), NumberStyles.None, CultureInfo.InvariantCulture, out var centavosPagos) && centavosPagos > 0
+                        ? centavosPagos : long.Parse(Pos(t, 82, 96), CultureInfo.InvariantCulture)) / 100m;
+                    // data da ocorrência (segmento U); ausente ou zerada = data do processamento
+                    var data = u is not null && DateTime.TryParseExact(Pos(u, 138, 145), "ddMMyyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var ocorrencia)
+                        ? ocorrencia : DateTime.Today;
                     s.Exec("UPDATE boletos SET status = 'PAGO', data_pagamento = @p0, valor_pago = @p1, ocorrencia = @p2 WHERE id = @p3",
                         Db.Dia(data), pago, descricao, id);
                     if (boleto["conta_id"] is long contaId &&

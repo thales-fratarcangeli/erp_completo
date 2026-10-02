@@ -147,7 +147,7 @@ Sumário: [Cadastros](#cadastros-rn-cad) · [Estoque](#estoque-rn-est) · [Custo
 
 | ID | Regra |
 |---|---|
-| RN-COB-01 | Boleto só para conta a receber **aberta** com cliente e valor > 0; no máximo um boleto ativo por conta. |
+| RN-COB-01 | Boleto só para conta a receber **aberta** com cliente e valor > 0; no máximo um boleto ativo por conta. Conta já vencida: o boleto recebe um novo vencimento (hoje ou depois), pois o banco recusa vencimento passado; a conta mantém o vencimento original. |
 | RN-COB-02 | Nosso número = sequência da conta bancária + 1, com `nosso_numero_digitos` dígitos. |
 | RN-COB-03 | **Código de barras** (44 posições, Febraban): banco(3) + moeda 9 + DV + fator de vencimento(4) + valor em centavos(10) + campo livre(25). DV geral por módulo 11 (pesos 2–9); resultados 0, 10 e 11 viram 1. |
 | RN-COB-04 | **Fator de vencimento**: dias desde 07/10/1997 até 21/02/2025 (fator 9999); a partir de 22/02/2025 reinicia em 1000 (+1 por dia, ciclo de 9000). |

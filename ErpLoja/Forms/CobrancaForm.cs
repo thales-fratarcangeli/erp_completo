@@ -168,6 +168,12 @@ public class CobrancaForm : Form
         var barra = Ui.Barra(DockStyle.Bottom);
         barra.Controls.Add(Ui.Botao("Emitir selecionados", (_, _) => { grade.EndEdit(); f.DialogResult = DialogResult.OK; }, primario: true));
         barra.Controls.Add(Ui.Botao("Cancelar", (_, _) => f.DialogResult = DialogResult.Cancel));
+        // o banco recusa boleto com vencimento passado: as contas já vencidas recebem um novo vencimento no boleto
+        var novoVencimento = Ui.Data(DateTime.Today.AddDays(Math.Max(1, Parametros.PrazoVencimentoDias)));
+        novoVencimento.MinDate = DateTime.Today;
+        var vencidas = abertas.Rows.Cast<DataRow>().Count(r => DateTime.ParseExact(Ui.Txt(r["Vencimento"]), "dd/MM/yyyy", null) < DateTime.Today);
+        if (vencidas > 0)
+            barra.Controls.AddRange([Ui.Rotulo($"   {vencidas} conta(s) já vencida(s) — novo vencimento no boleto:"), novoVencimento]);
         f.Controls.Add(grade);
         f.Controls.Add(barra);
         if (f.ShowDialog(this) != DialogResult.OK)
@@ -179,7 +185,7 @@ public class CobrancaForm : Form
                 continue;
             try
             {
-                Cobranca.Emitir(c, (long)r["id"]);
+                Cobranca.Emitir(c, (long)r["id"], novoVencimento.Value.Date);
                 emitidos++;
             }
             catch (Exception ex)
@@ -312,7 +318,16 @@ public class CobrancaForm : Form
         using var dlg = new OpenFileDialog { Filter = "CNAB 240 (*.rem;*.ret;*.txt)|*.rem;*.ret;*.txt|Todos|*.*", Title = "Arquivo CNAB 240 para validar" };
         if (dlg.ShowDialog(this) != DialogResult.OK)
             return;
-        var conteudo = File.ReadAllText(dlg.FileName, Encoding.Latin1);
+        string conteudo;
+        try
+        {
+            conteudo = File.ReadAllText(dlg.FileName, Encoding.Latin1);
+        }
+        catch (Exception ex)
+        {
+            Ui.Erro("Não foi possível ler o arquivo: " + ex.Message);
+            return;
+        }
         var linhas = conteudo.Replace("\r\n", "\n").Split('\n').Where(l => l.Length > 0).ToList();
         var remessa = linhas.Count > 0 && linhas[0].Length >= 143 && linhas[0][142] == '1';
         var erros = Cobranca.ValidarArquivo240(conteudo, remessa);

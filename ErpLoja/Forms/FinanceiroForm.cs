@@ -49,6 +49,8 @@ public class FinanceiroForm : Form
         tipo.SelectedIndexChanged += (_, _) => Carregar();
         situacao.SelectedIndexChanged += (_, _) => Carregar();
         usarPeriodo.CheckedChanged += (_, _) => Carregar();
+        de.ValueChanged += (_, _) => { if (usarPeriodo.Checked) Carregar(); };
+        ate.ValueChanged += (_, _) => { if (usarPeriodo.Checked) Carregar(); };
         grid.CellDoubleClick += (_, e) => { if (e.RowIndex >= 0) Baixar(); };
         Load += (_, _) => Carregar();
     }
@@ -95,12 +97,13 @@ public class FinanceiroForm : Form
             SELECT
               COALESCE(SUM(CASE WHEN tipo = 'RECEBER' AND status = 'ABERTA' THEN valor END), 0) AS receber,
               COALESCE(SUM(CASE WHEN tipo = 'PAGAR' AND status = 'ABERTA' THEN valor END), 0) AS pagar,
+              COALESCE(SUM(CASE WHEN tipo = 'RECEBER' AND status = 'ABERTA' AND vencimento < date('now', 'localtime') THEN valor END), 0) AS vencido,
               COALESCE(SUM(CASE WHEN tipo = 'RECEBER' AND status = 'PAGA' AND data_pagamento >= @p0 THEN valor_pago END), 0) AS recebido,
               COALESCE(SUM(CASE WHEN tipo = 'PAGAR' AND status = 'PAGA' AND data_pagamento >= @p0 THEN valor_pago END), 0) AS pago
             FROM contas
             """, Db.Dia(new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1))).Rows[0];
         var (aReceber, aPagar) = (Ui.Dec(t["receber"]), Ui.Dec(t["pagar"]));
-        resumo.Text = $"Em aberto — a receber: {Ui.Moeda(aReceber)}   a pagar: {Ui.Moeda(aPagar)}   saldo previsto: {Ui.Moeda(aReceber - aPagar)}"
+        resumo.Text = $"Em aberto — a receber: {Ui.Moeda(aReceber)} (vencido: {Ui.Moeda(Ui.Dec(t["vencido"]))})   a pagar: {Ui.Moeda(aPagar)}   saldo previsto: {Ui.Moeda(aReceber - aPagar)}"
                     + $"        No mês — recebido: {Ui.Moeda(Ui.Dec(t["recebido"]))}   pago: {Ui.Moeda(Ui.Dec(t["pago"]))}";
     }
 
