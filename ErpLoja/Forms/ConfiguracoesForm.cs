@@ -237,6 +237,13 @@ public class ConfiguracoesForm : Form
         }, primario: true));
 
         painel.Nota("", 10);
+        var aparencia = painel.Adicionar("Aparência:", Ui.Combo(200));
+        aparencia.Items.AddRange(["Modo claro", "Modo escuro"]);
+        aparencia.SelectedIndex = Tema.Escuro ? 1 : 0;
+        painel.Nota("Muda as cores de todas as telas na hora. Cada usuário tem a sua escolha (também no rodapé da janela principal).");
+        painel.Linha(Ui.Botao("Aplicar aparência", (_, _) => Preferencias.SalvarTema(aparencia.SelectedIndex == 1)));
+
+        painel.Nota("", 10);
         var atual = painel.Adicionar("Senha atual:", Validacao.Aplicar(new TextBox { UseSystemPasswordChar = true }, Formatos.Senha, "Senha atual"));
         var nova = painel.Adicionar("Nova senha:", Validacao.Aplicar(new TextBox { UseSystemPasswordChar = true }, Formatos.Senha, "Nova senha"));
         var confirma = painel.Adicionar("Confirmar nova senha:", Validacao.Aplicar(new TextBox { UseSystemPasswordChar = true }, Formatos.Senha, "Confirmar nova senha"));

@@ -62,6 +62,7 @@ public class PdvForm : Form
 
     public PdvForm()
     {
+        Alteracoes.Ignorar(this); // esta tela tem a sua própria confirmação ao sair
         Validacao.Aplicar(codigo, Formatos.EntradaPdv, "Produto");
         Ui.Estilizar(this, "PDV - frente de caixa", 1280, 760, nameof(PdvForm));
         WindowState = FormWindowState.Maximized;
@@ -386,7 +387,7 @@ public class PdvForm : Form
 
     void EscolherCliente()
     {
-        using var d = new Dialogo("Cliente da venda", "PdvForm", "Selecionar");
+        using var d = new Dialogo("Cliente da venda", "PdvForm", "Selecionar") { ConfirmarAoSair = false };
         var combo = d.Adicionar("Cliente:", Ui.Combo(380));
         Ui.Preencher(combo, Db.Query("SELECT id, nome FROM pessoas WHERE eh_cliente = 1 AND ativo = 1 ORDER BY nome"), "Consumidor final");
         Ui.Selecionar(combo, clienteId);
@@ -404,7 +405,7 @@ public class PdvForm : Form
 
     void DefinirQuantidade()
     {
-        using var d = new Dialogo("Quantidade do próximo item", "PdvForm");
+        using var d = new Dialogo("Quantidade do próximo item", "PdvForm") { ConfirmarAoSair = false };
         var q = d.Adicionar("Quantidade:", Ui.Numero(3, QuantidadeMaxima, 0.001m));
         q.Value = proximaQuantidade;
         q.Select(0, q.Text.Length);
@@ -420,7 +421,7 @@ public class PdvForm : Form
     {
         if (itens.Count == 0)
             return;
-        using var d = new Dialogo("Desconto na venda", "PdvForm", "Aplicar");
+        using var d = new Dialogo("Desconto na venda", "PdvForm", "Aplicar") { ConfirmarAoSair = false };
         var valor = d.Adicionar("Desconto (R$):", Ui.Numero(2, Subtotal));
         var percentual = d.Adicionar("ou percentual (%):", Ui.Numero(2, 100));
         valor.Value = Math.Min(desconto, Subtotal);

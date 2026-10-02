@@ -18,6 +18,7 @@ public class FichasTecnicasForm : Form
 
     public FichasTecnicasForm()
     {
+        Alteracoes.Ignorar(this); // esta tela tem a sua própria confirmação ao sair
         Validacao.Aplicar(busca, Formatos.Busca, "Filtro");
         Validacao.Aplicar(codigo, Formatos.CodigoOuNome, "Insumo");
         Validacao.Aplicar(observacoes, Formatos.Texto(500), "Observações");

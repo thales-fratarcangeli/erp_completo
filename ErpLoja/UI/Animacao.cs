@@ -71,7 +71,7 @@ public static class Animacao
             Executar(c, 120, p =>
             {
                 atual = de + (alvo - de) * p;
-                c.BackColor = Misturar(normal, foco, atual);
+                c.BackColor = Misturar(Tema.Fundo(normal), Tema.Fundo(foco), atual); // cores do tema atual (claro/escuro)
             });
         }
         c.MouseEnter += (_, _) => Ir(1);

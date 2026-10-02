@@ -2,6 +2,17 @@
 
 O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e a numeração segue [SemVer](https://semver.org/lang/pt-BR/).
 
+## 1.4.0 — 2026-10-02
+
+### Alterado
+- **Uma tela por vez, sem abas**: abrir outra tela substitui a atual; cabeçalho "Área › Tela" com × (Ctrl+W).
+- **Modelo único de tela**: pesquisa e filtros em cima, listagem ao meio, opções da tela numa lista com rolagem à direita.
+- Banco de log sem arquivos auxiliares (`-wal`/`-shm`).
+
+### Adicionado
+- **Aviso de dados não salvos** em todas as telas e janelas de edição: *Salvar e sair*, *Descartar e sair* ou *Continuar editando*.
+- **Modo claro / escuro** por usuário (rodapé da janela ou Configurações > Minha conta), aplicado na hora a todas as telas, inclusive barra de título e rolagem (migração 14).
+
 ## 1.3.0 — 2026-10-02
 
 ### Segurança (revisão OWASP Top 10:2025 — [15](docs/15-seguranca-owasp.md))

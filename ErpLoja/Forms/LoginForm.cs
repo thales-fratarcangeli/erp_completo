@@ -6,6 +6,7 @@ public static class LoginForm
     {
         using var d = new Dialogo("ERP Loja - Acesso", "login", "Entrar")
         {
+            ConfirmarAoSair = false,
             ShowInTaskbar = true,
             StartPosition = FormStartPosition.CenterScreen,
         };
@@ -52,6 +53,7 @@ public static class LoginForm
             Sessao.Nome = Ui.Txt(r["nome"]);
             Sessao.Admin = (long)r["admin"] == 1;
             ControleDeAcesso.RegistrarSucesso((long)r["id"], senha.Text, Ui.Txt(r["senha"]));
+            Preferencias.CarregarTema();
             var alerta = Sessao.Admin ? ControleDeAcesso.AlertaDeTentativas((long)r["id"]) : null;
             Log.Registrar(Log.Acesso, "Entrou no sistema", Sessao.Admin ? "administrador" : "usuário comum", tela: "Acesso");
             if (alerta != null)
@@ -71,7 +73,7 @@ public static class LoginForm
     /// <summary>Primeiro acesso com a senha padrão: a pessoa escolhe uma senha nova para continuar.</summary>
     static bool TrocarSenhaFraca(string atual, string username)
     {
-        using var d = new Dialogo("Troque a senha padrão", "login", "Salvar e entrar") { StartPosition = FormStartPosition.CenterScreen };
+        using var d = new Dialogo("Troque a senha padrão", "login", "Salvar e entrar") { ConfirmarAoSair = false, StartPosition = FormStartPosition.CenterScreen };
         d.Nota("Por segurança, escolha uma senha nova antes de começar. A senha atual é a padrão (ou igual ao username) e qualquer pessoa poderia adivinhá-la.");
         var nova = d.Adicionar("Nova senha:", Validacao.Aplicar(new TextBox { UseSystemPasswordChar = true }, Formatos.Senha, "Nova senha"));
         var confirmacao = d.Adicionar("Repita a nova senha:", Validacao.Aplicar(new TextBox { UseSystemPasswordChar = true }, Formatos.Senha, "Repita a nova senha"));

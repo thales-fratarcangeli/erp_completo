@@ -1,23 +1,38 @@
 namespace ErpLoja.Forms;
 
 /// <summary>
-/// Janela principal: menu lateral em acordeão (montado de Navegacao.Telas, fonte única), busca de telas (Ctrl+K)
-/// e o palco à direita, onde as telas abrem embutidas, cada uma com sua aba no topo. Sem tela aberta, mostra a
-/// tela inicial limpa (logo, saudação e busca). Os indicadores ficam em Gestão > Painel gerencial.
+/// Janela principal: menu lateral em acordeão (montado de Navegacao.Telas, fonte única), busca de telas (Ctrl+K) e, à
+/// direita, uma tela por vez (sem abas). O cabeçalho mostra "Área › Tela" e o botão de fechar. Ao trocar ou fechar a
+/// tela com dados digitados e não salvos, o sistema pergunta se quer salvar, descartar ou continuar editando.
+/// Sem tela aberta, mostra a tela inicial (logo, saudação, busca e "continuar de onde parou").
 /// </summary>
 public class MainForm : Form
 {
     static readonly Color FundoMenu = Color.FromArgb(17, 24, 39);
     static readonly Color FundoItem = Color.FromArgb(31, 41, 55);
 
-    readonly Dictionary<string, Form> abertos = new();
-    readonly List<(Form Tela, Aba Aba)> ordem = new();
     readonly Dictionary<Keys, Tela> atalhos = new();
-    readonly Label titulo = new() { AutoSize = true, Dock = DockStyle.Right, Font = new Font("Segoe UI", 9.5F), ForeColor = Color.FromArgb(107, 114, 128), Padding = new Padding(0, 14, 56, 0) };
-    readonly FlowLayoutPanel abas = new() { Dock = DockStyle.Fill, WrapContents = false, BackColor = Color.White, Padding = new Padding(8, 8, 0, 0) };
+    readonly Label loja = new() { AutoSize = true, Dock = DockStyle.Right, Font = new Font("Segoe UI", 9.5F), ForeColor = Color.FromArgb(107, 114, 128), Padding = new Padding(0, 14, 12, 0) };
+    readonly Label caminho = new() { AutoSize = true, Dock = DockStyle.Left, Font = new Font("Segoe UI Semibold", 11F), ForeColor = Color.FromArgb(17, 24, 39), Padding = new Padding(30, 12, 0, 0) };
+    readonly Button fechar = new()
+    {
+        Text = "×",
+        Dock = DockStyle.Right,
+        Width = 44,
+        FlatStyle = FlatStyle.Flat,
+        Font = new Font("Segoe UI", 15F),
+        ForeColor = Color.FromArgb(107, 114, 128),
+        BackColor = Color.White,
+        Cursor = Cursors.Hand,
+        Visible = false,
+        TabStop = false,
+        UseVisualStyleBackColor = false,
+    };
+    readonly Panel cabecalho = new() { Dock = DockStyle.Top, Height = 46, BackColor = Color.White };
     readonly Panel palco = new() { Dock = DockStyle.Fill, BackColor = Ui.Fundo };
     readonly Control inicio;
     Form? ativa;
+    Tela? telaAtiva;
     // tela inicial: telas usadas por último ("continuar de onde parou")
     readonly Label tituloRecentes = new()
     {
@@ -29,7 +44,7 @@ public class MainForm : Form
         Margin = new Padding(0, 28, 0, 6),
     };
     readonly FlowLayoutPanel recentes = new() { AutoSize = true, WrapContents = true, MaximumSize = new Size(780, 0), Anchor = AnchorStyles.None, BackColor = Color.White };
-    // menu lateral: item de cada tela, para destacar a que está em primeiro plano
+    // menu lateral: item de cada tela, para destacar a que está aberta
     readonly Dictionary<string, Button> itensMenu = new();
     string? chaveAtiva;
     readonly FlowLayoutPanel menu = new()
@@ -43,11 +58,11 @@ public class MainForm : Form
         Padding = new Padding(10, 12, 6, 12),
     };
 
-    /// <summary>Tela em primeiro plano no palco (null = tela inicial).</summary>
+    /// <summary>Tela aberta à direita (null = tela inicial).</summary>
     public Form? TelaAtiva => ativa;
 
-    /// <summary>Telas abertas no palco, na ordem das abas.</summary>
-    public IReadOnlyList<Form> TelasAbertas => ordem.Select(o => o.Tela).ToList();
+    /// <summary>Telas abertas: no máximo uma (a janela principal mostra uma tela por vez).</summary>
+    public IReadOnlyList<Form> TelasAbertas => ativa is null ? [] : [ativa];
 
     public MainForm()
     {
@@ -90,20 +105,37 @@ public class MainForm : Form
         sair.Click += (_, _) => Close();
         menu.Controls.Add(sair);
 
-        // barra de abas das telas abertas
-        var cabecalho = new Panel { Dock = DockStyle.Top, Height = 46, BackColor = Color.White };
-        cabecalho.Controls.Add(abas);
-        cabecalho.Controls.Add(titulo);
+        // cabeçalho: "Área › Tela" com o ponto na cor da área, nome da loja e o × para fechar a tela
+        fechar.FlatAppearance.BorderSize = 0;
+        fechar.Click += (_, _) => FecharTela();
+        fechar.MouseEnter += (_, _) => fechar.ForeColor = Ui.Perigo;
+        fechar.MouseLeave += (_, _) => fechar.ForeColor = Tema.Texto(Color.FromArgb(107, 114, 128));
+        new ToolTip().SetToolTip(fechar, "Fechar esta tela (Ctrl+W)");
+        cabecalho.Controls.Add(caminho);
+        cabecalho.Controls.Add(loja);
+        cabecalho.Controls.Add(fechar);
         cabecalho.Paint += (_, e) =>
         {
-            using var borda = new Pen(Color.FromArgb(229, 231, 235));
+            using var borda = new Pen(Tema.Fundo(Color.FromArgb(229, 231, 235)));
             e.Graphics.DrawLine(borda, 0, cabecalho.Height - 1, cabecalho.Width, cabecalho.Height - 1);
+            if (telaAtiva is null)
+                return;
+            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            using var ponto = new SolidBrush(Navegacao.ModuloDe(telaAtiva.Modulo).Cor);
+            e.Graphics.FillEllipse(ponto, 14, 19, 9, 9);
         };
 
         var status = new StatusStrip();
         status.Items.Add($"Usuário: {Sessao.Nome}{(Sessao.Admin ? " (administrador)" : "")}");
         status.Items.Add("   Banco: " + Db.Caminho);
         status.Items.Add($"   Versão {Application.ProductVersion.Split('+')[0]} · banco v{Migracoes.VersaoDoSistema}");
+        var alternarTema = new ToolStripStatusLabel { Spring = true, TextAlign = ContentAlignment.MiddleRight, IsLink = true, LinkBehavior = LinkBehavior.HoverUnderline };
+        void TextoTema() => alternarTema.Text = Tema.Escuro ? "☀ Modo claro" : "☾ Modo escuro";
+        TextoTema();
+        alternarTema.Click += (_, _) => Preferencias.SalvarTema(!Tema.Escuro);
+        Tema.Mudou += TextoTema;
+        Disposed += (_, _) => Tema.Mudou -= TextoTema;
+        status.Items.Add(alternarTema);
 
         inicio = Inicio();
         palco.Controls.Add(inicio);
@@ -121,24 +153,27 @@ public class MainForm : Form
             AtualizarRecentes();
         };
         ConfiguracoesForm.ParametrosSalvos += AtualizarCabecalho;
-        Disposed += (_, _) => ConfiguracoesForm.ParametrosSalvos -= AtualizarCabecalho;
+        Tema.Mudou += Redesenhar;
+        Disposed += (_, _) =>
+        {
+            ConfiguracoesForm.ParametrosSalvos -= AtualizarCabecalho;
+            Tema.Mudou -= Redesenhar;
+        };
         FormClosing += (_, e) =>
         {
-            // fecha as telas embutidas uma a uma: cada uma pode pedir confirmação (ex.: venda em andamento no PDV)
-            foreach (var (f, _) in ordem.ToList())
-            {
-                f.Close();
-                if (!f.IsDisposed)
-                {
-                    Ativar(f);
-                    e.Cancel = true;
-                    return;
-                }
-            }
+            // a tela aberta pode ter dados não salvos (pergunta) ou recusar o fechamento (ex.: venda em andamento no PDV)
+            if (ativa != null && !FecharTela("fechar o sistema"))
+                e.Cancel = true;
         };
     }
 
-    /// <summary>Área central sem tela aberta: só a identidade da loja e o atalho para encontrar qualquer tela.</summary>
+    void Redesenhar()
+    {
+        cabecalho.Invalidate();
+        menu.Invalidate(true);
+    }
+
+    /// <summary>Área central sem tela aberta: identidade da loja, busca e as telas usadas por último.</summary>
     Control Inicio()
     {
         var area = new TableLayoutPanel { Dock = DockStyle.Fill, BackColor = Color.White, ColumnCount = 1, RowCount = 3 };
@@ -207,7 +242,7 @@ public class MainForm : Form
     /// <summary>Seção do acordeão: o cabeçalho abre/fecha os itens com animação de altura.</summary>
     void Secao(Modulo modulo, List<Tela> telas, bool aberta)
     {
-        var cabecalho = new Button
+        var titulo = new Button
         {
             Text = $"   {modulo.Nome.ToUpper()}",
             TextAlign = ContentAlignment.MiddleLeft,
@@ -220,8 +255,8 @@ public class MainForm : Form
             Cursor = Cursors.Hand,
             UseVisualStyleBackColor = false,
         };
-        cabecalho.FlatAppearance.BorderSize = 0;
-        cabecalho.FlatAppearance.MouseOverBackColor = FundoItem;
+        titulo.FlatAppearance.BorderSize = 0;
+        titulo.FlatAppearance.MouseOverBackColor = FundoItem;
         var itens = new FlowLayoutPanel
         {
             FlowDirection = FlowDirection.TopDown,
@@ -242,22 +277,22 @@ public class MainForm : Form
         var alturaCheia = telas.Count * 34;
         itens.Height = aberta ? alturaCheia : 0;
         var expandida = aberta;
-        cabecalho.Paint += (_, e) =>
+        titulo.Paint += (_, e) =>
         {
             using var ponto = new SolidBrush(modulo.Cor);
             e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             e.Graphics.FillEllipse(ponto, 2, 10, 8, 8);
-            TextRenderer.DrawText(e.Graphics, expandida ? "▾" : "▸", cabecalho.Font, new Point(cabecalho.Width - 22, 6), Color.FromArgb(156, 163, 175));
+            TextRenderer.DrawText(e.Graphics, expandida ? "▾" : "▸", titulo.Font, new Point(titulo.Width - 22, 6), Color.FromArgb(156, 163, 175));
         };
-        cabecalho.Click += (_, _) =>
+        titulo.Click += (_, _) =>
         {
             expandida = !expandida;
-            cabecalho.Invalidate();
+            titulo.Invalidate();
             var de = itens.Height;
             var para = expandida ? alturaCheia : 0;
             Animacao.Executar(itens, 180, p => itens.Height = (int)(de + (para - de) * p));
         };
-        menu.Controls.Add(cabecalho);
+        menu.Controls.Add(titulo);
         menu.Controls.Add(itens);
     }
 
@@ -265,14 +300,7 @@ public class MainForm : Form
     {
         if (keyData == (Keys.Control | Keys.W) && ativa != null)
         {
-            ativa.Close();
-            return true;
-        }
-        if ((keyData == (Keys.Control | Keys.Tab) || keyData == (Keys.Control | Keys.Shift | Keys.Tab)) && ordem.Count > 1)
-        {
-            var i = ordem.FindIndex(o => o.Tela == ativa);
-            var passo = (keyData & Keys.Shift) != 0 ? -1 : 1;
-            Ativar(ordem[(i + passo + ordem.Count) % ordem.Count].Tela);
+            FecharTela();
             return true;
         }
         if (atalhos.TryGetValue(keyData, out var tela))
@@ -287,18 +315,21 @@ public class MainForm : Form
     {
         if (IsDisposed)
             return;
-        titulo.Text = Db.Config("nome_loja");
-        Text = "ERP Loja - " + titulo.Text + (ativa is null ? "" : " - " + ativa.Text);
+        loja.Text = Db.Config("nome_loja");
+        caminho.Text = telaAtiva is null ? "Início" : $"{telaAtiva.Modulo}  ›  {ativa?.Text ?? telaAtiva.Titulo}";
+        fechar.Visible = ativa != null;
+        Text = "ERP Loja - " + loja.Text + (ativa is null ? "" : " - " + ativa.Text);
+        cabecalho.Invalidate();
     }
 
-    /// <summary>O "?" da janela principal só aparece na tela inicial: cada tela aberta tem o seu próprio "?".</summary>
+    /// <summary>O "?" da janela principal só aparece na tela inicial: cada tela tem o seu próprio "?".</summary>
     void AtualizarAjuda()
     {
         foreach (var b in Controls.OfType<Button>().Where(b => b.Text == "?"))
             b.Visible = ativa is null;
     }
 
-    /// <summary>Abre a tela no palco (ou traz para frente se já estiver aberta).</summary>
+    /// <summary>Abre a tela à direita, no lugar da atual (perguntando antes se a atual tem dados não salvos).</summary>
     void Abrir(Tela tela)
     {
         if (tela.SoAdmin && !Sessao.Admin)
@@ -313,17 +344,29 @@ public class MainForm : Form
             acao(this);
             return;
         }
-        if (abertos.TryGetValue(tela.Chave, out var f) && !f.IsDisposed)
+        if (ativa != null && telaAtiva?.Chave == tela.Chave)
         {
-            Ativar(f);
+            Focar(ativa);
             return;
         }
-        f = tela.Criar!();
-        abertos[tela.Chave] = f;
-        Embutir(f, tela);
+        if (ativa != null && !FecharTela($"abrir \"{tela.Titulo}\""))
+            return;
+        Embutir(tela.Criar!(), tela);
     }
 
-    /// <summary>Transforma a janela em conteúdo do palco, com uma aba no topo.</summary>
+    /// <summary>Fecha a tela aberta e volta ao início. Devolve false se a pessoa preferiu continuar nela.</summary>
+    bool FecharTela(string acao = "fechar esta tela")
+    {
+        var f = ativa;
+        if (f is null)
+            return true;
+        if (!Alteracoes.PodeSair(f, acao))
+            return false;
+        f.Close(); // a própria tela ainda pode recusar (ex.: PDV com venda em andamento)
+        return f.IsDisposed;
+    }
+
+    /// <summary>Transforma a janela em conteúdo do palco, no modelo padrão (listagem ao meio, opções à direita).</summary>
     void Embutir(Form f, Tela tela)
     {
         f.TopLevel = false;
@@ -332,51 +375,28 @@ public class MainForm : Form
         f.MinimumSize = Size.Empty;
         f.ShowInTaskbar = false;
         f.Dock = DockStyle.Fill;
-
-        var aba = new Aba(f.Text, Navegacao.ModuloDe(tela.Modulo).Cor);
-        aba.Selecionada += () => Ativar(f);
-        aba.Fechada += () => f.Close();
-        f.TextChanged += (_, _) => aba.Titulo = f.Text;
+        f.Load += (_, _) => ModeloDeTela.Padronizar(f);
+        f.TextChanged += (_, _) => AtualizarCabecalho();
         f.FormClosed += (_, _) =>
         {
             Log.Registrar(Log.Tela, "Fechou " + f.Text, tela: f.Text);
-            abertos.Remove(tela.Chave);
-            ordem.RemoveAll(o => o.Tela == f);
-            abas.Controls.Remove(aba);
-            aba.Dispose();
             palco.Controls.Remove(f);
             if (ativa == f)
             {
                 ativa = null;
-                if (ordem.Count > 0)
-                    Ativar(ordem[^1].Tela);
-                else
-                    MostrarInicio();
+                telaAtiva = null;
+                MostrarInicio();
             }
-            AtualizarCabecalho();
         };
-        ordem.Add((f, aba));
-        abas.Controls.Add(aba);
-        palco.Controls.Add(f);
-        f.Show();
-        Log.Registrar(Log.Tela, "Abriu " + f.Text, tela.Chave, tela: f.Text);
-        Ativar(f);
-    }
-
-    void Ativar(Form f)
-    {
         ativa = f;
-        foreach (var (outra, aba) in ordem)
-        {
-            aba.Ativa = outra == f;
-            if (outra != f)
-                outra.Visible = false;
-        }
+        telaAtiva = tela;
+        palco.Controls.Add(f);
         inicio.Visible = false;
-        f.Visible = true;
+        f.Show();
         f.BringToFront();
+        Log.Registrar(Log.Tela, "Abriu " + f.Text, tela.Chave, tela: f.Text);
         Log.TelaAtual = f.Text;
-        MarcarMenu(abertos.FirstOrDefault(kv => kv.Value == f).Key);
+        MarcarMenu(tela.Chave);
         AtualizarCabecalho();
         AtualizarAjuda();
         // foco no controle que a tela escolheu (ex.: código do produto no PDV) ou no primeiro da ordem de tabulação
@@ -407,7 +427,7 @@ public class MainForm : Form
         AtualizarAjuda();
     }
 
-    /// <summary>O item do menu da tela em primeiro plano fica em negrito, branco e com a marca de cor cheia.</summary>
+    /// <summary>O item do menu da tela aberta fica em negrito, branco e com a marca de cor cheia.</summary>
     void MarcarMenu(string? chave)
     {
         chaveAtiva = chave;
@@ -452,89 +472,6 @@ public class MainForm : Form
     /// <summary>Chave da tela destacada no menu lateral (para testes).</summary>
     public string? TelaDestacadaNoMenu => chaveAtiva;
 
-    /// <summary>Aba de uma tela aberta: ponto na cor do módulo, título e botão de fechar; a aba ativa ganha sublinhado animado.</summary>
-    sealed class Aba : Panel
-    {
-        static readonly Color Cinza = Color.FromArgb(107, 114, 128);
-        readonly Label texto = new() { AutoSize = true, Font = new Font("Segoe UI", 9.5F), Location = new Point(22, 9), Cursor = Cursors.Hand, BackColor = Color.Transparent, ForeColor = Color.FromArgb(75, 85, 99) };
-        readonly Label fechar = new() { Text = "×", AutoSize = false, Size = new Size(22, 22), TextAlign = ContentAlignment.MiddleCenter, Font = new Font("Segoe UI", 11F), Cursor = Cursors.Hand, ForeColor = Cinza, BackColor = Color.Transparent };
-        readonly Color cor;
-        bool ativa;
-        float sublinhado;
-
-        public event Action? Selecionada, Fechada;
-
-        public Aba(string titulo, Color cor)
-        {
-            this.cor = cor;
-            Height = 38;
-            Margin = new Padding(0, 0, 4, 0);
-            Cursor = Cursors.Hand;
-            DoubleBuffered = true;
-            BackColor = Color.White;
-            Controls.Add(texto);
-            Controls.Add(fechar);
-            Titulo = titulo;
-            foreach (var c in new Control[] { this, texto })
-            {
-                c.Click += (_, _) => Selecionada?.Invoke();
-                c.MouseUp += (_, e) =>
-                {
-                    if (e.Button == MouseButtons.Middle)
-                        Fechada?.Invoke();
-                };
-            }
-            fechar.Click += (_, _) => Fechada?.Invoke();
-            fechar.MouseEnter += (_, _) => fechar.ForeColor = Ui.Perigo;
-            fechar.MouseLeave += (_, _) => fechar.ForeColor = Cinza;
-            Animacao.Hover(this, Color.White, Color.FromArgb(243, 244, 246));
-            new ToolTip().SetToolTip(fechar, "Fechar (Ctrl+W)");
-        }
-
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public string Titulo
-        {
-            get => texto.Text;
-            set
-            {
-                texto.Text = value.Length > 34 ? value[..33] + "…" : value;
-                Width = 22 + TextRenderer.MeasureText(texto.Text, Ui.FonteNegrito).Width + 30;
-                fechar.Location = new Point(Width - 26, 8);
-            }
-        }
-
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public bool Ativa
-        {
-            get => ativa;
-            set
-            {
-                if (ativa == value)
-                    return;
-                ativa = value;
-                texto.Font = new Font(value ? "Segoe UI Semibold" : "Segoe UI", 9.5F);
-                texto.ForeColor = value ? Color.FromArgb(17, 24, 39) : Color.FromArgb(75, 85, 99);
-                if (value)
-                    Animacao.Executar(this, 200, p => { sublinhado = (float)p; Invalidate(); });
-                else
-                {
-                    sublinhado = 0;
-                    Invalidate();
-                }
-            }
-        }
-
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            base.OnPaint(e);
-            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            using var pincel = new SolidBrush(cor);
-            e.Graphics.FillEllipse(pincel, 8, 15, 8, 8);
-            if (sublinhado > 0)
-            {
-                var largura = Width * sublinhado;
-                e.Graphics.FillRectangle(pincel, (Width - largura) / 2, Height - 3, largura, 3);
-            }
-        }
-    }
+    /// <summary>Texto do cabeçalho "Área › Tela" (para testes).</summary>
+    public string CaminhoNoCabecalho => caminho.Text;
 }

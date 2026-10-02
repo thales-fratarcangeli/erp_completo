@@ -54,6 +54,10 @@ public class Dialogo : Form
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Func<bool>? Validar { get; set; }
 
+    /// <summary>Ao fechar sem confirmar, perguntar se descarta o que foi digitado (desligado em diálogos rápidos do caixa).</summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public bool ConfirmarAoSair { get; set; } = true;
+
     /// <param name="ajuda">Chave do tópico de ajuda (ver Ajuda.cs).</param>
     public Dialogo(string titulo, string ajuda, string textoOk = "OK")
     {
@@ -69,6 +73,16 @@ public class Dialogo : Form
         AutoSizeMode = AutoSizeMode.GrowAndShrink;
         Padding = new Padding(12);
         Ajuda.InstalarEmDialogo(this, ajuda);
+        Alteracoes.Monitorar(this);
+        Tema.Acompanhar(this);
+        FormClosing += (_, e) =>
+        {
+            if (ConfirmarAoSair && DialogResult != DialogResult.OK && !Alteracoes.PodeSair(this, "fechar esta janela", permitirSalvar: false))
+            {
+                e.Cancel = true;
+                DialogResult = DialogResult.None;
+            }
+        };
 
         var ok = Ui.Botao(textoOk, (_, _) =>
         {

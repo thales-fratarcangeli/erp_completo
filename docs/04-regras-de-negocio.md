@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Documento** | Catálogo de regras de negócio (RN) |
-| **Sistema** | ERP Loja 1.3.0 (banco v13) |
+| **Sistema** | ERP Loja 1.4.0 (banco v14) |
 | **Status** | Vigente |
 | **Rastreabilidade** | Requisitos em [02](02-especificacao-de-requisitos.md); casos de uso em [03](03-casos-de-uso.md); verificação em [08](08-relatorio-de-testes.md) |
 
@@ -235,13 +235,14 @@ Base legal: EC 132/2023 e LC 214/2025 (IBS, CBS e Imposto Seletivo). Valores pad
 
 | ID | Regra |
 |---|---|
-| RN-NAV-01 | As telas do menu abrem **embutidas no espaço à direita do menu**, uma aba por tela; não abrem janelas soltas. Janelas de edição, confirmações e escolhas continuam por cima (modais), porque exigem resposta. |
-| RN-NAV-02 | Abrir uma tela já aberta traz a aba dela para a frente (nunca duplica). Ctrl+Tab/Ctrl+Shift+Tab alternam as abas; Ctrl+W, o × ou o botão do meio do mouse fecham a aba. |
-| RN-NAV-03 | Fechar a janela principal fecha as abas uma a uma; se alguma recusar (ex.: venda em andamento no PDV), o fechamento é cancelado e a aba é mostrada. |
+| RN-NAV-01 | As telas do menu abrem **no espaço à direita do menu, uma por vez** (sem abas e sem janelas soltas): abrir outra tela substitui a atual. O cabeçalho mostra "Área › Tela" e o × (ou Ctrl+W) fecha a tela e volta ao início. Janelas de edição, confirmações e escolhas continuam por cima (modais), porque exigem resposta. |
+| RN-NAV-02 | Abrir a tela que já está aberta não cria outra. Toda tela segue o modelo: pesquisa e filtros em cima, **listagem no meio** e, **à direita, as opções da tela numa lista vertical com barra de rolagem** (cadastros: a edição do registro à direita). |
+| RN-NAV-03 | **Dados não salvos**: se a pessoa digitou, escolheu, marcou ou editou algo e tenta sair da tela (abrir outra, fechar, sair do sistema, fechar uma janela de edição), o sistema pergunta: *Salvar e sair* (grava pelo botão de gravar da tela e só sai se der certo), *Descartar e sair* (registrado no log) ou *Continuar editando*. Pesquisas e filtros não contam; a tela fica "limpa" quando um botão de gravar termina sem erro. No PDV, a pergunta é sobre a venda em andamento. |
 | RN-NAV-04 | Cada tela tem o seu "?" (e F1) com a explicação **apenas daquela tela**; o "?" da janela principal aparece só na tela inicial. |
 | RN-NAV-05 | O PDV tem fundo branco e é operado pelo teclado; as teclas de função do PDV têm prioridade sobre os atalhos gerais enquanto ele está em primeiro plano. |
 | RN-NAV-06 | Cada função existe em um único lugar do menu (ver [ADR-0007](adr/0007-navegacao-fonte-unica.md)); telas de administrador não aparecem para usuários comuns. |
 | RN-NAV-07 | A tela inicial mostra até 6 telas usadas por último pelo usuário ("Continuar de onde parou", lidas do log); o localizador vazio lista essas telas primeiro. O menu lateral destaca a tela em primeiro plano. |
+| RN-NAV-08 | **Modo claro ou escuro** por usuário (rodapé da janela principal ou *Configurações > Minha conta > Aparência*): muda todas as telas abertas na hora, inclusive barra de título e barras de rolagem do Windows, e fica gravado para o usuário (migração 14). |
 
 ## Instalação (RN-INS)
 

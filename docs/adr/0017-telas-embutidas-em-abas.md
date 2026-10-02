@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Aceita |
+| **Status** | Substituída pela [ADR-0019](0019-uma-tela-por-vez-e-dados-nao-salvos.md) (as abas foram removidas a pedido do usuário) |
 | **Data** | 2026-10-02 |
 
 ## Contexto

@@ -568,15 +568,14 @@ var t = new Thread(() =>
             Ok(pdvEmbutido!.BackColor == Color.White, "PDV com fundo branco");
             Navegacao.Abridor!(TelaDe("EstoqueForm"));
             Application.DoEvents();
-            Ok(principal.TelasAbertas.Count == 2 && principal.TelaAtiva is EstoqueForm && !pdvEmbutido.Visible,
-                "segunda tela vira outra aba; a anterior fica guardada atrás");
-            Navegacao.Abridor!(TelaDe("PdvForm"));
+            Ok(principal.TelasAbertas.Count == 1 && principal.TelaAtiva is EstoqueForm && pdvEmbutido.IsDisposed,
+                "abrir outra tela substitui a atual (uma tela por vez, sem abas)");
+            Ok(ModeloDeTela.PainelDeOpcoes(principal.TelaAtiva!) is { } opcoesEstoque && opcoesEstoque.Controls.OfType<Button>().Any(),
+                "tela no modelo padrão: opções em lista à direita");
+            var estoqueAberto = principal.TelaAtiva;
+            Navegacao.Abridor!(TelaDe("EstoqueForm"));
             Application.DoEvents();
-            Ok(principal.TelaAtiva == pdvEmbutido && principal.TelasAbertas.Count == 2, "abrir uma tela já aberta só a traz para frente (sem duplicar)");
-            pdvEmbutido.Close();
-            Application.DoEvents();
-            Ok(pdvEmbutido.IsDisposed && principal.TelasAbertas.Count == 1 && principal.TelaAtiva is EstoqueForm,
-                "fechar a tela remove a aba e volta para a anterior");
+            Ok(principal.TelaAtiva == estoqueAberto, "abrir a tela que já está aberta não cria outra");
             principal.TelaAtiva!.Close();
             Application.DoEvents();
             Ok(principal.TelaAtiva is null && principal.TelasAbertas.Count == 0, "sem telas abertas, volta à tela inicial");

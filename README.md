@@ -36,7 +36,7 @@ O executável pronto fica na página de [Releases](../../releases) do repositór
 | Logística | Veículos, motoristas, fretes e **CIOT** (Pamcard) |
 | Fiscal | NF-e/NFC-e com CFOP automático, ICMS/IPI/PIS/COFINS e **IBS/CBS/IS** da reforma tributária; chave de acesso e DANFE (sem transmissão à SEFAZ) |
 | Gestão | Painel gerencial com comparação ao período anterior; relatórios exportáveis |
-| Sistema | Telas em abas à direita do menu, "continuar de onde parou", localizador de telas (Ctrl+K), ajuda em cada tela (**?**/F1), log de atividades em banco separado, cadastro único de pessoas, configurações centralizadas, usuários com recuperação de senha (Resend), backups, migrations, impressoras (Windows/ESC/POS), atalho na área de trabalho, dados de demonstração |
+| Sistema | Uma tela por vez à direita do menu (listagem ao meio, opções à direita), aviso de dados não salvos, modo claro/escuro, "continuar de onde parou", localizador de telas (Ctrl+K), ajuda em cada tela (**?**/F1), log de atividades em banco separado, cadastro único de pessoas, configurações centralizadas, usuários com recuperação de senha (Resend), backups, migrations, impressoras (Windows/ESC/POS), atalho na área de trabalho, dados de demonstração |
 
 ## Documentação
 

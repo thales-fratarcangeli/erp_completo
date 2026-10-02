@@ -71,8 +71,6 @@ public class InterfaceRevisaoUsabilidade : ICenario
         u.Ok(principal.TelaDestacadaNoMenu == "FinanceiroForm", "o destaque do menu acompanha a troca de tela");
         principal.TelaAtiva!.Close();
         Usuario.Esperar();
-        principal.TelaAtiva!.Close();
-        Usuario.Esperar();
         var atalhos = principal.AtalhosRecentes;
         u.Ok(principal.TelaAtiva is null && principal.TelaDestacadaNoMenu is null
              && atalhos.Count >= 2 && atalhos[0] == TelaDe("FinanceiroForm").Titulo && atalhos[1] == TelaDe("EstoqueForm").Titulo,

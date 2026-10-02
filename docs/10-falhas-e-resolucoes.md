@@ -138,10 +138,12 @@ Use **Imprimir página de teste** em *Configurações > Impressoras*.
 - Gere **somente em banco de teste**: o sistema faz backup antes, mas os dados fictícios se misturam aos reais.
 - Por linha de comando: `ErpLoja.exe --dados-demo C:\teste\demo.db`.
 
-### Telas e abas (1.2)
+### Telas (1.4: uma por vez)
 | Situação | Causa | Resolução |
 |---|---|---|
-| "Cadê a janela que eu abri?" | As telas abrem como abas à direita do menu, não mais como janelas soltas | Clique na aba no topo; Ctrl+Tab alterna; abrir de novo pelo menu traz a aba para a frente |
+| "Cadê a tela que eu estava usando?" | Desde a 1.4 abre uma tela por vez (sem abas) | Abra pelo menu, pelo atalho, pelo Ctrl+K ou por "Continuar de onde parou" na tela inicial |
+| O sistema pergunta se quero salvar ao trocar de tela | Há dados digitados e não salvos | *Salvar e sair*, *Descartar e sair* ou *Continuar editando* |
+| Cores estranhas / tudo escuro | Modo escuro ligado para o seu usuário | Rodapé da janela: "☀ Modo claro" (ou Configurações > Minha conta > Aparência) |
 | Não consigo fechar o sistema | Há venda em andamento no PDV | Finalize ou cancele a venda (F7) e feche de novo; o sistema mostra a aba que impediu |
 | Atalho F2/F5 não abre a tela esperada | O PDV está em primeiro plano e usa as teclas de função para si | Troque de aba (Ctrl+Tab) ou use o menu |
 
@@ -206,6 +208,11 @@ Use **Imprimir página de teste** em *Configurações > Impressoras*.
 | 42 | Erro "Index was outside the bounds of the array" no painel gerencial ao mover o mouse logo após trocar o período | Áreas de passagem do mouse eram do desenho anterior, com mais categorias | Áreas descartadas quando os dados mudam e verificação de limite |
 | 43 | Teste de recuperação de senha interrompia a bateria inteira | A senha de teste ("nova123") deixou de ser aceita pela nova política (mínimo 8) e a exceção não era tratada naquele trecho | Senhas de teste fortes; a infraestrutura de cenários passou a anexar a exceção ao relatório |
 | 44 | Barras invertidas e quebras de linha corrompidas ao gerar código por script | Escapes interpretados duas vezes (terminal + Python) | Edições com escapes feitas por arquivo de script ou pelo editor, nunca por bloco "heredoc" |
+| 45 | Teste do aviso de dados não salvos perdia o texto digitado | O teste digitava antes de a tela terminar de carregar (a carga inicial limpava o campo) | O teste espera a tela carregar, como uma pessoa faria |
+| 46 | Classe de layout não compilava dentro das telas | O nome `Layout` conflita com o evento `Control.Layout` | Classe renomeada para `ModeloDeTela` |
+| 47 | No modo escuro, o fundo do menu ficaria claro ao passar o mouse | A conversão de cor misturava as tabelas de fundo e de texto (a cor do menu também é cor de texto) | Conversões separadas: `Tema.Fundo` e `Tema.Texto` |
+| 48 | Barra de status continuava clara no modo escuro | O desenho padrão do `StatusStrip` ignora a cor de fundo | No escuro, desenho do sistema (`ToolStripRenderMode.System`) |
+| 49 | Arquivos `loja_log.db-wal` e `-shm` na pasta (pergunta do usuário) | O banco de log usava o modo WAL do SQLite, que cria arquivos auxiliares enquanto o sistema está aberto | Log no modo padrão (DELETE): só o `loja_log.db` |
 
 ### Revisão de redundância (versão 1.0.0)
 

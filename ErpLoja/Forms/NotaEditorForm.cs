@@ -26,6 +26,7 @@ public class NotaEditorForm : Form
 
     public NotaEditorForm(NotaFiscal nota)
     {
+        Alteracoes.Ignorar(this); // esta tela tem a sua própria confirmação ao sair
         n = nota;
         editavel = n.Status == "DIGITADA";
         var saida = n.Tipo == Fiscal.Saida;

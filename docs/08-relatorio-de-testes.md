@@ -4,11 +4,11 @@
 
 | Item | Valor |
 |---|---|
-| Data da execução | 02/10/2026 18:42 |
-| Versão do sistema | 1.3.0.0 (banco v13) |
+| Data da execução | 02/10/2026 19:33 |
+| Versão do sistema | 1.4.0.0 (banco v14) |
 | Ambiente | Microsoft Windows 10.0.19045 · .NET 10.0.12 |
-| Verificações | 944 |
-| Aprovadas | 944 |
+| Verificações | 946 |
+| Aprovadas | 946 |
 | Reprovadas | 0 |
 | Resultado | **APROVADO** |
 
@@ -17,7 +17,7 @@
 | # | Resultado | Verificação |
 |---:|:---:|---|
 | 1 | ✅ | banco legado reconhecido como banco do sistema |
-| 2 | ✅ | legado v1: registra a 1 e aplica as migrações 2 a 13 |
+| 2 | ✅ | legado v1: registra a 1 e aplica as migrações 2 a 14 |
 | 3 | ✅ | backup automático antes de migrar banco existente |
 | 4 | ✅ | __migracoes com todas as versões |
 | 5 | ✅ | coluna login renomeada para username |
@@ -38,7 +38,7 @@
 | 20 | ✅ | arquivo que não é SQLite é recusado |
 | 21 | ✅ | arquivo inexistente é recusado |
 | 22 | ✅ | banco lembrado que sumiu não é usado (cai no loja.db ao lado do exe ou pergunta) |
-| 23 | ✅ | banco novo: 13 migrações aplicadas |
+| 23 | ✅ | banco novo: 14 migrações aplicadas |
 | 24 | ✅ | criar banco não sobrescreve arquivo existente |
 | 25 | ✅ | login admin/admin (username sem diferenciar maiúsculas) |
 | 26 | ✅ | senha errada rejeitada |
@@ -246,9 +246,9 @@
 | 228 | ✅ | o ? de cada tela abre só a explicação daquela tela |
 | 229 | ✅ | a tela abre embutida no espaço à direita do menu (sem janela solta) |
 | 230 | ✅ | PDV com fundo branco |
-| 231 | ✅ | segunda tela vira outra aba; a anterior fica guardada atrás |
-| 232 | ✅ | abrir uma tela já aberta só a traz para frente (sem duplicar) |
-| 233 | ✅ | fechar a tela remove a aba e volta para a anterior |
+| 231 | ✅ | abrir outra tela substitui a atual (uma tela por vez, sem abas) |
+| 232 | ✅ | tela no modelo padrão: opções em lista à direita |
+| 233 | ✅ | abrir a tela que já está aberta não cria outra |
 | 234 | ✅ | sem telas abertas, volta à tela inicial |
 | 235 | ✅ | log gravado em banco separado (loja_log.db) |
 | 236 | ✅ | venda gera log de dados (tabelas gravadas e id do registro) |
@@ -269,7 +269,7 @@
 | 251 | ✅ | todos os diálogos têm ajuda (9 diálogos) |
 | 252 | ✅ | todas as telas do sistema foram abertas no teste |
 | 253 | ✅ | manual do usuário gerado em docs/12-manual-do-usuario.md a partir da ajuda |
-| 254 | ✅ | dados de demonstração gerados em 3,0 s — Dados de demonstração gerados: 35 clientes, 8 fornecedores, 50 produtos, 48 compras, 77 ordens de produção, 1407 vendas, 7 orçamentos/pedidos, 3 fretes, 8 boletos, 5 notas fiscais. |
+| 254 | ✅ | dados de demonstração gerados em 2,8 s — Dados de demonstração gerados: 35 clientes, 8 fornecedores, 50 produtos, 48 compras, 77 ordens de produção, 1408 vendas, 7 orçamentos/pedidos, 3 fretes, 8 boletos, 5 notas fiscais. |
 | 255 | ✅ | dados de demonstração íntegros (chaves estrangeiras) |
 | 256 | ✅ | insumos não ficam negativos na demonstração |
 | 257 | ✅ | CPF/CNPJ da demonstração são válidos |
@@ -354,7 +354,7 @@ Em vez de cadastrar de novo, edite esse registro e marque os papéis que faltam 
 | 335 | ✅ | [Cobranca] o usuário é avisado de que a baixa vai na próxima remessa |
 | 336 | ✅ | [Cobranca] retorno que liquida conta já recebida no caixa avisa possível duplicidade |
 | 337 | ✅ | [Cobranca] a baixa do caixa não é sobrescrita pelo retorno |
-| 338 | ✅ | [Cobranca] rodapé mostra o total vencido a receber (R$ 1.741,14) |
+| 338 | ✅ | [Cobranca] rodapé mostra o total vencido a receber (R$ 2.647,61) |
 | 339 | ✅ | [Cobranca] mudar as datas do período já atualiza a lista (sem clicar em Pesquisar) |
 | 340 | ✅ | [Cobranca] boleto com vencimento passado é recusado com explicação |
 | 341 | ✅ | [Cobranca] janela avisa das contas vencidas e pede o novo vencimento |
@@ -454,11 +454,11 @@ As contas a receber liquidadas foram baixadas no financeiro. |
 | 433 | ✅ | [Compras] 2 parcelas a pagar somando R$ 31,00 (soma 31,0) |
 | 434 | ✅ | [Compras] nº da nota fiscal gravado na compra |
 | 435 | ✅ | [Compras] estoque do item 1 aumentou 1 |
-| 436 | ✅ | [Compras] custo médio do item 1 com frete rateado (23,1134 ≈ 23,1134) |
+| 436 | ✅ | [Compras] custo médio do item 1 com frete rateado (23,113 ≈ 23,1130) |
 | 437 | ✅ | [Compras] estoque do item 2 aumentou 1 |
-| 438 | ✅ | [Compras] custo médio do item 2 com frete rateado (6,4204 ≈ 6,4204) |
+| 438 | ✅ | [Compras] custo médio do item 2 com frete rateado (6,4205 ≈ 6,4205) |
 | 439 | ✅ | [Compras] estoque do item 3 aumentou 1 |
-| 440 | ✅ | [Compras] custo médio do item 3 com frete rateado (3,2054 ≈ 3,2054) |
+| 440 | ✅ | [Compras] custo médio do item 3 com frete rateado (3,2055 ≈ 3,2055) |
 | 441 | ✅ | [Compras] nenhum erro |
 | 442 | ✅ | [Compras] lixo.xml: mensagem clara em português (O arquivo não é um XML válido de NF-e (está vazio, incompleto ou é de outro tipo). Baixe novamente o XML enviado pelo fornecedor e tente de novo.) |
 | 443 | ✅ | [Compras] vazio.xml: mensagem clara em português (O arquivo não é um XML válido de NF-e (está vazio, incompleto ou é de outro tipo). Baixe novamente o XML enviado pelo fornecedor e tente de novo.) |
@@ -569,7 +569,7 @@ As contas a receber liquidadas foram baixadas no financeiro. |
 | 548 | ✅ | [Fiscal] nota de venda cancelada não é emitida: A venda nº 1 foi cancelada: não emita nota para ela (exclua este rascunho). |
 | 549 | ✅ | [Fiscal] rascunho aparece em Em digitação |
 | 550 | ✅ | [Fiscal] rascunho e itens excluídos |
-| 551 | ✅ | [Gestão] faturamento dos últimos 30 dias confere com o banco (R$ 17.397,70) |
+| 551 | ✅ | [Gestão] faturamento dos últimos 30 dias confere com o banco (R$ 17.889,63) |
 | 552 | ✅ | [Gestão] quantidade de vendas dos últimos 30 dias confere |
 | 553 | ✅ | [Gestão] ticket médio = faturamento ÷ vendas |
 | 554 | ✅ | [Gestão] período 'Hoje' abre sem erro |
@@ -590,7 +590,7 @@ As contas a receber liquidadas foram baixadas no financeiro. |
 | 569 | ✅ | [Gestão] relatório 'Produtos sem venda no período' em 6 meses gera sem erro |
 | 570 | ✅ | [Gestão] relatório 'Compras por fornecedor' em 6 meses gera sem erro |
 | 571 | ✅ | [Gestão] 'Produtos sem venda' não lista insumos de produção (0 insumo(s) na lista) |
-| 572 | ✅ | [Gestão] 'Vendas por dia' soma 101.229,99 = banco 101.229,99 |
+| 572 | ✅ | [Gestão] 'Vendas por dia' soma 101.721,92 = banco 101.721,92 |
 | 573 | ✅ | [Gestão] trocar o período já atualiza o relatório, sem precisar clicar em Gerar |
 | 574 | ✅ | [Gestão] 'Vendas por dia' num período sem movimento: 0 linha(s), sem erro |
 | 575 | ✅ | [Gestão] 'Produtos mais vendidos' num período sem movimento: 0 linha(s), sem erro |
@@ -745,8 +745,8 @@ Impressora "Impressora Que Nao Existe ERP" não encontrada. Verifique Configura�
 | 723 | ✅ | [Sistema] e-mail de teste sem chave diz que o envio não está configurado \| O envio de e-mail não está configurado: preencha a chave da API do Resend e o remetente nesta aba e tente de novo. |
 | 724 | ✅ | [Sistema] remetente sem e-mail é recusado antes de enviar |
 | 725 | ✅ | [Sistema] e-mail de teste enviado ao e-mail do usuário |
-| 726 | ✅ | [Sistema] Fazer backup agora cria o arquivo de backup: %USERPROFILE%\AppData\Local\Temp\erp_testes_0420b8a88c9b4534aafa5a2396326773\cenarios\SistemaAdminConfiguraLoja\backups\loja_20261002_184006_manual.db \| Backup salvo em:
-%USERPROFILE%\AppData\Local\Temp\erp_testes_0420b8a88c9b4534aafa5a2396326773\cenarios\SistemaAdminConfiguraLoja\backups\loja_20261002_184006_manual.db |
+| 726 | ✅ | [Sistema] Fazer backup agora cria o arquivo de backup: %USERPROFILE%\AppData\Local\Temp\erp_testes_d9f7518f5d454eef99a9a5384ed32e45\cenarios\SistemaAdminConfiguraLoja\backups\loja_20261002_193123_manual.db \| Backup salvo em:
+%USERPROFILE%\AppData\Local\Temp\erp_testes_d9f7518f5d454eef99a9a5384ed32e45\cenarios\SistemaAdminConfiguraLoja\backups\loja_20261002_193123_manual.db |
 | 727 | ✅ | [Sistema] salvar o nome da loja atualiza na hora o cabeçalho da janela principal: ERP Loja - Mercadinho Novo - Configurações |
 | 728 | ✅ | [Sistema] o log registra abrir e fechar Relatórios |
 | 729 | ✅ | [Sistema] abrir uma tela registra uma linha só (não duplica): 1 |
@@ -785,183 +785,185 @@ Impressora "Impressora Que Nao Existe ERP" não encontrada. Verifique Configura�
 | 762 | ✅ | [Sistema] com uma tela aberta só aparece o '?' dela (visíveis: 1) |
 | 763 | ✅ | [Sistema] o '?' fica no canto direito da tela embutida |
 | 764 | ✅ | [Sistema] o '?' de Relatórios abre a ajuda de Relatórios |
-| 765 | ✅ | [Sistema] a janela principal começa na tela inicial, sem abas |
-| 766 | ✅ | [Sistema] F5 abre o Painel gerencial embutido |
-| 767 | ✅ | [Sistema] F8 abre Relatórios |
-| 768 | ✅ | [Sistema] F6 abre Estoque |
-| 769 | ✅ | [Sistema] seis telas abertas ao mesmo tempo (abertas: 6) |
-| 770 | ✅ | [Sistema] só a tela ativa fica visível |
-| 771 | ✅ | [Sistema] o título da janela mostra a tela ativa |
-| 772 | ✅ | [Sistema] F5 de novo traz o painel já aberto (sem abrir outro) |
-| 773 | ✅ | [Sistema] Ctrl+Tab vai para a próxima aba |
-| 774 | ✅ | [Sistema] Ctrl+Shift+Tab na primeira aba vai para a última |
-| 775 | ✅ | [Sistema] Ctrl+W fecha a tela ativa e mostra outra aba |
-| 776 | ✅ | [Sistema] a aba da tela ativa tem o botão × |
-| 777 | ✅ | [Sistema] clicar no × fecha a tela da aba |
-| 778 | ✅ | [Sistema] fechando todas as abas volta à tela inicial |
-| 779 | ✅ | [Sistema] Ctrl+W sem tela aberta não faz nada |
-| 780 | ✅ | [Sistema] reabrir uma tela depois de fechá-la funciona |
+| 765 | ✅ | [Sistema] a janela principal começa na tela inicial |
+| 766 | ✅ | [Sistema] F5 abre o Painel gerencial à direita |
+| 767 | ✅ | [Sistema] F8 abre Relatórios no lugar do painel (uma tela por vez, sem abas) |
+| 768 | ✅ | [Sistema] F6 abre Estoque; o cabeçalho mostra a área e a tela: Estoque  ›  Estoque |
+| 769 | ✅ | [Sistema] as opções da tela ficam numa lista vertical com barra de rolagem à direita |
+| 770 | ✅ | [Sistema] a listagem fica no meio |
+| 771 | ✅ | [Sistema] abrir de novo a tela que está aberta não cria outra |
+| 772 | ✅ | [Sistema] Ctrl+W fecha a tela e volta ao início |
+| 773 | ✅ | [Sistema] Ctrl+W sem tela aberta não faz nada |
+| 774 | ✅ | [Sistema] o cabeçalho tem o × para fechar a tela |
+| 775 | ✅ | [Sistema] o × fecha a tela |
+| 776 | ✅ | [Sistema] digitar num campo marca a tela com alterações não salvas |
+| 777 | ✅ | [Sistema] trocar de tela com dados não salvos pergunta; "Continuar editando" mantém tudo [ativa=CrudForm, texto=Bebidas, mensagens=CONFIRMAR:Você preencheu ou alterou dados em "Categorias" que ainda nã] |
+| 778 | ✅ | [Sistema] "Descartar e sair" desfaz o que foi digitado e abre a outra tela |
+| 779 | ✅ | [Sistema] o descarte fica registrado no log |
+| 780 | ✅ | [Sistema] digitar na pesquisa não conta como alteração |
 | 781 | ✅ | [Sistema] nenhuma mensagem de erro |
 | 782 | ✅ | [Sistema] no PDV embutido F5 abre o desconto, não o painel |
-| 783 | ✅ | [Sistema] com o PDV aberto, F5 fora do PDV abre o painel |
+| 783 | ✅ | [Sistema] com venda em andamento, abrir outra tela pergunta antes; respondendo Não o PDV continua com a venda |
 | 784 | ✅ | [Sistema] responder Não à venda em andamento mantém a janela principal aberta |
-| 785 | ✅ | [Sistema] o sistema avisa que há uma venda em andamento |
-| 786 | ✅ | [Sistema] o PDV volta para frente para o usuário concluir a venda |
-| 787 | ✅ | [Sistema] as outras telas continuam abertas depois de desistir de fechar (2) |
-| 788 | ✅ | [Sistema] respondendo Sim a janela principal fecha |
-| 789 | ✅ | [Sistema] buscar 'vender' traz 'PDV - frente de caixa' entre os 3 primeiros (posição 1 de 17: PDV - frente de caixa, Painel gerencial, Vendas realizadas) |
-| 790 | ✅ | [Sistema] buscar 'como cadastrar cliente' traz 'Clientes e fornecedores' entre os 3 primeiros (posição 1 de 15: Clientes e fornecedores, Contas a pagar e receber, Orçamentos) |
-| 791 | ✅ | [Sistema] buscar 'cadastrar produto' traz 'Produtos' entre os 3 primeiros (posição 2 de 19: Importar XML de NF-e, Produtos, Categorias) |
-| 792 | ✅ | [Sistema] buscar 'onde fica o estoque' traz 'Estoque' entre os 3 primeiros (posição 1 de 14: Estoque, Compras realizadas, Configurações) |
-| 793 | ✅ | [Sistema] buscar 'trocar minha senha' traz 'Configurações' entre os 3 primeiros (posição 1 de 6: Configurações, Log de atividades, Usuários) |
-| 794 | ✅ | [Sistema] buscar 'fazer backup' traz 'Configurações' entre os 3 primeiros (posição 1 de 2: Configurações, Log de atividades) |
-| 795 | ✅ | [Sistema] buscar 'emitir nota' traz 'Notas fiscais' entre os 3 primeiros (posição 1 de 12: Notas fiscais, Pedidos de venda, Vendas realizadas) |
-| 796 | ✅ | [Sistema] buscar 'pagar fornecedor' traz 'Contas a pagar e receber' entre os 3 primeiros (posição 1 de 15: Contas a pagar e receber, Importar XML de NF-e, Pedidos de compra) |
-| 797 | ✅ | [Sistema] buscar 'cancelar uma venda' traz 'Vendas realizadas' entre os 3 primeiros (posição 1 de 21: Vendas realizadas, Pedidos de venda, PDV - frente de caixa) |
-| 798 | ✅ | [Sistema] buscar 'imprimir boleto' traz 'Cobrança bancária (boletos)' entre os 3 primeiros (posição 1 de 8: Cobrança bancária (boletos), Configurações, Vendas realizadas) |
-| 799 | ✅ | [Sistema] buscar 'fabricar' traz 'Ordens de produção' entre os 3 primeiros (posição 1 de 3: Ordens de produção, Fichas técnicas, Produtos) |
-| 800 | ✅ | [Sistema] buscar só uma palavra comum ('de') ainda devolve resultados |
-| 801 | ✅ | [Sistema] e-mail incompleto é recusado |
-| 802 | ✅ | [Sistema] e-mail de outro usuário (mesmo com maiúsculas) é recusado |
-| 803 | ✅ | [Sistema] e-mail válido é gravado sem espaços |
-| 804 | ✅ | [Sistema] senha atual errada é recusada |
-| 805 | ✅ | [Sistema] confirmação diferente é recusada |
-| 806 | ✅ | [Sistema] senha alterada e campos limpos |
-| 807 | ✅ | [Sistema] a troca de senha fica registrada no log de acesso (categoria ACESSO) |
-| 808 | ✅ | [Sistema] busca sem acento ('configuracoes') acha Configurações |
-| 809 | ✅ | [Sistema] busca com acento e maiúsculas acha Relatórios |
-| 810 | ✅ | [Sistema] busca por 'boleto' acha a cobrança |
-| 811 | ✅ | [Sistema] palavra inexistente não acha nada |
-| 812 | ✅ | [Sistema] busca só com espaços lista todas as telas |
-| 813 | ✅ | [Sistema] buscar 'senha' não dá erro |
-| 814 | ✅ | [Sistema] buscar 'pix' não dá erro |
-| 815 | ✅ | [Sistema] buscar 'nota fiscal' não dá erro |
-| 816 | ✅ | [Sistema] buscar 'ç' não dá erro |
-| 817 | ✅ | [Sistema] buscar 'ã' não dá erro |
-| 818 | ✅ | [Sistema] buscar 'a e i' não dá erro |
-| 819 | ✅ | [Sistema] buscar '()' não dá erro |
-| 820 | ✅ | [Sistema] buscar '%' não dá erro |
-| 821 | ✅ | [Sistema] buscar ''' não dá erro |
-| 822 | ✅ | [Sistema] o localizador lista as telas, sem listar a si mesmo |
-| 823 | ✅ | [Sistema] o localizador lista resultados e seleciona o primeiro |
-| 824 | ✅ | [Sistema] Ctrl+K, 'estoque minimo' e Enter abre a tela de Estoque |
-| 825 | ✅ | [Sistema] sem resultado o localizador diz 'Nenhuma tela encontrada' |
-| 826 | ✅ | [Sistema] Enter sem resultado não fecha o localizador |
-| 827 | ✅ | [Sistema] Esc no localizador não abre nenhuma tela |
-| 828 | ✅ | [Sistema] senha errada não entra |
-| 829 | ✅ | [Sistema] senha errada mostra mensagem |
-| 830 | ✅ | [Sistema] usuário inativo não entra |
-| 831 | ✅ | [Sistema] username com maiúsculas e espaços entra como usuário comum |
-| 832 | ✅ | [Sistema] o log registra acessos recusados e a entrada: Entrou no sistema, Acesso recusado (usuário inativo), Acesso recusado |
-| 833 | ✅ | [Sistema] o log não guarda senhas digitadas |
-| 834 | ✅ | [Sistema] sem chave do Resend o sistema explica que o e-mail não está configurado |
-| 835 | ✅ | [Sistema] usuário sem e-mail recebe orientação para falar com o administrador |
-| 836 | ✅ | [Sistema] e-mail (com maiúsculas) recebe o código de 6 dígitos |
-| 837 | ✅ | [Sistema] falha no envio mostra a mensagem do Resend |
-| 838 | ✅ | [Sistema] código errado avisa quantas tentativas restam |
-| 839 | ✅ | [Sistema] o código recebido redefine a senha mesmo depois de um reenvio que falhou |
-| 840 | ✅ | [Sistema] a nova senha passa a valer |
-| 841 | ✅ | [Sistema] menu do usuário comum não mostra 'Contas bancárias' |
-| 842 | ✅ | [Sistema] menu do usuário comum não mostra 'Usuários' |
-| 843 | ✅ | [Sistema] menu do usuário comum não mostra 'Log de atividades' |
-| 844 | ✅ | [Sistema] menu do usuário comum mostra o PDV |
-| 845 | ✅ | [Sistema] o localizador não oferece telas de administrador ao usuário comum |
-| 846 | ✅ | [Sistema] usuário comum não consegue abrir o Log de atividades |
-| 847 | ✅ | [Sistema] e recebe a explicação de que a tela é só de administradores |
-| 848 | ✅ | [Sistema] Configurações do usuário comum tem só a aba Minha conta: Minha conta |
-| 849 | ✅ | [Validação] CNPJ: aceita com ou sem pontuação; recusa dígito verificador errado, tamanho errado e letras |
-| 850 | ✅ | [Validação] CPF e CNPJ recebem a máscara padrão |
-| 851 | ✅ | [Validação] CPF/CNPJ: sequência repetida é recusada |
-| 852 | ✅ | [Validação] NCM com 8 e CFOP com 4 dígitos (pontos removidos; a letra O no lugar de zero é recusada) |
-| 853 | ✅ | [Validação] campos numéricos recusam texto; percentual só de 0 a 100 |
-| 854 | ✅ | [Validação] e-mail no formato nome@dominio |
-| 855 | ✅ | [Validação] placa Mercosul/antiga em maiúsculas, sem hífen |
-| 856 | ✅ | [Validação] CEP e telefone com a quantidade certa de dígitos e máscara |
-| 857 | ✅ | [Validação] código de barras confere o dígito verificador |
-| 858 | ✅ | [Validação] endereço de integração só com https |
-| 859 | ✅ | [Validação] texto livre tem tamanho máximo e não aceita caracteres de controle |
-| 860 | ✅ | [Validação] no campo CNPJ, letra digitada é bloqueada; números e pontuação passam |
-| 861 | ✅ | [Validação] texto colado com letras não é alterado em silêncio: fica marcado como inválido |
-| 862 | ✅ | [Validação] ao sair do campo, o CNPJ recebe a máscara |
-| 863 | ✅ | [Validação] CNPJ inválido fica marcado com a explicação |
-| 864 | ✅ | [Validação] a tela não grava com campo inválido |
-| 865 | ✅ | [Validação] campo numérico não aceita letras |
-| 866 | ✅ | [Validação] cadastro com CNPJ inválido não é gravado |
-| 867 | ✅ | [Validação] CNPJ válido é gravado no formato padrão |
-| 868 | ✅ | [Validação] parâmetro com formato inválido é recusado também na camada de dados |
-| 869 | ✅ | [Vendas] a prazo sem cliente é recusado pedindo o cliente |
-| 870 | ✅ | [Vendas] a prazo com cliente dentro do limite grava a venda \| Para vender a prazo, identifique o cliente (F2 no PDV). |
-| 871 | ✅ | [Vendas] a prazo em 2x gera 2 parcelas em aberto no nome do cliente |
-| 872 | ✅ | [Vendas] as parcelas somam o total da venda |
-| 873 | ✅ | [Vendas] usuário comum não vende acima do limite de crédito |
-| 874 | ✅ | [Vendas] venda recusada por limite continua no PDV para outra forma de pagamento |
-| 875 | ✅ | [Vendas] administrador é avisado do limite excedido; respondendo Não, a venda não sai |
-| 876 | ✅ | [Vendas] administrador confirma e vende acima do limite de crédito \| Para vender a prazo, identifique o cliente (F2 no PDV). \| Limite de crédito do cliente excedido (disponível: R$ 30,23, venda: R$ 60,46). Escolha outra forma de pagamento ou peça a um administrador. |
-| 877 | ✅ | [Vendas] 3*código + código somam 4 unidades na mesma linha |
-| 878 | ✅ | [Vendas] F4 = 2 lança o próximo item com 2 unidades |
-| 879 | ✅ | [Vendas] F6 remove o item selecionado |
-| 880 | ✅ | [Vendas] quantidade absurda é recusada sem alterar a venda |
-| 881 | ✅ | [Vendas] F10 e tecla 2 escolhem PIX (a venda foi gravada como PIX) \| Quantidade "99999999999999999999999999999999" inválida: use de 0,001 a 99.999 (ex.: 3*código). |
-| 882 | ✅ | [Vendas] transação TEF aprovada fica CONFIRMADA com a venda |
-| 883 | ✅ | [Vendas] PDV volta a ficar livre depois da venda |
-| 884 | ✅ | [Vendas] F7 respondendo Não mantém a venda |
-| 885 | ✅ | [Vendas] F7 respondendo Sim cancela a venda em andamento |
-| 886 | ✅ | [Vendas] ao cancelar venda a prazo com parcela recebida, a confirmação avisa do valor já recebido |
-| 887 | ✅ | [Vendas] respondendo Não, a venda continua finalizada |
-| 888 | ✅ | [Vendas] comprovante de venda com frete mostra a linha do frete |
-| 889 | ✅ | [Vendas] comprovante mostra o total com frete |
-| 890 | ✅ | [Vendas] usuário comum: 30% de desconto é recusado |
-| 891 | ✅ | [Vendas] a recusa explica o limite |
-| 892 | ✅ | [Vendas] desconto recusado não altera o total |
-| 893 | ✅ | [Vendas] usuário comum: desconto dentro do limite é aceito |
-| 894 | ✅ | [Vendas] removendo item, o desconto que passou do limite é barrado antes do pagamento (F5 para ajustar) |
-| 895 | ✅ | [Vendas] administrador pode dar 50% de desconto |
-| 896 | ✅ | [Vendas] venda com 50% de desconto do administrador gravada com o total certo |
-| 897 | ✅ | [Vendas] desconto do item maior que o item é recusado ao salvar |
-| 898 | ✅ | [Vendas] corrigido o desconto, o orçamento é salvo \| O desconto do item "Arroz Tipo 1 5kg" (R$ 35,23) é maior que o valor dele (R$ 30,23). Corrija o desconto do item ou use o desconto geral. |
-| 899 | ✅ | [Vendas] nenhum item de orçamento/pedido com total negativo |
-| 900 | ✅ | [Vendas] orçamento com 50% de desconto é recusado para usuário comum |
-| 901 | ✅ | [Vendas] orçamento com 5% de desconto é salvo \| Desconto de 50,0% acima do limite de 10,0% para usuários comuns. Peça a um administrador. |
-| 902 | ✅ | [Vendas] código lançado duas vezes soma na mesma linha do orçamento |
-| 903 | ✅ | [Vendas] validade padrão do orçamento = hoje + validade_orcamento_dias |
-| 904 | ✅ | [Vendas] orçamento não mexe no estoque |
-| 905 | ✅ | [Vendas] orçamento aparece em aberto na lista |
-| 906 | ✅ | [Vendas] aprovar gera o pedido de venda e marca o orçamento APROVADO |
-| 907 | ✅ | [Vendas] aprovar de novo um orçamento já aprovado é recusado (não gera pedido duplicado) |
-| 908 | ✅ | [Vendas] pedido gerado aparece em Pedidos de venda |
-| 909 | ✅ | [Vendas] faturar gera a venda com o total do pedido \| Desconto de 50,0% acima do limite de 10,0% para usuários comuns. Peça a um administrador. \| Este documento está APROVADO. A operação só vale para documentos em aberto. |
-| 910 | ✅ | [Vendas] faturar baixa o estoque |
-| 911 | ✅ | [Vendas] venda faturada aparece em Vendas realizadas |
-| 912 | ✅ | [Vendas] comprovante mostra o nº da venda e o cliente |
-| 913 | ✅ | [Vendas] administrador cancela a venda |
-| 914 | ✅ | [Vendas] cancelamento devolve o estoque |
-| 915 | ✅ | [Vendas] cancelamento cancela as contas da venda |
-| 916 | ✅ | [Vendas] cancelamento reabre o pedido de origem |
-| 917 | ✅ | [Vendas] cancelar de novo avisa que já está cancelada |
-| 918 | ✅ | [Vendas] usuário comum não fatura pedido a prazo acima do limite de crédito do cliente |
-| 919 | ✅ | [Vendas] orçamento vencido não aparece entre os em aberto |
-| 920 | ✅ | [Vendas] filtro Vencidos mostra o orçamento como VENCIDO |
-| 921 | ✅ | [Vendas] duplicar o orçamento vencido cria um novo em aberto com validade renovada |
-| 922 | ✅ | [Vendas] aprovar orçamento vencido pede confirmação; respondendo Não, nada muda |
-| 923 | ✅ | [Vendas] confirmando, o orçamento vencido é aprovado |
-| 924 | ✅ | [Vendas] faturar no boleto sem cliente é recusado |
-| 925 | ✅ | [Vendas] faturar no boleto com cliente gera a venda \| Para vender no boleto o pedido precisa ter um cliente. Abra o pedido e escolha o cliente. |
-| 926 | ✅ | [Vendas] venda no boleto fica em aberto no contas a receber (não entra como recebida) |
-| 927 | ✅ | [Vendas] produto sem preço de venda não é lançado no PDV e o motivo é explicado |
-| 928 | ✅ | [Vendas] PERGUNTAR: 3ª unidade (estoque 2) pergunta; respondendo Não, não lança |
-| 929 | ✅ | [Vendas] PERGUNTAR: respondendo Sim, lança |
-| 930 | ✅ | [Vendas] BLOQUEAR: não lança e explica que está bloqueado |
-| 931 | ✅ | [Vendas] PERMITIR: lança sem perguntar |
-| 932 | ✅ | [Vendas] TEF negado não grava a venda |
-| 933 | ✅ | [Vendas] TEF negado avisa o operador |
-| 934 | ✅ | [Vendas] TEF negado mantém os itens no PDV |
-| 935 | ✅ | [Vendas] transação negada registrada como NEGADA |
-| 936 | ✅ | [Vendas] TEF cancelado pelo operador não grava a venda |
-| 937 | ✅ | [Vendas] tecla 4 = crédito, aprovado no TEF, grava a venda \| Pagamento não aprovado: Transação negada pelo emissor (simulação). \| Pagamento não aprovado: Operação cancelada pelo operador. |
-| 938 | ✅ | [Vendas] crédito parcelado em 3x chega ao TEF |
-| 939 | ✅ | [Vendas] crédito no TEF gera a conta a receber já paga (a operadora recebe da adquirente) |
-| 940 | ✅ | [Vendas] cancelar a venda estorna a transação TEF e informa o estorno |
-| 941 | ✅ | [Vendas] administrador dá 100% de desconto |
-| 942 | ✅ | [Vendas] venda de total zero é gravada |
-| 943 | ✅ | [Vendas] venda de total zero não aciona o TEF (nenhuma transação de R$ 0,00) |
-| 944 | ✅ | [Vendas] venda de total zero não gera conta (RN-VEN-09) |
+| 785 | ✅ | [Sistema] o PDV continua na tela para o usuário concluir a venda |
+| 786 | ✅ | [Sistema] respondendo Sim a janela principal fecha |
+| 787 | ✅ | [Sistema] buscar 'vender' traz 'PDV - frente de caixa' entre os 3 primeiros (posição 1 de 17: PDV - frente de caixa, Painel gerencial, Vendas realizadas) |
+| 788 | ✅ | [Sistema] buscar 'como cadastrar cliente' traz 'Clientes e fornecedores' entre os 3 primeiros (posição 1 de 15: Clientes e fornecedores, Contas a pagar e receber, Orçamentos) |
+| 789 | ✅ | [Sistema] buscar 'cadastrar produto' traz 'Produtos' entre os 3 primeiros (posição 2 de 19: Importar XML de NF-e, Produtos, Categorias) |
+| 790 | ✅ | [Sistema] buscar 'onde fica o estoque' traz 'Estoque' entre os 3 primeiros (posição 1 de 14: Estoque, Compras realizadas, Configurações) |
+| 791 | ✅ | [Sistema] buscar 'trocar minha senha' traz 'Configurações' entre os 3 primeiros (posição 1 de 6: Configurações, Log de atividades, Usuários) |
+| 792 | ✅ | [Sistema] buscar 'fazer backup' traz 'Configurações' entre os 3 primeiros (posição 1 de 2: Configurações, Log de atividades) |
+| 793 | ✅ | [Sistema] buscar 'emitir nota' traz 'Notas fiscais' entre os 3 primeiros (posição 1 de 12: Notas fiscais, Pedidos de venda, Vendas realizadas) |
+| 794 | ✅ | [Sistema] buscar 'pagar fornecedor' traz 'Contas a pagar e receber' entre os 3 primeiros (posição 1 de 15: Contas a pagar e receber, Importar XML de NF-e, Pedidos de compra) |
+| 795 | ✅ | [Sistema] buscar 'cancelar uma venda' traz 'Vendas realizadas' entre os 3 primeiros (posição 1 de 21: Vendas realizadas, Pedidos de venda, PDV - frente de caixa) |
+| 796 | ✅ | [Sistema] buscar 'imprimir boleto' traz 'Cobrança bancária (boletos)' entre os 3 primeiros (posição 1 de 8: Cobrança bancária (boletos), Configurações, Vendas realizadas) |
+| 797 | ✅ | [Sistema] buscar 'fabricar' traz 'Ordens de produção' entre os 3 primeiros (posição 1 de 3: Ordens de produção, Fichas técnicas, Produtos) |
+| 798 | ✅ | [Sistema] buscar só uma palavra comum ('de') ainda devolve resultados |
+| 799 | ✅ | [Sistema] e-mail incompleto é recusado |
+| 800 | ✅ | [Sistema] e-mail de outro usuário (mesmo com maiúsculas) é recusado |
+| 801 | ✅ | [Sistema] e-mail válido é gravado sem espaços |
+| 802 | ✅ | [Sistema] senha atual errada é recusada |
+| 803 | ✅ | [Sistema] confirmação diferente é recusada |
+| 804 | ✅ | [Sistema] senha alterada e campos limpos |
+| 805 | ✅ | [Sistema] a troca de senha fica registrada no log de acesso (categoria ACESSO) |
+| 806 | ✅ | [Sistema] busca sem acento ('configuracoes') acha Configurações |
+| 807 | ✅ | [Sistema] busca com acento e maiúsculas acha Relatórios |
+| 808 | ✅ | [Sistema] busca por 'boleto' acha a cobrança |
+| 809 | ✅ | [Sistema] palavra inexistente não acha nada |
+| 810 | ✅ | [Sistema] busca só com espaços lista todas as telas |
+| 811 | ✅ | [Sistema] buscar 'senha' não dá erro |
+| 812 | ✅ | [Sistema] buscar 'pix' não dá erro |
+| 813 | ✅ | [Sistema] buscar 'nota fiscal' não dá erro |
+| 814 | ✅ | [Sistema] buscar 'ç' não dá erro |
+| 815 | ✅ | [Sistema] buscar 'ã' não dá erro |
+| 816 | ✅ | [Sistema] buscar 'a e i' não dá erro |
+| 817 | ✅ | [Sistema] buscar '()' não dá erro |
+| 818 | ✅ | [Sistema] buscar '%' não dá erro |
+| 819 | ✅ | [Sistema] buscar ''' não dá erro |
+| 820 | ✅ | [Sistema] o localizador lista as telas, sem listar a si mesmo |
+| 821 | ✅ | [Sistema] o localizador lista resultados e seleciona o primeiro |
+| 822 | ✅ | [Sistema] Ctrl+K, 'estoque minimo' e Enter abre a tela de Estoque |
+| 823 | ✅ | [Sistema] sem resultado o localizador diz 'Nenhuma tela encontrada' |
+| 824 | ✅ | [Sistema] Enter sem resultado não fecha o localizador |
+| 825 | ✅ | [Sistema] Esc no localizador não abre nenhuma tela |
+| 826 | ✅ | [Sistema] senha errada não entra |
+| 827 | ✅ | [Sistema] senha errada mostra mensagem |
+| 828 | ✅ | [Sistema] usuário inativo não entra |
+| 829 | ✅ | [Sistema] username com maiúsculas e espaços entra como usuário comum |
+| 830 | ✅ | [Sistema] o log registra acessos recusados e a entrada: Entrou no sistema, Acesso recusado (usuário inativo), Acesso recusado |
+| 831 | ✅ | [Sistema] o log não guarda senhas digitadas |
+| 832 | ✅ | [Sistema] modo escuro aplica cores escuras às telas abertas |
+| 833 | ✅ | [Sistema] a escolha fica gravada para o usuário |
+| 834 | ✅ | [Sistema] telas abertas depois já vêm no modo escuro |
+| 835 | ✅ | [Sistema] voltar ao modo claro restaura as cores originais |
+| 836 | ✅ | [Sistema] sem chave do Resend o sistema explica que o e-mail não está configurado |
+| 837 | ✅ | [Sistema] usuário sem e-mail recebe orientação para falar com o administrador |
+| 838 | ✅ | [Sistema] e-mail (com maiúsculas) recebe o código de 6 dígitos |
+| 839 | ✅ | [Sistema] falha no envio mostra a mensagem do Resend |
+| 840 | ✅ | [Sistema] código errado avisa quantas tentativas restam |
+| 841 | ✅ | [Sistema] o código recebido redefine a senha mesmo depois de um reenvio que falhou |
+| 842 | ✅ | [Sistema] a nova senha passa a valer |
+| 843 | ✅ | [Sistema] menu do usuário comum não mostra 'Contas bancárias' |
+| 844 | ✅ | [Sistema] menu do usuário comum não mostra 'Usuários' |
+| 845 | ✅ | [Sistema] menu do usuário comum não mostra 'Log de atividades' |
+| 846 | ✅ | [Sistema] menu do usuário comum mostra o PDV |
+| 847 | ✅ | [Sistema] o localizador não oferece telas de administrador ao usuário comum |
+| 848 | ✅ | [Sistema] usuário comum não consegue abrir o Log de atividades |
+| 849 | ✅ | [Sistema] e recebe a explicação de que a tela é só de administradores |
+| 850 | ✅ | [Sistema] Configurações do usuário comum tem só a aba Minha conta: Minha conta |
+| 851 | ✅ | [Validação] CNPJ: aceita com ou sem pontuação; recusa dígito verificador errado, tamanho errado e letras |
+| 852 | ✅ | [Validação] CPF e CNPJ recebem a máscara padrão |
+| 853 | ✅ | [Validação] CPF/CNPJ: sequência repetida é recusada |
+| 854 | ✅ | [Validação] NCM com 8 e CFOP com 4 dígitos (pontos removidos; a letra O no lugar de zero é recusada) |
+| 855 | ✅ | [Validação] campos numéricos recusam texto; percentual só de 0 a 100 |
+| 856 | ✅ | [Validação] e-mail no formato nome@dominio |
+| 857 | ✅ | [Validação] placa Mercosul/antiga em maiúsculas, sem hífen |
+| 858 | ✅ | [Validação] CEP e telefone com a quantidade certa de dígitos e máscara |
+| 859 | ✅ | [Validação] código de barras confere o dígito verificador |
+| 860 | ✅ | [Validação] endereço de integração só com https |
+| 861 | ✅ | [Validação] texto livre tem tamanho máximo e não aceita caracteres de controle |
+| 862 | ✅ | [Validação] no campo CNPJ, letra digitada é bloqueada; números e pontuação passam |
+| 863 | ✅ | [Validação] texto colado com letras não é alterado em silêncio: fica marcado como inválido |
+| 864 | ✅ | [Validação] ao sair do campo, o CNPJ recebe a máscara |
+| 865 | ✅ | [Validação] CNPJ inválido fica marcado com a explicação |
+| 866 | ✅ | [Validação] a tela não grava com campo inválido |
+| 867 | ✅ | [Validação] campo numérico não aceita letras |
+| 868 | ✅ | [Validação] cadastro com CNPJ inválido não é gravado |
+| 869 | ✅ | [Validação] CNPJ válido é gravado no formato padrão |
+| 870 | ✅ | [Validação] parâmetro com formato inválido é recusado também na camada de dados |
+| 871 | ✅ | [Vendas] a prazo sem cliente é recusado pedindo o cliente |
+| 872 | ✅ | [Vendas] a prazo com cliente dentro do limite grava a venda \| Para vender a prazo, identifique o cliente (F2 no PDV). |
+| 873 | ✅ | [Vendas] a prazo em 2x gera 2 parcelas em aberto no nome do cliente |
+| 874 | ✅ | [Vendas] as parcelas somam o total da venda |
+| 875 | ✅ | [Vendas] usuário comum não vende acima do limite de crédito |
+| 876 | ✅ | [Vendas] venda recusada por limite continua no PDV para outra forma de pagamento |
+| 877 | ✅ | [Vendas] administrador é avisado do limite excedido; respondendo Não, a venda não sai |
+| 878 | ✅ | [Vendas] administrador confirma e vende acima do limite de crédito \| Para vender a prazo, identifique o cliente (F2 no PDV). \| Limite de crédito do cliente excedido (disponível: R$ 30,23, venda: R$ 60,46). Escolha outra forma de pagamento ou peça a um administrador. |
+| 879 | ✅ | [Vendas] 3*código + código somam 4 unidades na mesma linha |
+| 880 | ✅ | [Vendas] F4 = 2 lança o próximo item com 2 unidades |
+| 881 | ✅ | [Vendas] F6 remove o item selecionado |
+| 882 | ✅ | [Vendas] quantidade absurda é recusada sem alterar a venda |
+| 883 | ✅ | [Vendas] F10 e tecla 2 escolhem PIX (a venda foi gravada como PIX) \| Quantidade "99999999999999999999999999999999" inválida: use de 0,001 a 99.999 (ex.: 3*código). |
+| 884 | ✅ | [Vendas] transação TEF aprovada fica CONFIRMADA com a venda |
+| 885 | ✅ | [Vendas] PDV volta a ficar livre depois da venda |
+| 886 | ✅ | [Vendas] F7 respondendo Não mantém a venda |
+| 887 | ✅ | [Vendas] F7 respondendo Sim cancela a venda em andamento |
+| 888 | ✅ | [Vendas] ao cancelar venda a prazo com parcela recebida, a confirmação avisa do valor já recebido |
+| 889 | ✅ | [Vendas] respondendo Não, a venda continua finalizada |
+| 890 | ✅ | [Vendas] comprovante de venda com frete mostra a linha do frete |
+| 891 | ✅ | [Vendas] comprovante mostra o total com frete |
+| 892 | ✅ | [Vendas] usuário comum: 30% de desconto é recusado |
+| 893 | ✅ | [Vendas] a recusa explica o limite |
+| 894 | ✅ | [Vendas] desconto recusado não altera o total |
+| 895 | ✅ | [Vendas] usuário comum: desconto dentro do limite é aceito |
+| 896 | ✅ | [Vendas] removendo item, o desconto que passou do limite é barrado antes do pagamento (F5 para ajustar) |
+| 897 | ✅ | [Vendas] administrador pode dar 50% de desconto |
+| 898 | ✅ | [Vendas] venda com 50% de desconto do administrador gravada com o total certo |
+| 899 | ✅ | [Vendas] desconto do item maior que o item é recusado ao salvar |
+| 900 | ✅ | [Vendas] corrigido o desconto, o orçamento é salvo \| O desconto do item "Arroz Tipo 1 5kg" (R$ 35,23) é maior que o valor dele (R$ 30,23). Corrija o desconto do item ou use o desconto geral. |
+| 901 | ✅ | [Vendas] nenhum item de orçamento/pedido com total negativo |
+| 902 | ✅ | [Vendas] orçamento com 50% de desconto é recusado para usuário comum |
+| 903 | ✅ | [Vendas] orçamento com 5% de desconto é salvo \| Desconto de 50,0% acima do limite de 10,0% para usuários comuns. Peça a um administrador. |
+| 904 | ✅ | [Vendas] código lançado duas vezes soma na mesma linha do orçamento |
+| 905 | ✅ | [Vendas] validade padrão do orçamento = hoje + validade_orcamento_dias |
+| 906 | ✅ | [Vendas] orçamento não mexe no estoque |
+| 907 | ✅ | [Vendas] orçamento aparece em aberto na lista |
+| 908 | ✅ | [Vendas] aprovar gera o pedido de venda e marca o orçamento APROVADO |
+| 909 | ✅ | [Vendas] aprovar de novo um orçamento já aprovado é recusado (não gera pedido duplicado) |
+| 910 | ✅ | [Vendas] pedido gerado aparece em Pedidos de venda |
+| 911 | ✅ | [Vendas] faturar gera a venda com o total do pedido \| Desconto de 50,0% acima do limite de 10,0% para usuários comuns. Peça a um administrador. \| Este documento está APROVADO. A operação só vale para documentos em aberto. |
+| 912 | ✅ | [Vendas] faturar baixa o estoque |
+| 913 | ✅ | [Vendas] venda faturada aparece em Vendas realizadas |
+| 914 | ✅ | [Vendas] comprovante mostra o nº da venda e o cliente |
+| 915 | ✅ | [Vendas] administrador cancela a venda |
+| 916 | ✅ | [Vendas] cancelamento devolve o estoque |
+| 917 | ✅ | [Vendas] cancelamento cancela as contas da venda |
+| 918 | ✅ | [Vendas] cancelamento reabre o pedido de origem |
+| 919 | ✅ | [Vendas] cancelar de novo avisa que já está cancelada |
+| 920 | ✅ | [Vendas] usuário comum não fatura pedido a prazo acima do limite de crédito do cliente |
+| 921 | ✅ | [Vendas] orçamento vencido não aparece entre os em aberto |
+| 922 | ✅ | [Vendas] filtro Vencidos mostra o orçamento como VENCIDO |
+| 923 | ✅ | [Vendas] duplicar o orçamento vencido cria um novo em aberto com validade renovada |
+| 924 | ✅ | [Vendas] aprovar orçamento vencido pede confirmação; respondendo Não, nada muda |
+| 925 | ✅ | [Vendas] confirmando, o orçamento vencido é aprovado |
+| 926 | ✅ | [Vendas] faturar no boleto sem cliente é recusado |
+| 927 | ✅ | [Vendas] faturar no boleto com cliente gera a venda \| Para vender no boleto o pedido precisa ter um cliente. Abra o pedido e escolha o cliente. |
+| 928 | ✅ | [Vendas] venda no boleto fica em aberto no contas a receber (não entra como recebida) |
+| 929 | ✅ | [Vendas] produto sem preço de venda não é lançado no PDV e o motivo é explicado |
+| 930 | ✅ | [Vendas] PERGUNTAR: 3ª unidade (estoque 2) pergunta; respondendo Não, não lança |
+| 931 | ✅ | [Vendas] PERGUNTAR: respondendo Sim, lança |
+| 932 | ✅ | [Vendas] BLOQUEAR: não lança e explica que está bloqueado |
+| 933 | ✅ | [Vendas] PERMITIR: lança sem perguntar |
+| 934 | ✅ | [Vendas] TEF negado não grava a venda |
+| 935 | ✅ | [Vendas] TEF negado avisa o operador |
+| 936 | ✅ | [Vendas] TEF negado mantém os itens no PDV |
+| 937 | ✅ | [Vendas] transação negada registrada como NEGADA |
+| 938 | ✅ | [Vendas] TEF cancelado pelo operador não grava a venda |
+| 939 | ✅ | [Vendas] tecla 4 = crédito, aprovado no TEF, grava a venda \| Pagamento não aprovado: Transação negada pelo emissor (simulação). \| Pagamento não aprovado: Operação cancelada pelo operador. |
+| 940 | ✅ | [Vendas] crédito parcelado em 3x chega ao TEF |
+| 941 | ✅ | [Vendas] crédito no TEF gera a conta a receber já paga (a operadora recebe da adquirente) |
+| 942 | ✅ | [Vendas] cancelar a venda estorna a transação TEF e informa o estorno |
+| 943 | ✅ | [Vendas] administrador dá 100% de desconto |
+| 944 | ✅ | [Vendas] venda de total zero é gravada |
+| 945 | ✅ | [Vendas] venda de total zero não aciona o TEF (nenhuma transação de R$ 0,00) |
+| 946 | ✅ | [Vendas] venda de total zero não gera conta (RN-VEN-09) |

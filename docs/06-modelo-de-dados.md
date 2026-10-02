@@ -1,6 +1,6 @@
 # Modelo de dados
 
-> Gerado automaticamente a partir do esquema real do banco (versão 13) pela bateria de testes. Não edite à mão.
+> Gerado automaticamente a partir do esquema real do banco (versão 14) pela bateria de testes. Não edite à mão.
 > Para alterar o banco, crie uma migração (ver [arquitetura](05-arquitetura.md#migrations)).
 
 Convenções: datas com hora em texto `yyyy-MM-dd HH:mm:ss`; datas sem hora `yyyy-MM-dd`; valores monetários em REAL com 2 casas;
@@ -391,6 +391,7 @@ erDiagram
         TEXT email
         INTEGER falhas_login
         TEXT bloqueado_ate
+        TEXT tema
     }
     veiculos {
         INTEGER id PK
@@ -500,7 +501,7 @@ Controle de versão do banco: migrações aplicadas.
 | `nome` | TEXT | sim |  |  |
 | `aplicada_em` | TEXT | sim |  |  |
 
-Registros no banco de demonstração: 13.
+Registros no banco de demonstração: 14.
 
 ### boletos
 
@@ -611,7 +612,7 @@ Contas a receber e a pagar (parcelas), geradas por vendas, compras, fretes ou la
 
 Índices: `ix_contas_status`
 
-Registros no banco de demonstração: 1.690.
+Registros no banco de demonstração: 1.693.
 
 ### contas_bancarias
 
@@ -732,7 +733,7 @@ Histórico de toda alteração de saldo de estoque, com o saldo resultante.
 
 Índices: `ix_mov_produto`
 
-Registros no banco de demonstração: 5.646.
+Registros no banco de demonstração: 5.651.
 
 ### nota_itens
 
@@ -775,7 +776,7 @@ Itens das notas fiscais com tributos (ICMS, IPI, PIS, COFINS, IBS, CBS, IS).
 
 Índices: `ix_nota_itens`
 
-Registros no banco de demonstração: 21.
+Registros no banco de demonstração: 16.
 
 ### notas_fiscais
 
@@ -879,7 +880,7 @@ Itens de orçamentos e pedidos.
 
 Índices: `ix_pedido_itens`
 
-Registros no banco de demonstração: 28.
+Registros no banco de demonstração: 29.
 
 ### pedidos
 
@@ -1069,7 +1070,7 @@ Transações de cartão/PIX pelo TEF (duas fases: pendente → confirmada/desfei
 
 Índices: `ix_tef_venda`
 
-Registros no banco de demonstração: 1.080.
+Registros no banco de demonstração: 1.081.
 
 ### usuarios
 
@@ -1086,6 +1087,7 @@ Usuários do sistema (username, senha em hash, e-mail, perfil).
 | `email` | TEXT |  |  |  |
 | `falhas_login` | INTEGER | sim | 0 |  |
 | `bloqueado_ate` | TEXT |  |  |  |
+| `tema` | TEXT | sim | 'CLARO' |  |
 
 Índices: `ux_usuarios_email`
 
@@ -1131,7 +1133,7 @@ Itens de cada venda, com o custo médio do momento (lucro bruto).
 
 Índices: `ix_venda_itens_venda`
 
-Registros no banco de demonstração: 4.862.
+Registros no banco de demonstração: 4.867.
 
 ### vendas
 
@@ -1153,4 +1155,4 @@ Vendas (PDV e pedidos faturados).
 
 Índices: `ix_vendas_data`
 
-Registros no banco de demonstração: 1.407.
+Registros no banco de demonstração: 1.408.

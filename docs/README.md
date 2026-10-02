@@ -1,6 +1,6 @@
 # Documentação do ERP Loja
 
-Documentação de engenharia do ERP Loja 1.3.0. Os documentos marcados com ⚙ são **gerados automaticamente** pela bateria
+Documentação de engenharia do ERP Loja 1.4.0. Os documentos marcados com ⚙ são **gerados automaticamente** pela bateria
 de testes a partir do código (não edite à mão).
 
 | # | Documento | Conteúdo | Público |
@@ -20,7 +20,7 @@ de testes a partir do código (não edite à mão).
 | 13 | [Histórico de solicitações](13-historico-de-solicitacoes.md) | Todas as mensagens do product owner, literais, e o atendimento de cada uma | Todos |
 | 15 | [Segurança — OWASP Top 10](15-seguranca-owasp.md) | Avaliação item a item, correções, validação de entrada e riscos remanescentes | Todos |
 | 14 | [Testes exploratórios](14-testes-exploratorios.md) | Falhas encontradas por agentes simulando usuários, correções, pendências e sugestões de usabilidade | Todos |
-| — | [Decisões de arquitetura (ADR)](adr/) | 18 decisões registradas | Desenvolvimento |
+| — | [Decisões de arquitetura (ADR)](adr/) | 20 decisões registradas | Desenvolvimento |
 
 Na raiz do repositório: [README](../README.md), [CHANGELOG](../CHANGELOG.md), [CONTRIBUTING](../CONTRIBUTING.md), [SECURITY](../SECURITY.md).
 

@@ -22,13 +22,21 @@ public static class Ajuda
             ## Buscar tela (Ctrl+K)
             Não sabe onde fica? Clique em "Buscar tela" ou tecle Ctrl+K e digite uma palavra (ex.: boleto, frete, senha, estoque). O sistema mostra todas as telas relacionadas, procurando nos nomes, nas palavras-chave e no texto de ajuda. Pode escrever do seu jeito (ex.: "como cadastrar cliente", "vender", "trocar minha senha"): palavras como "como", "onde" e "o" são ignoradas e verbos acham a tela pelo radical.
 
-            ## Telas abertas (abas)
-            As telas abrem no espaço à direita do menu, sem janelas soltas. Cada tela aberta vira uma aba no topo: clique na aba para voltar a ela e no × para fechá-la.
-            - Ctrl+Tab passa para a próxima aba; Ctrl+W fecha a aba atual.
-            - Abrir de novo uma tela que já está aberta apenas a traz para a frente.
+            ## Uma tela por vez
+            A tela escolhida no menu abre no espaço à direita, no lugar da anterior. O topo mostra a área e o nome da tela (ex.: Estoque › Estoque); o × no canto (ou Ctrl+W) fecha a tela e volta ao início.
+            Todas as telas seguem o mesmo modelo: pesquisa e filtros em cima, a listagem no meio e, à direita, as opções da tela numa lista com barra de rolagem.
             - Telas exclusivas de administrador (Usuários, Contas bancárias, Log de atividades) não aparecem para os demais usuários.
-            - Ao sair com uma venda em andamento no PDV, o sistema pergunta antes; respondendo Não, o PDV volta para a frente.
-            Janelas de edição (ex.: editar um pedido) e confirmações continuam aparecendo por cima, porque precisam de uma resposta antes de continuar.
+            - Janelas de edição (ex.: editar um pedido) e confirmações aparecem por cima, porque precisam de uma resposta antes de continuar.
+
+            ## Dados não salvos
+            Se você digitou ou alterou alguma coisa e tenta sair da tela (abrir outra, fechar ou sair do sistema), o sistema pergunta:
+            - Salvar e sair: grava (como o botão Salvar da tela) e só sai se a gravação deu certo;
+            - Descartar e sair: desfaz tudo o que não foi salvo;
+            - Continuar editando: fica na tela, sem perder nada.
+            Pesquisas e filtros não contam como alteração. No PDV, a pergunta é sobre a venda em andamento.
+
+            ## Modo claro e escuro
+            Clique em "☾ Modo escuro" no rodapé da janela (ou em Configurações > Minha conta > Aparência). Muda todas as telas na hora; cada usuário tem a sua escolha.
 
             ## Continuar de onde parou
             Na tela inicial aparecem as telas que você usou por último, cada uma com o ponto da cor da sua área: um clique abre. No Buscar tela (Ctrl+K), com a busca vazia, elas também vêm primeiro.

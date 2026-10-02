@@ -57,6 +57,16 @@ public static class Ui
             faixa.SendToBack();
         };
         Animacao.Surgir(f);
+        // alterações não salvas e tema (claro/escuro) em todas as telas
+        f.Load += (_, _) => Alteracoes.Monitorar(f);
+        Tema.Acompanhar(f);
+        f.FormClosing += (_, e) =>
+        {
+            // janelas de edição soltas: perguntar antes de perder o que foi digitado (as telas do menu são tratadas pela janela principal)
+            if (f.TopLevel && f is not MainForm && e.CloseReason == CloseReason.UserClosing && f.DialogResult != DialogResult.OK
+                && !Alteracoes.PodeSair(f, "fechar esta janela", permitirSalvar: false))
+                e.Cancel = true;
+        };
     }
 
     public static DataGridView Grid(bool somenteLeitura = true)
@@ -96,7 +106,7 @@ public static class Ui
     }
 
     /// <summary>Texto mostrado pela grade quando não há registros (Tag da grade pode trazer uma dica específica).</summary>
-    public const string DicaGradeVazia = "Ajuste a pesquisa ou os filtros, ou use os botões acima para incluir.";
+    public const string DicaGradeVazia = "Ajuste a pesquisa ou os filtros, ou use as opções da tela para incluir.";
 
     /// <summary>A linha sob o mouse ganha um fundo suave: a pessoa vê qual registro vai abrir ou selecionar.</summary>
     static void DestacarLinhaSobMouse(DataGridView g)
@@ -202,9 +212,20 @@ public static class Ui
         // log de atividades: registrado antes da ação, com a tela onde o botão está
         b.Click += (_, _) => Log.Registrar(Log.Acao, "Botão " + b.Text.Trim(), tela: b.FindForm()?.Text);
         if (clique != null)
-            b.Click += clique;
+            b.Click += (s, e) =>
+            {
+                var form = b.FindForm();
+                var errosAntes = ErrosExibidos;
+                clique(s, e);
+                // botão de gravar que terminou sem mensagem de erro: a tela não tem mais alterações pendentes
+                if (Alteracoes.EhGravacao(b.Text) && ErrosExibidos == errosAntes)
+                    Alteracoes.Limpar(form);
+            };
         return b;
     }
+
+    /// <summary>Quantos avisos de erro já foram mostrados (para saber se uma gravação deu certo).</summary>
+    public static int ErrosExibidos { get; private set; }
 
     public static string NomeAtalho(Keys k) =>
         ((k & Keys.Control) != 0 ? "Ctrl+" : "") + (k & Keys.KeyCode);
@@ -221,6 +242,8 @@ public static class Ui
         Padding = dock == DockStyle.Top ? new Padding(6, 6, 52, 6) : new Padding(6),
         WrapContents = true,
         BackColor = Color.White,
+        // a barra superior é de pesquisa/filtros: o que se digita ali não é alteração de dados (ver Alteracoes)
+        Tag = dock == DockStyle.Top ? Alteracoes.MarcaFiltros : null,
     };
 
     /// <summary>Campo numérico: não aceita letras (ver Validacao.SoNumeros).</summary>
@@ -315,6 +338,7 @@ public static class Ui
 
     public static void Erro(string m)
     {
+        ErrosExibidos++;
         Log.Registrar(Log.Erro, "Aviso exibido ao usuário", m);
         if (Interceptar is { } i)
             i("ERRO", m);

@@ -56,7 +56,7 @@ public static class Log
         {
             using var cmd = c.CreateCommand();
             cmd.CommandText = """
-                PRAGMA journal_mode = WAL;
+                PRAGMA journal_mode = DELETE; -- sem arquivos auxiliares (-wal/-shm): só o loja_log.db
                 CREATE TABLE IF NOT EXISTS log (
                     id          INTEGER PRIMARY KEY,
                     data_hora   TEXT NOT NULL,

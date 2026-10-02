@@ -94,7 +94,7 @@ flowchart LR
 ### 3.3 Janela principal e telas embutidas
 
 As telas do menu são `Form` comuns; a `MainForm` as converte em conteúdo do palco (`TopLevel = false`, sem borda,
-`Dock = Fill`) e cria uma aba para cada uma ([ADR-0017](adr/0017-telas-embutidas-em-abas.md)). Diálogos de edição e
+`Dock = Fill`), uma por vez, no modelo padrão (filtros em cima, listagem ao meio, opções à direita) e com proteção de dados não salvos ([ADR-0019](adr/0019-uma-tela-por-vez-e-dados-nao-salvos.md)); o tema claro/escuro é aplicado por mapeamento de cores ([ADR-0020](adr/0020-tema-claro-e-escuro.md)). Diálogos de edição e
 confirmação continuam modais. As teclas são tratadas primeiro pela tela ativa (`ProcessCmdKey` sobe do controle focado
 até a janela principal), por isso o PDV mantém suas teclas de função.
 
@@ -220,5 +220,7 @@ pacote único. Tipos usados por nome em tempo de execução (ligação de grades
 | [0014](adr/0014-impressao-marcacoes-escpos.md) | Impressão por marcações e ESC/POS |
 | [0015](adr/0015-estrategia-de-testes.md) | Testes ponta a ponta + teste de interface |
 | [0016](adr/0016-log-em-banco-separado.md) | Log de atividades em banco SQLite separado |
-| [0017](adr/0017-telas-embutidas-em-abas.md) | Telas embutidas em abas na janela principal |
+| [0017](adr/0017-telas-embutidas-em-abas.md) | Telas embutidas em abas (substituída pela 0019) |
 | [0018](adr/0018-cenarios-de-uso-automatizados.md) | Cenários de uso automatizados e testes exploratórios por agentes |
+| [0019](adr/0019-uma-tela-por-vez-e-dados-nao-salvos.md) | Uma tela por vez, modelo padrão e proteção de dados não salvos |
+| [0020](adr/0020-tema-claro-e-escuro.md) | Tema claro e escuro por mapeamento de cores |

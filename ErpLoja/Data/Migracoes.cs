@@ -31,6 +31,7 @@ public static class Migracoes
         new(11, "Parâmetros de impressoras, TEF, transporte, produção e reforma tributária", M011),
         new(12, "Log de atividades: parâmetro de retenção", M012),
         new(13, "Segurança: credenciais cifradas e bloqueio após senhas erradas", M013),
+        new(14, "Preferência de tema (claro/escuro) por usuário", M014),
     ];
 
     public static int VersaoDoSistema => Todas.Max(m => m.Versao);
@@ -812,4 +813,7 @@ public static class Migracoes
                 s.Exec("UPDATE configuracoes SET valor = @p0 WHERE chave = @p1", Segredos.Proteger(valor), chave);
         }
     }
+
+    // ------------------------------------------------------------------ 014
+    static void M014(DbSessao s) => AdicionarColuna(s, "usuarios", "tema", "TEXT NOT NULL DEFAULT 'CLARO'");
 }
