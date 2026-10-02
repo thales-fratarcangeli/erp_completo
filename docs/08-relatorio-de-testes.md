@@ -4,11 +4,11 @@
 
 | Item | Valor |
 |---|---|
-| Data da execução | 02/10/2026 00:39 |
+| Data da execução | 02/10/2026 07:50 |
 | Versão do sistema | 1.1.0.0 (banco v12) |
 | Ambiente | Microsoft Windows 10.0.19045 · .NET 10.0.12 |
-| Verificações | 259 |
-| Aprovadas | 259 |
+| Verificações | 260 |
+| Aprovadas | 260 |
 | Reprovadas | 0 |
 | Resultado | **APROVADO** |
 
@@ -261,17 +261,18 @@
 | 243 | ✅ | senhas não aparecem no log |
 | 244 | ✅ | registros antigos são apagados conforme o parâmetro de retenção |
 | 245 | ✅ | consulta do log com filtros |
-| 246 | ✅ | atalho .lnk do Windows criado (usado na primeira execução) |
-| 247 | ✅ | toda tela aberta tem tópico de ajuda |
-| 248 | ✅ | todos os diálogos têm ajuda (9 diálogos) |
-| 249 | ✅ | todas as telas do sistema foram abertas no teste |
-| 250 | ✅ | manual do usuário gerado em docs/12-manual-do-usuario.md a partir da ajuda |
-| 251 | ✅ | dados de demonstração gerados em 2,7 s — Dados de demonstração gerados: 35 clientes, 8 fornecedores, 50 produtos, 48 compras, 77 ordens de produção, 1399 vendas, 7 orçamentos/pedidos, 3 fretes, 8 boletos, 5 notas fiscais. |
-| 252 | ✅ | dados de demonstração íntegros (chaves estrangeiras) |
-| 253 | ✅ | insumos não ficam negativos na demonstração |
-| 254 | ✅ | CPF/CNPJ da demonstração são válidos |
-| 255 | ✅ | modelo de dados (dicionário + diagrama ER) gerado em docs/06-modelo-de-dados.md |
-| 256 | ✅ | [PDV] lançar 2*código mostra o total da venda |
-| 257 | ✅ | [PDV] F10 + dinheiro grava a venda |
-| 258 | ✅ | [PDV] total gravado = 2 × preço |
-| 259 | ✅ | [PDV] nenhuma mensagem de erro durante a venda |
+| 246 | ✅ | grade sem registros mostra explicação (estado vazio) |
+| 247 | ✅ | atalho .lnk do Windows criado (usado na primeira execução) |
+| 248 | ✅ | toda tela aberta tem tópico de ajuda |
+| 249 | ✅ | todos os diálogos têm ajuda (9 diálogos) |
+| 250 | ✅ | todas as telas do sistema foram abertas no teste |
+| 251 | ✅ | manual do usuário gerado em docs/12-manual-do-usuario.md a partir da ajuda |
+| 252 | ✅ | dados de demonstração gerados em 4,9 s — Dados de demonstração gerados: 35 clientes, 8 fornecedores, 50 produtos, 48 compras, 77 ordens de produção, 1400 vendas, 7 orçamentos/pedidos, 3 fretes, 8 boletos, 5 notas fiscais. |
+| 253 | ✅ | dados de demonstração íntegros (chaves estrangeiras) |
+| 254 | ✅ | insumos não ficam negativos na demonstração |
+| 255 | ✅ | CPF/CNPJ da demonstração são válidos |
+| 256 | ✅ | modelo de dados (dicionário + diagrama ER) gerado em docs/06-modelo-de-dados.md |
+| 257 | ✅ | [PDV] lançar 2*código mostra o total da venda |
+| 258 | ✅ | [PDV] F10 + dinheiro grava a venda |
+| 259 | ✅ | [PDV] total gravado = 2 × preço |
+| 260 | ✅ | [PDV] nenhuma mensagem de erro durante a venda |

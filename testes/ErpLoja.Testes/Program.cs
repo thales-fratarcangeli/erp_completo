@@ -614,6 +614,28 @@ var t = new Thread(() =>
         Ok(Log.Limpar(30) >= 1 && ContarLog("acao = 'antigo'") == 0, "registros antigos são apagados conforme o parâmetro de retenção");
         Ok(Log.Consultar(DateTime.Today.AddDays(-1), DateTime.Today, Log.Dados, null, "vendas").Rows.Count > 0, "consulta do log com filtros");
 
+        // ---------- grades: estado vazio explicativo
+        using (var janelaGrade = new Form { Size = new Size(640, 360), StartPosition = FormStartPosition.Manual, Location = new Point(0, 0) })
+        using (var bmp = new Bitmap(600, 300))
+        {
+            var gradeVazia = Ui.Grid();
+            gradeVazia.Dock = DockStyle.None;
+            gradeVazia.Size = new Size(600, 300);
+            janelaGrade.Controls.Add(gradeVazia);
+            var vazia = new DataTable();
+            vazia.Columns.Add("Nome");
+            gradeVazia.DataSource = vazia;
+            janelaGrade.Show();
+            Application.DoEvents();
+            gradeVazia.DrawToBitmap(bmp, new Rectangle(0, 0, 600, 300));
+            var pixelsDeTexto = 0;
+            for (int x = 150; x < 450; x++)
+                for (int y = 60; y < 160; y++)
+                    if (bmp.GetPixel(x, y).R < 200)
+                        pixelsDeTexto++;
+            Ok(pixelsDeTexto > 50, "grade sem registros mostra explicação (estado vazio)");
+        }
+
         // ---------- atalho na área de trabalho
         var lnk = Path.Combine(Temp, "ERP Loja.lnk");
         AtalhoAreaDeTrabalho.Criar(lnk, Path.Combine(Environment.SystemDirectory, "notepad.exe"));

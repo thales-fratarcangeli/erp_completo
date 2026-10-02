@@ -609,7 +609,7 @@ Contas a receber e a pagar (parcelas), geradas por vendas, compras, fretes ou la
 
 Índices: `ix_contas_status`
 
-Registros no banco de demonstração: 1.682.
+Registros no banco de demonstração: 1.683.
 
 ### contas_bancarias
 
@@ -730,7 +730,7 @@ Histórico de toda alteração de saldo de estoque, com o saldo resultante.
 
 Índices: `ix_mov_produto`
 
-Registros no banco de demonstração: 5.612.
+Registros no banco de demonstração: 5.617.
 
 ### nota_itens
 
@@ -877,7 +877,7 @@ Itens de orçamentos e pedidos.
 
 Índices: `ix_pedido_itens`
 
-Registros no banco de demonstração: 26.
+Registros no banco de demonstração: 33.
 
 ### pedidos
 
@@ -1067,7 +1067,7 @@ Transações de cartão/PIX pelo TEF (duas fases: pendente → confirmada/desfei
 
 Índices: `ix_tef_venda`
 
-Registros no banco de demonstração: 1.075.
+Registros no banco de demonstração: 1.076.
 
 ### usuarios
 
@@ -1127,7 +1127,7 @@ Itens de cada venda, com o custo médio do momento (lucro bruto).
 
 Índices: `ix_venda_itens_venda`
 
-Registros no banco de demonstração: 4.828.
+Registros no banco de demonstração: 4.833.
 
 ### vendas
 
@@ -1149,4 +1149,4 @@ Vendas (PDV e pedidos faturados).
 
 Índices: `ix_vendas_data`
 
-Registros no banco de demonstração: 1.399.
+Registros no banco de demonstração: 1.400.

@@ -81,12 +81,66 @@ public static class Ui
         g.RowTemplate.Height = 28;
         g.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(229, 231, 235);
         g.ColumnHeadersDefaultCellStyle.Font = FonteNegrito;
+        // cabeçalho longo vira "Último nosso…" numa linha (em vez de quebrar e ficar cortado); o texto inteiro aparece na dica
+        g.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.False;
+        g.ShowCellToolTips = true;
         g.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(249, 250, 251);
         g.DefaultCellStyle.SelectionBackColor = Color.FromArgb(191, 219, 254);
         g.DefaultCellStyle.SelectionForeColor = Color.Black;
         g.DataBindingComplete += (_, _) => FormatarColunas(g);
         g.DataError += (_, e) => { e.ThrowException = false; Erro("Valor inválido."); };
+        DestacarLinhaSobMouse(g);
+        MostrarEstadoVazio(g);
         return g;
+    }
+
+    /// <summary>Texto mostrado pela grade quando não há registros (Tag da grade pode trazer uma dica específica).</summary>
+    public const string DicaGradeVazia = "Ajuste a pesquisa ou os filtros, ou use os botões acima para incluir.";
+
+    /// <summary>A linha sob o mouse ganha um fundo suave: a pessoa vê qual registro vai abrir ou selecionar.</summary>
+    static void DestacarLinhaSobMouse(DataGridView g)
+    {
+        var destaque = Color.FromArgb(239, 246, 255);
+        var linhaAtual = -1;
+        void Limpar()
+        {
+            if (linhaAtual >= 0 && linhaAtual < g.Rows.Count)
+                g.Rows[linhaAtual].DefaultCellStyle.BackColor = Color.Empty;
+            linhaAtual = -1;
+        }
+        g.CellMouseEnter += (_, e) =>
+        {
+            if (e.RowIndex == linhaAtual)
+                return;
+            Limpar();
+            if (e.RowIndex >= 0 && e.RowIndex < g.Rows.Count)
+            {
+                g.Rows[e.RowIndex].DefaultCellStyle.BackColor = destaque;
+                linhaAtual = e.RowIndex;
+            }
+        };
+        g.MouseLeave += (_, _) => Limpar();
+        g.DataSourceChanged += (_, _) => linhaAtual = -1;
+    }
+
+    /// <summary>Grade sem registros mostra uma explicação em vez de um espaço em branco.</summary>
+    static void MostrarEstadoVazio(DataGridView g)
+    {
+        g.Paint += (_, e) =>
+        {
+            if (g.Rows.Count > 0 || g.Columns.Count == 0)
+                return;
+            var area = new Rectangle(0, g.ColumnHeadersVisible ? g.ColumnHeadersHeight : 0, g.ClientSize.Width,
+                Math.Max(60, g.ClientSize.Height - (g.ColumnHeadersVisible ? g.ColumnHeadersHeight : 0)));
+            var titulo = new Rectangle(area.X, area.Y + Math.Min(60, area.Height / 3), area.Width, 28);
+            TextRenderer.DrawText(e.Graphics, "Nenhum registro para mostrar", FonteNegrito, titulo, Color.FromArgb(107, 114, 128),
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            var dica = new Rectangle(area.X + 20, titulo.Bottom, area.Width - 40, 40);
+            TextRenderer.DrawText(e.Graphics, g.Tag as string ?? DicaGradeVazia, Fonte, dica, Color.FromArgb(156, 163, 175),
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.WordBreak);
+        };
+        g.DataBindingComplete += (_, _) => g.Invalidate();
+        g.RowsRemoved += (_, _) => { if (g.Rows.Count == 0) g.Invalidate(); };
     }
 
     static void FormatarColunas(DataGridView g)
