@@ -64,6 +64,8 @@ public static class Producao
             throw new InvalidOperationException("O produto não pode ser insumo da própria ficha.");
         if (f.Insumos.Any(i => i.Quantidade <= 0))
             throw new InvalidOperationException("Todos os insumos precisam de quantidade maior que zero.");
+        if (f.Insumos.FirstOrDefault(i => i.PerdaPct is < 0 or > 100) is { } perda)
+            throw new InvalidOperationException($"Perda inválida no insumo \"{perda.Insumo}\": informe de 0 a 100%.");
         if (f.Insumos.GroupBy(i => i.InsumoId).Any(g => g.Count() > 1))
             throw new InvalidOperationException("Há insumo repetido na ficha.");
         foreach (var i in f.Insumos)

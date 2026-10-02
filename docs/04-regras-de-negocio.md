@@ -116,7 +116,7 @@ Sumário: [Cadastros](#cadastros-rn-cad) · [Estoque](#estoque-rn-est) · [Custo
 
 | ID | Regra |
 |---|---|
-| RN-PRO-01 | Ficha técnica: rendimento > 0; ao menos um insumo; quantidades > 0; sem insumo repetido; o produto não pode ser insumo de si mesmo, nem indiretamente (ficha circular: A usa B e B usa A). Trocar de produto ou fechar a tela com a ficha alterada pede confirmação. |
+| RN-PRO-01 | Ficha técnica: rendimento > 0; ao menos um insumo; quantidades > 0; perda de 0 a 100%; sem insumo repetido; o produto não pode ser insumo de si mesmo, nem indiretamente (ficha circular: A usa B e B usa A). Trocar de produto ou fechar a tela com a ficha alterada pede confirmação. |
 | RN-PRO-02 | Nova OP exige ficha técnica. Necessidade de cada insumo = `qtd da ficha × (qtd a produzir ÷ rendimento) × (1 + perda%)`. |
 | RN-PRO-03 | Situações: PLANEJADA → EM_PRODUCAO → CONCLUIDA; PLANEJADA/EM_PRODUCAO → CANCELADA. OP concluída ou cancelada não muda mais. |
 | RN-PRO-04 | Concluir: consumo real = previsto × (produzido ÷ planejado); baixa os insumos (SAIDA), entra o produto (ENTRADA), recalcula o custo médio com o custo real (RN-CUS-06) e grava custo total e unitário na OP. |

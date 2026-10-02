@@ -143,6 +143,17 @@ public class ProducaoFichaCircular : ICenario
         }
         u.Ok(ProducaoLogisticaUtil.Dec("SELECT COUNT(*) FROM ficha_itens fi JOIN fichas_tecnicas ft ON ft.id = fi.ficha_id WHERE ft.produto_id = @p0", massa) == 1,
             "a ficha anterior continua intacta");
+
+        // regressão: perda negativa (barateava o custo) ou absurda era aceita
+        try
+        {
+            Producao.SalvarFicha(new Producao.Ficha(null, torta, 1, 0, "", new() { new() { InsumoId = acucar, Quantidade = 1, PerdaPct = -20, Insumo = "Açúcar teste" } }));
+            u.Ok(false, "perda negativa foi aceita na ficha");
+        }
+        catch (InvalidOperationException ex)
+        {
+            u.Ok(ex.Message.Contains("Perda inválida") && ex.Message.Contains("Açúcar teste"), "perda negativa é recusada com o nome do insumo");
+        }
     }
 }
 
