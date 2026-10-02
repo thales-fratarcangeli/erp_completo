@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Documento** | Plano de testes (estrutura inspirada na ISO/IEC/IEEE 29119-3) |
-| **Sistema** | ERP Loja 1.1.0 (banco v11) |
+| **Sistema** | ERP Loja 1.2.0 (banco v12) |
 | **Resultado da última execução** | [08 — Relatório de testes](08-relatorio-de-testes.md) (gerado automaticamente) |
 
 ## 1. Objetivo
@@ -26,6 +26,7 @@ Garantir, a cada alteração e antes de cada publicação, que:
 |---|---|---|---|
 | 1. Regras e cálculos | Totais, rateios, custo médio, parcelas, DV (CPF/CNPJ, EAN, chave NF-e, módulos 10/11), fator de vencimento, CNAB, ESC/POS, IBS/CBS | Bateria console, asserções sobre valores | Toda alteração |
 | 2. Integração com o banco | Operações completas em banco real temporário (venda → estoque → contas → TEF; OP → insumos → custo; frete → CIOT → contas; boleto → remessa → retorno → baixa) | Bateria console sobre `loja.db` criado do zero | Toda alteração |
+| 3b. Cenários de uso | Pessoas operando as telas (PDV, pedidos, compras, financeiro, produção, fretes, notas, cadastros, configurações, navegação): digitam, teclam, clicam e respondem janelas | `testes/ErpLoja.Testes/Cenarios/*.cs` ([ADR-0018](adr/0018-cenarios-de-uso-automatizados.md)), um banco com dados de demonstração por cenário | Toda alteração |
 | 3. Migrações | Bancos legados reais: v1 (sem controle), v2, v4 com dados (unificação de pessoas), banco de versão futura | Fixture `testes/ErpLoja.Testes/dados/banco_v1.db` + bancos montados pelo teste | Toda alteração no esquema |
 | Nível 4 | Interface no executável publicado e ofuscado | UI Automation (`testes/interface/teste-interface.ps1`) | Toda publicação |
 
@@ -41,10 +42,23 @@ Roteiro automatizado:
 4. Abre Orçamentos → Novo (diálogo modal).
 5. Ctrl+K, digita "produtos" e abre o resultado.
 6. F1 abre a ajuda da tela atual.
+   - Caixas de mensagem informativas que aparecerem são fechadas sozinhas (OK) e registradas, para o teste nunca travar.
+   - As telas precisam abrir **embutidas** na janela principal (o roteiro reprova se o PDV abrir como janela solta).
 7. Imprime `RESULTADO: OK` (ou a etapa que falhou) e encerra o processo que ele mesmo abriu.
 
 Comprovação complementar da ofuscação: inspecionar a DLL extraída do pacote e confirmar ausência de nomes de métodos e de
 textos SQL legíveis.
+
+### Cenários de uso (nível 3b)
+
+Cada classe que implementa `ICenario` é executada automaticamente pela bateria, num banco novo. A classe `Usuario`
+simula a pessoa: `AbrirTela`, `Digitar`, `Teclar` (F2, F10, Esc...), `Clicar`, `QuandoAbrir<T>` (o que fazer quando abrir
+uma janela modal). Mensagens não abrem caixa (ficam registradas em `Mensagens`); confirmações recebem a resposta
+configurada; uma janela modal que o cenário não esperava é cancelada após 2 segundos e reprova o cenário — **nada trava
+esperando clique**, o que permite rodar a bateria sem supervisão.
+
+Os cenários foram escritos por agentes de teste exploratório trabalhando em paralelo, cada um numa área, que corrigiram
+as falhas encontradas (registro em [10 — Falhas e resoluções](10-falhas-e-resolucoes.md)).
 
 ## 4. Ambiente
 

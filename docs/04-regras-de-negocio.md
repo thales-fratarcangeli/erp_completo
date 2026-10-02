@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Documento** | Catálogo de regras de negócio (RN) |
-| **Sistema** | ERP Loja 1.1.0 (banco v11) |
+| **Sistema** | ERP Loja 1.2.0 (banco v12) |
 | **Status** | Vigente |
 | **Rastreabilidade** | Requisitos em [02](02-especificacao-de-requisitos.md); casos de uso em [03](03-casos-de-uso.md); verificação em [08](08-relatorio-de-testes.md) |
 
@@ -15,7 +15,8 @@ Sumário: [Cadastros](#cadastros-rn-cad) · [Estoque](#estoque-rn-est) · [Custo
 [TEF](#tef-rn-tef) · [Orçamentos e pedidos](#orçamentos-e-pedidos-rn-ped) · [Compras](#compras-rn-com) · [XML de NF-e](#importação-de-xml-rn-xml) ·
 [Produção](#produção-rn-pro) · [Transporte e CIOT](#transporte-e-ciot-rn-tra) · [Financeiro](#financeiro-rn-fin) ·
 [Cobrança bancária](#cobrança-bancária-rn-cob) · [Fiscal](#fiscal-rn-fis) · [Reforma tributária](#reforma-tributária-rn-ref) ·
-[Impressão](#impressão-rn-imp) · [Usuários e acesso](#usuários-e-acesso-rn-usu) · [Banco de dados](#banco-de-dados-rn-bd) · [Parâmetros](#parâmetros-rn-par)
+[Impressão](#impressão-rn-imp) · [Usuários e acesso](#usuários-e-acesso-rn-usu) · [Banco de dados](#banco-de-dados-rn-bd) · [Log de atividades](#log-de-atividades-rn-log) ·
+[Navegação e interface](#navegação-e-interface-rn-nav) · [Instalação](#instalação-rn-ins) · [Parâmetros](#parâmetros-rn-par)
 
 ---
 
@@ -197,7 +198,7 @@ Base legal: EC 132/2023 e LC 214/2025 (IBS, CBS e Imposto Seletivo). Valores pad
 |---|---|
 | RN-USU-01 | Entrada por username (3–30: letras, números, ponto, hífen, sublinhado) e senha; usuário inativo não entra. |
 | RN-USU-02 | Senhas e códigos de recuperação guardados só como hash PBKDF2-SHA256 (100.000 iterações, salt de 16 bytes), comparados em tempo constante. |
-| RN-USU-03 | E-mail obrigatório e único no cadastro; ao entrar sem e-mail o sistema avisa. |
+| RN-USU-03 | E-mail obrigatório e único no cadastro; ao entrar sem e-mail o sistema avisa com uma notificação que some sozinha (não bloqueia a entrada). |
 | RN-USU-04 | Administrador: usuários, todas as configurações, contas bancárias, cancelamentos, descontos e crédito acima do limite. Ninguém exclui o próprio usuário. |
 | RN-USU-05 | Banco novo vem com admin/admin; a tela de entrada avisa enquanto a senha não for trocada. |
 | RN-USU-06 | **Recuperação de senha**: código de 6 dígitos (gerador criptográfico) enviado ao e-mail pelo Resend; válido 15 min; 5 tentativas; um novo pedido invalida os anteriores; uso único; nova senha com ≥ 4 caracteres; e-mail exibido mascarado. |
@@ -210,6 +211,36 @@ Base legal: EC 132/2023 e LC 214/2025 (IBS, CBS e Imposto Seletivo). Valores pad
 | RN-BD-02 | Migrations numeradas, aplicadas uma vez, cada uma em transação, registradas em `__migracoes`; banco mais novo que o executável é recusado. |
 | RN-BD-03 | Antes de migrar um banco existente, backup automático em `backups/`. Migrações que reconstroem tabelas rodam com chaves estrangeiras desligadas e verificam a integridade (`foreign_key_check`) antes de confirmar. |
 | RN-BD-04 | Backup diário ao abrir (`backup_ao_iniciar`), um por dia, mantendo os `backups_manter` mais recentes. |
+
+## Log de atividades (RN-LOG)
+
+| ID | Regra |
+|---|---|
+| RN-LOG-01 | Toda ação gera um registro de log com data/hora (milissegundos), usuário, computador, tela, categoria, ação e detalhe. O log fica num **banco SQLite separado**, ao lado do banco da loja (`loja.db` → `loja_log.db`). |
+| RN-LOG-02 | Categorias: **ACESSO** (entrada, saída, senha errada, usuário inativo, código de recuperação enviado/incorreto, senha redefinida), **TELA** (aberta/fechada), **AÇÃO** (botão clicado, confirmação respondida, mensagem exibida, exportação, operações do PDV), **DADOS** (gravações), **ERRO** (avisos de erro e erros inesperados com detalhes técnicos), **SISTEMA** (início, migrações, backups, atalho, dados de demonstração). |
+| RN-LOG-03 | Gravações (DADOS) são registradas **somente quando confirmadas**: uma linha por operação, nomeada pela primeira tabela gravada (ex.: "Incluiu vendas"), com o detalhe das tabelas e quantidade de linhas e o id do registro incluído. Operação desfeita (rollback) não aparece. Migrações e a geração de dados de demonstração registram um resumo, não cada comando. |
+| RN-LOG-04 | O log **nunca interrompe** a operação: falha ao gravar o log é ignorada. |
+| RN-LOG-05 | Senhas, códigos e valores digitados não são gravados no log; o detalhe de gravações traz apenas tabelas e quantidades. |
+| RN-LOG-06 | Ao abrir o sistema, registros mais antigos que `log_dias_manter` dias são apagados (0 = manter tudo). |
+| RN-LOG-07 | A consulta (*Sistema > Log de atividades*) é exclusiva de administradores, filtra por período, categoria, usuário e texto, mostra até 5.000 registros mais recentes e exporta CSV. |
+
+## Navegação e interface (RN-NAV)
+
+| ID | Regra |
+|---|---|
+| RN-NAV-01 | As telas do menu abrem **embutidas no espaço à direita do menu**, uma aba por tela; não abrem janelas soltas. Janelas de edição, confirmações e escolhas continuam por cima (modais), porque exigem resposta. |
+| RN-NAV-02 | Abrir uma tela já aberta traz a aba dela para a frente (nunca duplica). Ctrl+Tab/Ctrl+Shift+Tab alternam as abas; Ctrl+W, o × ou o botão do meio do mouse fecham a aba. |
+| RN-NAV-03 | Fechar a janela principal fecha as abas uma a uma; se alguma recusar (ex.: venda em andamento no PDV), o fechamento é cancelado e a aba é mostrada. |
+| RN-NAV-04 | Cada tela tem o seu "?" (e F1) com a explicação **apenas daquela tela**; o "?" da janela principal aparece só na tela inicial. |
+| RN-NAV-05 | O PDV tem fundo branco e é operado pelo teclado; as teclas de função do PDV têm prioridade sobre os atalhos gerais enquanto ele está em primeiro plano. |
+| RN-NAV-06 | Cada função existe em um único lugar do menu (ver [ADR-0007](adr/0007-navegacao-fonte-unica.md)); telas de administrador não aparecem para usuários comuns. |
+
+## Instalação (RN-INS)
+
+| ID | Regra |
+|---|---|
+| RN-INS-01 | Na **primeira execução** em cada usuário do Windows, o sistema cria o atalho "ERP Loja" na área de trabalho apontando para o executável. Se o usuário apagar o atalho, ele não é recriado (um marcador em `%LOCALAPPDATA%\ErpLoja` registra que já foi criado). |
+| RN-INS-02 | Perfis isolados (variável `ERPLOJA_PREFERENCIAS`, usada em testes) não criam atalho. Falha ao criar o atalho é registrada no log e não impede o uso. |
 
 ## Parâmetros (RN-PAR)
 
@@ -232,3 +263,4 @@ Todos na tela *Configurações* (somente administrador), tabela `configuracoes`.
 | Impressoras | `impressora_cupom`, `impressora_cupom_tipo`, `impressora_colunas`, `impressora_codepage`, `impressora_cortar`, `impressora_gaveta`, `impressora_documentos` | — / WINDOWS / 48 / 850 / SIM / NAO / — | RN-IMP |
 | E-mail | `resend_api_key`, `resend_remetente` | — | RN-USU-06 |
 | Banco de dados | `backup_ao_iniciar`, `backups_manter` | SIM / 15 | RN-BD-04 |
+| Banco de dados | `log_dias_manter` | 365 | RN-LOG-06 |

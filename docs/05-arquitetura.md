@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Documento** | Descrição de arquitetura (visões no modelo C4 + decisões registradas em ADRs) |
-| **Sistema** | ERP Loja 1.1.0 (banco v11) |
+| **Sistema** | ERP Loja 1.2.0 (banco v12) |
 | **Público** | Desenvolvedores e mantenedores |
 
 ## 1. Visão de contexto (C4 nível 1)
@@ -13,6 +13,7 @@ flowchart TB
     usuario([Usuários da loja<br/>administrador e operadores])
     erp[ERP Loja<br/>aplicativo desktop Windows]
     db[(loja.db<br/>SQLite em arquivo)]
+    log[(loja_log.db<br/>log de atividades)]
     resend[Resend<br/>e-mail transacional]
     pamcard[Pamcard<br/>administradora de CIOT]
     banco[Bancos<br/>arquivos CNAB 240]
@@ -21,6 +22,7 @@ flowchart TB
     imp[Impressoras<br/>Windows e térmicas ESC/POS]
     usuario --> erp
     erp --> db
+    erp --> log
     erp -->|HTTPS| resend
     erp -->|HTTPS| pamcard
     erp <-->|arquivos .rem/.ret| banco
@@ -35,6 +37,8 @@ flowchart TB
 |---|---|---|
 | `ErpLoja.exe` | .NET 10, Windows Forms, executável único autocontido e ofuscado | Toda a aplicação: interface, regras, acesso a dados, integrações |
 | `loja.db` | SQLite 3 (Microsoft.Data.Sqlite / SQLitePCLRaw) | Persistência; um arquivo por empresa |
+| `loja_log.db` | SQLite 3, modo WAL | Log de atividades (quem fez o quê, onde e quando) — [ADR-0016](adr/0016-log-em-banco-separado.md) |
+| Atalho `ERP Loja.lnk` | Área de trabalho | Criado na primeira execução |
 | `backups/` | Arquivos `.db` | Cópias consistentes (API de backup do SQLite) |
 | `%LOCALAPPDATA%\ErpLoja\banco.txt` | Texto | Caminho do último banco usado nesta máquina |
 
@@ -58,6 +62,7 @@ flowchart LR
     subgraph Data["Dados e regras (ErpLoja/Data)"]
         db[Db · DbSessao]
         mig[Migracoes · LocalBanco · Backups]
+        log[Log<br/>banco separado]
         par[Parametros]
         regras[Operacoes · Pedidos · Producao · Fretes · Cobranca · Fiscal · ImportacaoXml · Tef · Email · Impressao · DadosDemo]
     end
@@ -66,6 +71,8 @@ flowchart LR
     regras --> db
     mig --> db
     par --> db
+    db -. gravações confirmadas .-> log
+    UI -. botões, mensagens .-> log
 ```
 
 ### 3.1 Responsabilidades por camada
@@ -82,6 +89,14 @@ flowchart LR
 | `Ajuda.Topicos` | Botão "?"/F1 de cada tela e [manual do usuário](12-manual-do-usuario.md) |
 | `Parametros.Definicoes` | Tela de configurações, valores padrão e migração de parâmetros |
 | `Migracoes.Todas` | Esquema do banco e [modelo de dados](06-modelo-de-dados.md) gerado |
+| `Log.Registrar` (chamado por `DbSessao`, `Ui` e `MainForm`) | Log de atividades de todas as telas sem código de log em cada uma |
+
+### 3.3 Janela principal e telas embutidas
+
+As telas do menu são `Form` comuns; a `MainForm` as converte em conteúdo do palco (`TopLevel = false`, sem borda,
+`Dock = Fill`) e cria uma aba para cada uma ([ADR-0017](adr/0017-telas-embutidas-em-abas.md)). Diálogos de edição e
+confirmação continuam modais. As teclas são tratadas primeiro pela tela ativa (`ProcessCmdKey` sobe do controle focado
+até a janela principal), por isso o PDV mantém suas teclas de função.
 
 ## 4. Fluxo de inicialização
 
@@ -101,6 +116,8 @@ sequenceDiagram
     M->>B: backup (se há migrações pendentes)
     M->>M: aplica migrações (1 transação cada)
     P->>B: backup diário
+    P->>P: log "Sistema iniciado" + limpeza do log antigo
+    P->>P: atalho na área de trabalho (1ª execução)
     P->>U: LoginForm → MainForm
 ```
 
@@ -125,6 +142,7 @@ sequenceDiagram
 | 9 | Cobrança bancária: contas bancárias, boletos, remessas, retornos |
 | 10 | Reforma tributária: campos IBS/CBS/IS em produtos, itens e notas |
 | 11 | Parâmetros dos novos módulos |
+| 12 | Parâmetro de retenção do log de atividades |
 
 **Regras para criar migração**
 1. Acrescente `new(N, "descrição", MNNN)` no fim de `Migracoes.Todas`; nunca altere migração publicada.
@@ -176,6 +194,7 @@ pacote único. Tipos usados por nome em tempo de execução (ligação de grades
 | Atributo | Táticas |
 |---|---|
 | Confiabilidade | Transações; FKs ligadas; backups; validação de arquivos CNAB; TEF em duas fases |
+| Auditabilidade | Log de atividades de cada ação (acesso, tela, botão, gravação, erro) em banco separado |
 | Manutenibilidade | Camadas; fontes únicas; migrations; documentação gerada; bateria ponta a ponta |
 | Usabilidade | Ajuda contextual; localizador; atalhos; PDV por teclado; cores por módulo; animações curtas; avisos não bloqueantes |
 | Portabilidade | Executável único autocontido; preferências por máquina em `%LOCALAPPDATA%` (sobrescrevível por `ERPLOJA_PREFERENCIAS`) |
@@ -200,3 +219,6 @@ pacote único. Tipos usados por nome em tempo de execução (ligação de grades
 | [0013](adr/0013-reforma-tributaria-parametrizada.md) | Reforma tributária parametrizada |
 | [0014](adr/0014-impressao-marcacoes-escpos.md) | Impressão por marcações e ESC/POS |
 | [0015](adr/0015-estrategia-de-testes.md) | Testes ponta a ponta + teste de interface |
+| [0016](adr/0016-log-em-banco-separado.md) | Log de atividades em banco SQLite separado |
+| [0017](adr/0017-telas-embutidas-em-abas.md) | Telas embutidas em abas na janela principal |
+| [0018](adr/0018-cenarios-de-uso-automatizados.md) | Cenários de uso automatizados e testes exploratórios por agentes |

@@ -16,3 +16,6 @@ backups/
 
 # arquivos locais
 aq.txt
+
+# worktrees e configurações locais do assistente
+.claude/

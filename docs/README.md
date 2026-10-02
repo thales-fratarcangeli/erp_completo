@@ -1,6 +1,6 @@
 # Documentação do ERP Loja
 
-Documentação de engenharia do ERP Loja 1.1.0. Os documentos marcados com ⚙ são **gerados automaticamente** pela bateria
+Documentação de engenharia do ERP Loja 1.2.0. Os documentos marcados com ⚙ são **gerados automaticamente** pela bateria
 de testes a partir do código (não edite à mão).
 
 | # | Documento | Conteúdo | Público |
@@ -17,7 +17,8 @@ de testes a partir do código (não edite à mão).
 | 10 | [Falhas e resoluções](10-falhas-e-resolucoes.md) | Problemas de uso e registro de falhas de desenvolvimento | Suporte, desenvolvimento |
 | 11 | [Glossário](11-glossario.md) | Termos fiscais, bancários, logísticos e técnicos | Todos |
 | 12 ⚙ | [Manual do usuário](12-manual-do-usuario.md) | Mesmo conteúdo do botão "?" de cada tela | Usuários |
-| — | [Decisões de arquitetura (ADR)](adr/) | 15 decisões registradas | Desenvolvimento |
+| 13 | [Histórico de solicitações](13-historico-de-solicitacoes.md) | Todas as mensagens do product owner, literais, e o atendimento de cada uma | Todos |
+| — | [Decisões de arquitetura (ADR)](adr/) | 18 decisões registradas | Desenvolvimento |
 
 Na raiz do repositório: [README](../README.md), [CHANGELOG](../CHANGELOG.md), [CONTRIBUTING](../CONTRIBUTING.md), [SECURITY](../SECURITY.md).
 

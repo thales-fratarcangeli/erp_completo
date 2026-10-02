@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Documento** | Guia de implantação, atualização e operação |
-| **Sistema** | ERP Loja 1.1.0 |
+| **Sistema** | ERP Loja 1.2.0 |
 | **Público** | Implantadores, suporte e administrador da loja |
 
 ## 1. Requisitos
@@ -23,6 +23,7 @@
 2. Copie `ErpLoja.exe` para ela e execute.
 3. Na primeira vez, escolha **Criar banco novo** (o `loja.db` fica ao lado do executável) ou **Indicar arquivo** (banco existente).
 4. Entre com **admin / admin** e troque a senha em *Configurações > Minha conta*.
+   Na primeira execução o sistema cria o atalho **ERP Loja** na área de trabalho.
 5. Siga a lista de configuração inicial (seção 4).
 
 > **SmartScreen**: como o executável não é assinado, o Windows pode mostrar "O Windows protegeu o computador".
@@ -84,6 +85,7 @@ Depois: cadastre usuários (com e-mail), categorias, produtos (NCM, CST, campos 
 | Inventário | Conforme a loja | *Estoque > Ajustar > Definir saldo* |
 | Conferência de retornos bancários | Diária, se usa cobrança | *Cobrança > Importar retorno* |
 | Verificação de alíquotas da reforma | Anual (e quando a legislação mudar) | *Configurações > Reforma tributária* |
+| Auditoria de atividades | Quando necessário | *Sistema > Log de atividades* (filtros por período, usuário, categoria e texto) |
 
 ### Restaurar um backup
 1. Feche o sistema.
@@ -108,6 +110,9 @@ manter perfis separados no mesmo usuário do Windows).
 | `ErpLoja.exe` | Pasta escolhida | Aplicação |
 | `loja.db` | Ao lado do exe (padrão) ou indicado | Todos os dados da loja, inclusive parâmetros e credenciais |
 | `backups\*.db` | Pasta do banco | Backups diários, manuais e antes de migrações |
+| `loja_log.db` | Pasta do banco | Log de atividades (consulta em *Sistema > Log de atividades*); retenção em *Configurações > Banco de dados* |
+| `ERP Loja.lnk` | Área de trabalho | Atalho criado na primeira execução |
+| `atalho_criado.txt` | `%LOCALAPPDATA%\ErpLoja` | Marca que o atalho já foi criado (apagar faz criar de novo) |
 | `banco.txt` | `%LOCALAPPDATA%\ErpLoja` | Caminho do último banco |
 
 **Proteja a pasta do banco**: ela contém dados de clientes e credenciais de integração (ver [SECURITY.md](../SECURITY.md)).
