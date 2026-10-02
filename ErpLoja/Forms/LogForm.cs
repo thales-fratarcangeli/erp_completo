@@ -69,7 +69,7 @@ public class LogForm : Form
     {
         if (ate.Value.Date < de.Value.Date)
         {
-            Ui.Erro("A data final é anterior à inicial.");
+            Ui.Erro($"A data final ({ate.Value:dd/MM/yyyy}) é anterior à inicial ({de.Value:dd/MM/yyyy}). Corrija o período e clique em Atualizar.");
             return;
         }
         var dt = Log.Consultar(de.Value, ate.Value,

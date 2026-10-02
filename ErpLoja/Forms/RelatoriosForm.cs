@@ -115,6 +115,13 @@ public class RelatoriosForm : Form
         if (lista.SelectedItem is not Relatorio r)
             return;
         de.Enabled = ate.Enabled = r.UsaPeriodo;
+        if (r.UsaPeriodo && ate.Value.Date < de.Value.Date)
+        {
+            grid.DataSource = null;
+            totais.Text = "";
+            Ui.Erro($"A data final ({ate.Value:dd/MM/yyyy}) é anterior à inicial ({de.Value:dd/MM/yyyy}). Corrija o período e clique em Gerar.");
+            return;
+        }
         var dt = Db.Query(r.Sql, Db.Dia(de.Value), Db.Dia(ate.Value));
         grid.DataSource = dt;
 

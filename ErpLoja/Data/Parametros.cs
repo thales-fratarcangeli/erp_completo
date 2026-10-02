@@ -94,10 +94,36 @@ public static class Parametros
 
     /// <summary>Chaves cujo valor precisa ser um número inteiro não negativo.</summary>
     public static readonly string[] Inteiros =
-        ["serie_55", "proximo_numero_55", "serie_65", "proximo_numero_65", "validade_orcamento_dias", "prazo_vencimento_dias", "max_parcelas", "backups_manter"];
+        ["serie_55", "proximo_numero_55", "serie_65", "proximo_numero_65", "validade_orcamento_dias", "prazo_vencimento_dias", "max_parcelas", "backups_manter",
+         "log_dias_manter"];
+
+    /// <summary>Inteiros que precisam ser 1 ou mais (numeração de notas e parcelas).</summary>
+    public static readonly string[] Positivos = ["proximo_numero_55", "proximo_numero_65", "max_parcelas"];
+
+    /// <summary>Chaves que não podem ficar em branco.</summary>
+    public static readonly string[] Obrigatorios = ["nome_loja"];
 
     /// <summary>Chaves com valor percentual (0 a 100).</summary>
     public static readonly string[] Decimais = ["desconto_maximo_pct", "aliq_cbs", "aliq_ibs_uf", "aliq_ibs_mun"];
+
+    /// <summary>Confere o valor digitado para o parâmetro. Devolve a mensagem para o usuário ou null se estiver válido.</summary>
+    public static string? Validar(Parametro d, string valor)
+    {
+        var texto = valor.Trim();
+        if (Obrigatorios.Contains(d.Chave) && texto.Length == 0)
+            return $"Preencha \"{d.Rotulo}\".";
+        if (Inteiros.Contains(d.Chave))
+        {
+            var minimo = Positivos.Contains(d.Chave) ? 1 : 0;
+            if (!int.TryParse(texto, NumberStyles.None, CultureInfo.CurrentCulture, out var n) || n < minimo)
+                return $"\"{d.Rotulo}\" deve ser um número inteiro {(minimo == 1 ? "a partir de 1" : "(0 ou mais)")}, sem pontos nem vírgulas.";
+        }
+        if (Decimais.Contains(d.Chave) && (!decimal.TryParse(texto, NumberStyles.Number, CultureInfo.CurrentCulture, out var x) || x < 0 || x > 100))
+            return $"\"{d.Rotulo}\" deve ser um número entre 0 e 100 (ex.: 0,90).";
+        if (d.Chave == "resend_remetente" && texto.Length > 0 && !texto.Contains('@'))
+            return "O remetente precisa conter um e-mail, ex.: ERP Loja <nao-responda@sualoja.com.br>";
+        return null;
+    }
 
     static string Txt(string chave) =>
         Db.Config(chave) is { Length: > 0 } v ? v : Definicoes.FirstOrDefault(d => d.Chave == chave)?.Padrao ?? "";

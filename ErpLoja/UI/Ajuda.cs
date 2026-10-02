@@ -26,6 +26,8 @@ public static class Ajuda
             As telas abrem no espaço à direita do menu, sem janelas soltas. Cada tela aberta vira uma aba no topo: clique na aba para voltar a ela e no × para fechá-la.
             - Ctrl+Tab passa para a próxima aba; Ctrl+W fecha a aba atual.
             - Abrir de novo uma tela que já está aberta apenas a traz para a frente.
+            - Telas exclusivas de administrador (Usuários, Contas bancárias, Log de atividades) não aparecem para os demais usuários.
+            - Ao sair com uma venda em andamento no PDV, o sistema pergunta antes; respondendo Não, o PDV volta para a frente.
             Janelas de edição (ex.: editar um pedido) e confirmações continuam aparecendo por cima, porque precisam de uma resposta antes de continuar.
 
             ## Tela inicial
@@ -70,7 +72,7 @@ public static class Ajuda
             1. Digite seu username (ou e-mail) e clique em Enviar código.
             2. Abra seu e-mail, copie o código de 6 dígitos e informe aqui junto com a nova senha.
 
-            - O código vale 15 minutos e aceita até 5 tentativas. Pedir um novo código invalida o anterior.
+            - O código vale 15 minutos e aceita até 5 tentativas. Um novo código enviado invalida o anterior (se o envio falhar, o código que você já recebeu continua valendo).
             - O envio usa o serviço Resend, configurado pelo administrador em Configurações > E-mail.
             """),
 
@@ -306,6 +308,8 @@ public static class Ajuda
             - Fluxo de caixa realizado (contas pagas por dia) e previsto (contas em aberto por vencimento).
             - Produtos sem venda no período e compras por fornecedor.
 
+            Escolha o relatório à esquerda, o período no topo e clique em Gerar. Se a data final for anterior à inicial, o sistema avisa em vez de mostrar um relatório vazio.
+
             Visões que já existem em outras telas não se repetem aqui: gráficos no painel inicial, estoque baixo/inventário na tela Estoque, contas vencidas no Financeiro.
             """),
 
@@ -323,6 +327,8 @@ public static class Ajuda
             - E-mail: chave do Resend e remetente para a recuperação de senha. Use "Enviar e-mail de teste".
             - Banco de dados: arquivo em uso, migrações aplicadas, backups, dias de log mantidos, troca de banco e geração de dados de demonstração (apenas para testes).
             - Minha conta: seu e-mail de recuperação e troca de senha.
+
+            Ao salvar, valores inválidos são recusados com uma mensagem e o cursor vai para o campo: números inteiros (séries, prazos, parcelas, backups, dias de log) não aceitam letras, pontos nem vírgulas; próximo número da nota e máximo de parcelas começam em 1; percentuais vão de 0 a 100; o nome da loja é obrigatório.
             """),
 
         new("LogForm", "Log de atividades", """
