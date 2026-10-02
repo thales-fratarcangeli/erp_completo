@@ -176,6 +176,9 @@ public class FinanceiroForm : Form
         d.Validar = () =>
             valor.Value <= 0 ? Fail("Informe o valor.")
             : data.Value.Date > DateTime.Today ? Fail("A data do pagamento não pode ser futura. Baixe a conta no dia em que o dinheiro entrar ou sair.")
+            // valor muito diferente costuma ser erro de digitação (ex.: 2.000 no lugar de 200)
+            : valor.Value > Ui.Dec(linha["Valor"]) * 2 || valor.Value < Ui.Dec(linha["Valor"]) / 2
+                ? Ui.Confirmar($"O valor informado ({Ui.Moeda(valor.Value)}) é muito diferente do valor da conta ({Ui.Moeda(Ui.Dec(linha["Valor"]))}). Confirma a baixa com esse valor?")
             : true;
         if (d.ShowDialog(this) != DialogResult.OK)
             return;

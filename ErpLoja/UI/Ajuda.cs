@@ -417,6 +417,7 @@ public static class Ajuda
         new("conta_baixa", "Baixa de conta", """
             Registra o recebimento/pagamento. Informe a data efetiva (hoje ou passada, nunca futura), o valor (ajuste para juros ou desconto) e a forma.
             Se a conta tiver boleto em aberto, ele é cancelado ou tem a baixa pedida ao banco na próxima remessa.
+            Valor mais que o dobro ou menos que a metade do valor da conta pede confirmação (evita erro de digitação).
             O valor pago é o que entra no fluxo de caixa realizado e no gráfico de entradas x saídas.
             """),
 
