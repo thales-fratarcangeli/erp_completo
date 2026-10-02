@@ -36,6 +36,8 @@ public class EstoqueInventarioComTelaDesatualizada : ICenario
         var grid = Usuario.Achar<DataGridView>(tela);
         u.Digitar(ComprasUtil.CampoApos<TextBox>(tela, "Pesquisar:"), nome);
         u.Ok(grid.Rows.Cast<DataGridViewRow>().Count(r => r.Visible) >= 1, "filtro pelo nome mostra o produto");
+        var resumo = Usuario.Achar<Label>(tela, l => l.Text.Contains("produto(s)")).Text;
+        u.Ok(resumo.StartsWith($"{grid.Rows.Count} produto(s)"), $"resumo acompanha a pesquisa ({resumo}; {grid.Rows.Count} na grade)");
         u.Ok(ComprasUtil.SelecionarLinha(grid, produto), "produto selecionado na grade");
 
         // venda no caixa enquanto a tela está aberta (sem atualizar)

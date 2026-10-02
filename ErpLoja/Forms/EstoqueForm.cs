@@ -32,7 +32,11 @@ public class EstoqueForm : Form
         Controls.Add(split);
         Controls.Add(barra);
 
-        busca.TextChanged += (_, _) => Ui.Filtrar(produtos, busca.Text);
+        busca.TextChanged += (_, _) =>
+        {
+            Ui.Filtrar(produtos, busca.Text);
+            AtualizarResumo();
+        };
         somenteBaixo.CheckedChanged += (_, _) => Carregar();
         produtos.SelectionChanged += (_, _) => CarregarMovimentos();
         Load += (_, _) =>
@@ -58,8 +62,7 @@ public class EstoqueForm : Form
         produtos.DataSource = dt;
         Ui.Filtrar(produtos, busca.Text);
 
-        var valor = dt.Rows.Cast<DataRow>().Sum(r => Ui.Dec(r["Valor em estoque"]));
-        resumo.Text = $"{dt.Rows.Count} produto(s) · Valor do estoque (custo): {Ui.Moeda(valor)}";
+        AtualizarResumo();
 
         if (selecionado != null)
             foreach (DataGridViewRow r in produtos.Rows)
@@ -70,6 +73,16 @@ public class EstoqueForm : Form
                     break;
                 }
         CarregarMovimentos();
+    }
+
+    /// <summary>Quantidade e valor dos produtos que estão na grade (respeita a pesquisa).</summary>
+    void AtualizarResumo()
+    {
+        if (produtos.DataSource is not DataTable dt)
+            return;
+        var linhas = dt.DefaultView.Cast<DataRowView>().ToList();
+        var valor = linhas.Sum(r => Ui.Dec(r["Valor em estoque"]));
+        resumo.Text = $"{linhas.Count} produto(s) · Valor do estoque (custo): {Ui.Moeda(valor)}";
     }
 
     void CarregarMovimentos()
