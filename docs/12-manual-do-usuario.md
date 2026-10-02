@@ -204,6 +204,9 @@ A ficha técnica é a receita do produto fabricado: quais insumos e quanto de ca
 - Perda %: quebra/desperdício do insumo no processo (soma na necessidade e no custo).
 - Custo adicional por lote: mão de obra, energia, embalagem.
 - O rodapé mostra o custo do lote, o custo unitário estimado e a margem sobre o preço de venda (em vermelho se negativa).
+- Digitar o código de um insumo que já está na ficha soma a quantidade na mesma linha. F3 abre a busca de produtos.
+- O produto não pode ser insumo de si mesmo, nem de forma indireta (ex.: a massa usa a torta e a torta usa a massa).
+- Trocar de produto ou fechar a tela com a ficha alterada e não salva pede confirmação antes de descartar.
 - "Nova ordem de produção" já abre a OP para o produto.
 
 ## Ordens de produção
@@ -217,7 +220,8 @@ A ordem de produção (OP) planeja e registra a fabricação.
 - Cancelar: só OP não concluída. Imprimir: ficha da OP para a produção.
 
 ### Insumos insuficientes
-A grade de baixo mostra previsto, consumido e saldo. Faltando insumo, a regra de Configurações > Produção decide: perguntar, permitir ou bloquear.
+A grade de baixo mostra previsto, consumido e saldo. Ao concluir, a falta é conferida com a quantidade realmente produzida (produzir mais que o planejado consome mais insumo). Faltando insumo, a regra de Configurações > Produção decide: perguntar, permitir ou bloquear.
+A OP concluída sai do filtro "Em aberto": use "Concluídas" ou "Todas" para vê-la.
 
 ## Estoque
 
@@ -240,13 +244,14 @@ Controle dos fretes: contratação, CIOT, contas a pagar ao transportador e situ
 
 ### Frete
 - Modalidade: frota própria ou contratado. Informe transportador, motorista, veículo, rota, carga e valores (frete, pedágio, adiantamento).
+- Peso acima da capacidade cadastrada do veículo pede confirmação ao salvar.
 - Situação: ABERTO → EM TRÂNSITO → ENTREGUE (ou CANCELADO).
-- Gerar contas a pagar: adiantamento (na data do frete) e saldo (na previsão de entrega) para o transportador, uma única vez.
+- Gerar contas a pagar: adiantamento (na data do frete) e saldo (na previsão de entrega) para o transportador, uma única vez. Depois disso, valores e transportador ficam travados no editor. Frete cancelado ou sem valor não gera contas.
 
 ### CIOT
-- O Código Identificador da Operação de Transporte é obrigatório quando o transportador é autônomo (TAC, CPF) — o editor avisa.
-- Declarar CIOT envia a operação à administradora configurada (Pamcard, ou SIMULADOR para testes) e grava o código. Depois de declarado, valores e envolvidos ficam travados.
-- Encerrar CIOT ao final da viagem; Cancelar CIOT (com motivo) se a viagem não acontecer — cancele o CIOT antes de cancelar o frete.
+- O Código Identificador da Operação de Transporte é obrigatório quando o transportador é autônomo (TAC, CPF) — o editor avisa. Sem o CIOT declarado (ou com ele cancelado), o frete não passa para EM TRÂNSITO nem ENTREGUE.
+- Declarar CIOT envia a operação à administradora configurada (Pamcard, ou SIMULADOR para testes) e grava o código. Depois de declarado, valores, envolvidos e rota (origem/destino) ficam travados.
+- Encerrar CIOT ao final da viagem (ao marcar Entregue com CIOT declarado, o sistema lembra); Cancelar CIOT (com motivo) se a viagem não acontecer — cancele o CIOT antes de cancelar o frete.
 - Configure a administradora e as credenciais em Configurações > Transporte e CIOT.
 
 ## Financeiro - contas a receber e a pagar
@@ -392,7 +397,8 @@ Código e descrição são obrigatórios; o código e o código de barras são u
 
 Veículos da frota própria e de terceiros usados nos fretes.
 
-- Placa no padrão Mercosul (ABC1D23) ou antigo (ABC1234).
+- Placa no padrão Mercosul (ABC1D23) ou antigo (ABC1234), sem hífen.
+- RENAVAM: só números (9 a 11 dígitos). RNTRC: 8 ou 9 dígitos.
 - Veículo de terceiro precisa do proprietário (cadastrado como transportador) e, para o CIOT, do RNTRC.
 - Capacidade e tara ajudam a conferir o peso das cargas.
 
