@@ -215,6 +215,8 @@ public class SistemaFuncionarioProcuraTela : ICenario
         u.QuandoAbrir<LocalizarTelaForm>(f =>
         {
             var busca = Usuario.Achar<TextBox>(f);
+            var todas = Usuario.Achar<ListBox>(f).Items.Cast<string>().ToList();
+            u.Ok(todas.Count > 0 && !todas.Contains("Localizar tela"), "o localizador lista as telas, sem listar a si mesmo");
             u.Digitar(busca, "estoque minimo");
             var lista = Usuario.Achar<ListBox>(f);
             u.Ok(lista.Items.Count > 0 && lista.SelectedIndex == 0, "o localizador lista resultados e seleciona o primeiro");

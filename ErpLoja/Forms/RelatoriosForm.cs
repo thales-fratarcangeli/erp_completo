@@ -67,7 +67,7 @@ public class RelatoriosForm : Form
         new("Produtos sem venda no período", true, ["Estoque"], """
             SELECT p.codigo AS "Código", p.nome AS "Produto", p.estoque AS "Estoque", p.preco_venda AS "Preço venda"
             FROM produtos p
-            WHERE p.ativo = 1 AND NOT EXISTS (
+            WHERE p.ativo = 1 AND p.tipo <> 'INSUMO' AND NOT EXISTS (
                 SELECT 1 FROM venda_itens i JOIN vendas v ON v.id = i.venda_id
                 WHERE i.produto_id = p.id AND v.status = 'FINALIZADA' AND date(v.data) BETWEEN @p0 AND @p1)
             ORDER BY p.nome

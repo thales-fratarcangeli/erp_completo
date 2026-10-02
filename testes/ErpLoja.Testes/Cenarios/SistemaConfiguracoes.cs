@@ -221,6 +221,8 @@ public class SistemaFuncionarioMinhaConta : ICenario
             u.Clicar(aba, "Alterar senha");
             u.Ok(Senhas.Verificar("abcd", Ui.Txt(Db.Scalar("SELECT senha FROM usuarios WHERE id = @p0", id))) && atual.Text == "",
                 "senha alterada e campos limpos");
+            u.Ok(Log.Consultar(DateTime.Today, DateTime.Today, Log.Acesso, "Joana Caixa", "Senha alterada").Rows.Count == 1,
+                "a troca de senha fica registrada no log de acesso (categoria ACESSO)");
             f.Close();
         }
         finally

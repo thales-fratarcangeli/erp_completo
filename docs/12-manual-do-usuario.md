@@ -303,7 +303,7 @@ Relatórios em tabela, com totais e exportação para CSV (abre no Excel).
 - Vendas por dia, produtos mais vendidos (com custo e lucro), vendas por cliente e por vendedor.
 - Lucro bruto do período: faturamento líquido − custo das mercadorias vendidas (custo médio no momento da venda).
 - Fluxo de caixa realizado (contas pagas por dia) e previsto (contas em aberto por vencimento).
-- Produtos sem venda no período e compras por fornecedor.
+- Produtos sem venda no período (insumos de produção ficam de fora, pois não são vendidos) e compras por fornecedor.
 
 Escolha o relatório à esquerda, o período no topo e clique em Gerar. Se a data final for anterior à inicial, o sistema avisa em vez de mostrar um relatório vazio.
 
@@ -332,7 +332,7 @@ Ao salvar, valores inválidos são recusados com uma mensagem e o cursor vai par
 Registro de tudo o que é feito no sistema: quem fez, o quê, em qual tela, quando e em qual computador. Somente administradores.
 
 ### Categorias
-- ACESSO: entradas, saídas, senhas erradas e recuperação de senha.
+- ACESSO: entradas, saídas, senhas erradas, troca e recuperação de senha e tentativas de abrir telas de administrador.
 - TELA: telas abertas e fechadas.
 - AÇÃO: botões clicados, confirmações (sim/não), mensagens exibidas, exportações e operações do PDV.
 - DADOS: gravações no banco (o que foi incluído, alterado ou excluído e em quais tabelas). Só aparecem gravações confirmadas.

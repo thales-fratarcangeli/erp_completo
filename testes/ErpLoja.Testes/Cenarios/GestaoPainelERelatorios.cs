@@ -99,6 +99,13 @@ public class GestaoGerenteTiraRelatorios : ICenario
             u.Ok(u.Mensagens.All(m => m.Tipo != "ERRO") && grid.DataSource is DataTable, $"relatório '{lista.Items[i]}' em 6 meses gera sem erro" + SistemaUtil.Erros(u));
         }
 
+        // produtos sem venda: insumos de produção não entram (não são vendidos)
+        lista.SelectedIndex = lista.Items.Cast<object>().ToList().FindIndex(x => x.ToString()!.StartsWith("Produtos sem venda"));
+        u.Clicar(rel, "Gerar");
+        var insumos = Db.Query("SELECT codigo FROM produtos WHERE tipo = 'INSUMO'").Rows.Cast<DataRow>().Select(r => Ui.Txt(r["codigo"])).ToHashSet();
+        var semVenda = ((DataTable)grid.DataSource!).Rows.Cast<DataRow>().Select(r => Ui.Txt(r["Código"])).ToList();
+        u.Ok(insumos.Count > 0 && !semVenda.Any(insumos.Contains), $"'Produtos sem venda' não lista insumos de produção ({semVenda.Count(insumos.Contains)} insumo(s) na lista)");
+
         // vendas por dia: soma do relatório = soma do banco
         lista.SelectedIndex = 0;
         u.Clicar(rel, "Gerar");

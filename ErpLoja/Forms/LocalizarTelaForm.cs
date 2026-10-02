@@ -89,6 +89,8 @@ public class LocalizarTelaForm : Form
         resultados = string.IsNullOrWhiteSpace(busca.Text)
             ? Navegacao.Telas().Where(t => Sessao.Admin || !t.SoAdmin).Select(t => (t, 0, "")).ToList()
             : Navegacao.Buscar(busca.Text, Sessao.Admin);
+        // o próprio localizador não aparece na lista (escolhê-lo só reabriria esta janela)
+        resultados.RemoveAll(r => r.Tela.Chave == nameof(LocalizarTelaForm));
         lista.BeginUpdate();
         lista.Items.Clear();
         foreach (var r in resultados)

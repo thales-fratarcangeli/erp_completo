@@ -247,6 +247,7 @@ public class ConfiguracoesForm : Form
             if (nova.Text.Length < 4) { Ui.Erro("A nova senha deve ter pelo menos 4 caracteres."); return; }
             if (nova.Text != confirma.Text) { Ui.Erro("A confirmação não confere."); return; }
             Db.Exec("UPDATE usuarios SET senha = @p0 WHERE id = @p1", Senhas.Hash(nova.Text), Sessao.UsuarioId);
+            Log.Registrar(Log.Acesso, "Senha alterada pelo próprio usuário", "Configurações > Minha conta");
             atual.Clear(); nova.Clear(); confirma.Clear();
             Ui.Info("Senha alterada.");
         }, primario: true));
