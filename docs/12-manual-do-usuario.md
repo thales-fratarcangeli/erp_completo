@@ -11,12 +11,14 @@ O menu é dividido por áreas, cada uma com sua cor (a mesma cor aparece na faix
 Cada função existe em um único lugar do menu — não há duas telas fazendo a mesma coisa.
 
 ### Buscar tela (Ctrl+K)
-Não sabe onde fica? Clique em "Buscar tela" ou tecle Ctrl+K e digite uma palavra (ex.: boleto, frete, senha, estoque). O sistema mostra todas as telas relacionadas, procurando nos nomes, nas palavras-chave e no texto de ajuda.
+Não sabe onde fica? Clique em "Buscar tela" ou tecle Ctrl+K e digite uma palavra (ex.: boleto, frete, senha, estoque). O sistema mostra todas as telas relacionadas, procurando nos nomes, nas palavras-chave e no texto de ajuda. Pode escrever do seu jeito (ex.: "como cadastrar cliente", "vender", "trocar minha senha"): palavras como "como", "onde" e "o" são ignoradas e verbos acham a tela pelo radical.
 
 ### Telas abertas (abas)
 As telas abrem no espaço à direita do menu, sem janelas soltas. Cada tela aberta vira uma aba no topo: clique na aba para voltar a ela e no × para fechá-la.
 - Ctrl+Tab passa para a próxima aba; Ctrl+W fecha a aba atual.
 - Abrir de novo uma tela que já está aberta apenas a traz para a frente.
+- Telas exclusivas de administrador (Usuários, Contas bancárias, Log de atividades) não aparecem para os demais usuários.
+- Ao sair com uma venda em andamento no PDV, o sistema pergunta antes; respondendo Não, o PDV volta para a frente.
 Janelas de edição (ex.: editar um pedido) e confirmações continuam aparecendo por cima, porque precisam de uma resposta antes de continuar.
 
 ### Tela inicial
@@ -61,7 +63,7 @@ Se o seu usuário não tiver e-mail, um administrador pode definir uma nova senh
 1. Digite seu username (ou e-mail) e clique em Enviar código.
 2. Abra seu e-mail, copie o código de 6 dígitos e informe aqui junto com a nova senha.
 
-- O código vale 15 minutos e aceita até 5 tentativas. Pedir um novo código invalida o anterior.
+- O código vale 15 minutos e aceita até 5 tentativas. Um novo código enviado invalida o anterior (se o envio falhar, o código que você já recebeu continua valendo).
 - O envio usa o serviço Resend, configurado pelo administrador em Configurações > E-mail.
 
 ## PDV - frente de caixa
@@ -313,7 +315,9 @@ Relatórios em tabela, com totais e exportação para CSV (abre no Excel).
 - Vendas por dia, produtos mais vendidos (com custo e lucro), vendas por cliente e por vendedor.
 - Lucro bruto do período: faturamento líquido − custo das mercadorias vendidas (custo médio no momento da venda).
 - Fluxo de caixa realizado (contas pagas por dia) e previsto (contas em aberto por vencimento).
-- Produtos sem venda no período e compras por fornecedor.
+- Produtos sem venda no período (insumos de produção ficam de fora, pois não são vendidos) e compras por fornecedor.
+
+Escolha o relatório à esquerda e o período no topo: o relatório é atualizado na hora (o botão Gerar refaz a consulta). Se a data final for anterior à inicial, o sistema avisa em vez de mostrar um relatório vazio.
 
 Visões que já existem em outras telas não se repetem aqui: gráficos no painel inicial, estoque baixo/inventário na tela Estoque, contas vencidas no Financeiro.
 
@@ -333,12 +337,14 @@ Tela única de configuração. Administradores veem todas as abas; os demais usu
 - Banco de dados: arquivo em uso, migrações aplicadas, backups, dias de log mantidos, troca de banco e geração de dados de demonstração (apenas para testes).
 - Minha conta: seu e-mail de recuperação e troca de senha.
 
+Ao salvar, valores inválidos são recusados com uma mensagem e o cursor vai para o campo: números inteiros (séries, prazos, parcelas, backups, dias de log) não aceitam letras, pontos nem vírgulas; próximo número da nota e máximo de parcelas começam em 1; percentuais vão de 0 a 100; o nome da loja é obrigatório.
+
 ## Log de atividades
 
 Registro de tudo o que é feito no sistema: quem fez, o quê, em qual tela, quando e em qual computador. Somente administradores.
 
 ### Categorias
-- ACESSO: entradas, saídas, senhas erradas e recuperação de senha.
+- ACESSO: entradas, saídas, senhas erradas, troca e recuperação de senha e tentativas de abrir telas de administrador.
 - TELA: telas abertas e fechadas.
 - AÇÃO: botões clicados, confirmações (sim/não), mensagens exibidas, exportações e operações do PDV.
 - DADOS: gravações no banco (o que foi incluído, alterado ou excluído e em quais tabelas). Só aparecem gravações confirmadas.

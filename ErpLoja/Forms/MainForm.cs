@@ -105,6 +105,8 @@ public class MainForm : Form
             AtualizarCabecalho();
             AtualizarAjuda();
         };
+        ConfiguracoesForm.ParametrosSalvos += AtualizarCabecalho;
+        Disposed += (_, _) => ConfiguracoesForm.ParametrosSalvos -= AtualizarCabecalho;
         FormClosing += (_, e) =>
         {
             // fecha as telas embutidas uma a uma: cada uma pode pedir confirmação (ex.: venda em andamento no PDV)
@@ -265,6 +267,8 @@ public class MainForm : Form
 
     void AtualizarCabecalho()
     {
+        if (IsDisposed)
+            return;
         titulo.Text = Db.Config("nome_loja");
         Text = "ERP Loja - " + titulo.Text + (ativa is null ? "" : " - " + ativa.Text);
     }
@@ -279,6 +283,12 @@ public class MainForm : Form
     /// <summary>Abre a tela no palco (ou traz para frente se já estiver aberta).</summary>
     void Abrir(Tela tela)
     {
+        if (tela.SoAdmin && !Sessao.Admin)
+        {
+            Log.Registrar(Log.Acesso, "Acesso negado a " + tela.Titulo, "tela exclusiva de administrador", tela: tela.Titulo);
+            Ui.Erro($"\"{tela.Titulo}\" é exclusiva de administradores. Peça a um administrador para fazer isso.");
+            return;
+        }
         if (tela.Acao is { } acao)
         {
             Log.Registrar(Log.Tela, "Abriu " + tela.Titulo, tela: tela.Titulo);

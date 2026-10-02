@@ -72,7 +72,7 @@ public static class Email
 
 /// <summary>
 /// Recuperação de senha por código enviado ao e-mail do usuário.
-/// Código de 6 dígitos, guardado apenas como hash, válido por 15 minutos, no máximo 5 tentativas; um novo pedido invalida os anteriores.
+/// Código de 6 dígitos, guardado apenas como hash, válido por 15 minutos, no máximo 5 tentativas; um novo código enviado com sucesso invalida os anteriores.
 /// </summary>
 public static class RecuperacaoSenha
 {
@@ -96,13 +96,7 @@ public static class RecuperacaoSenha
 
         var codigo = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
         var id = (long)u["id"];
-        using (var s = new DbSessao(transacao: true))
-        {
-            s.Exec("UPDATE recuperacao_senha SET usado = 1 WHERE usuario_id = @p0 AND usado = 0", id);
-            s.Exec("INSERT INTO recuperacao_senha(usuario_id, codigo_hash, expira_em) VALUES(@p0, @p1, @p2)",
-                id, Senhas.Hash(codigo), DateTime.Now.AddMinutes(MinutosValidade));
-            s.Commit();
-        }
+        var expira = DateTime.Now.AddMinutes(MinutosValidade);
 
         var loja = System.Net.WebUtility.HtmlEncode(Db.Config("nome_loja"));
         await Email.Enviar(email, $"Código para redefinir sua senha - {Db.Config("nome_loja")}", $"""
@@ -113,6 +107,14 @@ public static class RecuperacaoSenha
               <p style="color:#52514e">O código vale por {MinutosValidade} minutos. Se você não pediu, ignore este e-mail.</p>
             </div>
             """);
+        // só depois do envio: se o e-mail falhar, o código recebido antes continua valendo
+        using (var s = new DbSessao(transacao: true))
+        {
+            s.Exec("UPDATE recuperacao_senha SET usado = 1 WHERE usuario_id = @p0 AND usado = 0", id);
+            s.Exec("INSERT INTO recuperacao_senha(usuario_id, codigo_hash, expira_em) VALUES(@p0, @p1, @p2)",
+                id, Senhas.Hash(codigo), expira);
+            s.Commit();
+        }
         Log.Registrar(Log.Acesso, "Código de recuperação de senha enviado", $"usuário {Ui.Txt(u["username"])} → {Email.Mascarar(email)}", tela: "Recuperar senha");
         return Email.Mascarar(email);
     }

@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Globalization;
 
 namespace ErpLoja.Forms;
 
@@ -8,6 +7,9 @@ public class ConfiguracoesForm : Form
 {
     readonly TabControl abas = new() { Dock = DockStyle.Fill, Padding = new Point(16, 6) };
     readonly Dictionary<string, Control> campos = new();
+
+    /// <summary>Avisado depois de salvar parâmetros (a janela principal atualiza o nome da loja no cabeçalho).</summary>
+    public static event Action? ParametrosSalvos;
 
     public ConfiguracoesForm()
     {
@@ -86,37 +88,42 @@ public class ConfiguracoesForm : Form
     {
         foreach (var d in definicoes)
         {
-            var texto = campos[d.Chave].Text.Trim();
-            if (Parametros.Inteiros.Contains(d.Chave) && (!int.TryParse(texto, out var n) || n < 0))
+            if (Parametros.Validar(d, campos[d.Chave].Text) is { } erro)
             {
-                Ui.Erro($"\"{d.Rotulo}\" deve ser um número inteiro.");
-                campos[d.Chave].Focus();
+                Ui.Erro(erro);
+                Focar(campos[d.Chave]);
                 return false;
             }
-            if (Parametros.Decimais.Contains(d.Chave) && (!decimal.TryParse(texto, NumberStyles.Number, CultureInfo.CurrentCulture, out var x) || x < 0 || x > 100))
-            {
-                Ui.Erro($"\"{d.Rotulo}\" deve ser um número entre 0 e 100.");
-                campos[d.Chave].Focus();
-                return false;
-            }
-        }
-        if (definicoes.Any(d => d.Chave == "resend_remetente") && campos["resend_remetente"].Text.Trim() is { Length: > 0 } remetente &&
-            !remetente.Contains('@'))
-        {
-            Ui.Erro("O remetente precisa conter um e-mail, ex.: ERP Loja <nao-responda@sualoja.com.br>");
-            return false;
         }
         foreach (var d in definicoes)
             Db.SalvarConfig(d.Chave, campos[d.Chave].Text.Trim());
+        ParametrosSalvos?.Invoke();
         if (!silencioso)
             Ui.Feito("Configurações salvas.");
         return true;
+    }
+
+    /// <summary>Mostra a aba do campo e põe o cursor nele.</summary>
+    void Focar(Control campo)
+    {
+        for (var p = campo.Parent; p != null; p = p.Parent)
+            if (p is TabPage aba)
+            {
+                abas.SelectedTab = aba;
+                break;
+            }
+        campo.Focus();
     }
 
     async Task TestarEmail(List<Parametro> definicoes)
     {
         if (!Salvar(definicoes))
             return;
+        if (string.IsNullOrWhiteSpace(Parametros.ResendApiKey) || string.IsNullOrWhiteSpace(Parametros.ResendRemetente))
+        {
+            Ui.Erro("O envio de e-mail não está configurado: preencha a chave da API do Resend e o remetente nesta aba e tente de novo.");
+            return;
+        }
         var destino = Ui.Txt(Db.Scalar("SELECT email FROM usuarios WHERE id = @p0", Sessao.UsuarioId));
         if (!Email.Valido(destino))
         {
@@ -240,6 +247,7 @@ public class ConfiguracoesForm : Form
             if (nova.Text.Length < 4) { Ui.Erro("A nova senha deve ter pelo menos 4 caracteres."); return; }
             if (nova.Text != confirma.Text) { Ui.Erro("A confirmação não confere."); return; }
             Db.Exec("UPDATE usuarios SET senha = @p0 WHERE id = @p1", Senhas.Hash(nova.Text), Sessao.UsuarioId);
+            Log.Registrar(Log.Acesso, "Senha alterada pelo próprio usuário", "Configurações > Minha conta");
             atual.Clear(); nova.Clear(); confirma.Clear();
             Ui.Info("Senha alterada.");
         }, primario: true));

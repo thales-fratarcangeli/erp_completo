@@ -67,7 +67,7 @@ public class RelatoriosForm : Form
         new("Produtos sem venda no período", true, ["Estoque"], """
             SELECT p.codigo AS "Código", p.nome AS "Produto", p.estoque AS "Estoque", p.preco_venda AS "Preço venda"
             FROM produtos p
-            WHERE p.ativo = 1 AND NOT EXISTS (
+            WHERE p.ativo = 1 AND p.tipo <> 'INSUMO' AND NOT EXISTS (
                 SELECT 1 FROM venda_itens i JOIN vendas v ON v.id = i.venda_id
                 WHERE i.produto_id = p.id AND v.status = 'FINALIZADA' AND date(v.data) BETWEEN @p0 AND @p1)
             ORDER BY p.nome
@@ -107,7 +107,21 @@ public class RelatoriosForm : Form
         Controls.Add(rodape);
 
         lista.SelectedIndexChanged += (_, _) => Gerar();
+        // trocar o período já atualiza o relatório (datas invertidas só avisam no rodapé, sem caixa de mensagem a cada clique)
+        de.ValueChanged += (_, _) => PeriodoMudou();
+        ate.ValueChanged += (_, _) => PeriodoMudou();
         Load += (_, _) => lista.SelectedIndex = 0;
+    }
+
+    void PeriodoMudou()
+    {
+        if (ate.Value.Date < de.Value.Date)
+        {
+            grid.DataSource = null;
+            totais.Text = "A data final é anterior à inicial: corrija o período.";
+            return;
+        }
+        Gerar();
     }
 
     void Gerar()
@@ -115,6 +129,13 @@ public class RelatoriosForm : Form
         if (lista.SelectedItem is not Relatorio r)
             return;
         de.Enabled = ate.Enabled = r.UsaPeriodo;
+        if (r.UsaPeriodo && ate.Value.Date < de.Value.Date)
+        {
+            grid.DataSource = null;
+            totais.Text = "";
+            Ui.Erro($"A data final ({ate.Value:dd/MM/yyyy}) é anterior à inicial ({de.Value:dd/MM/yyyy}). Corrija o período e clique em Gerar.");
+            return;
+        }
         var dt = Db.Query(r.Sql, Db.Dia(de.Value), Db.Dia(ate.Value));
         grid.DataSource = dt;
 
