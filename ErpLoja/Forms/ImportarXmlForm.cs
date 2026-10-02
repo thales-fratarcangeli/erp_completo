@@ -57,6 +57,16 @@ public class ImportarXmlForm : Form
         forma.SelectedItem = nota.Duplicatas.Count > 0 ? Operacoes.APrazo : "Dinheiro";
         lancar.CheckedChanged += (_, _) => forma.Enabled = lancar.Checked;
 
+        // a mesma NF já entrou por pedido de compra recebido: sugere só registrar a nota (sem estoque em dobro)
+        if (nota.FornecedorId is long forn && Operacoes.CompraComMesmaNota(forn, nota.Numero.ToString()) is long compraExistente)
+        {
+            lancar.Checked = false;
+            dica.ForeColor = Color.Firebrick;
+            dica.Height = 66;
+            dica.Text = $"ATENÇÃO: esta NF já entrou no estoque pela compra nº {compraExistente} (pedido recebido). " +
+                        "\"Lançar compra\" foi desmarcado para não dar entrada em dobro; a nota será só registrada. " + dica.Text;
+        }
+
         MontarGrade();
     }
 
@@ -170,7 +180,7 @@ public class ImportarXmlForm : Form
         }
         if (ImportacaoXml.JaImportada(nota.Chave))
         {
-            Ui.Erro("Esta nota já foi importada.");
+            Ui.Erro(ImportacaoXml.MensagemJaImportada);
             return false;
         }
         ImportacaoXml.SugerirVinculos(nota);

@@ -44,8 +44,8 @@ Sumário: [Cadastros](#cadastros-rn-cad) · [Estoque](#estoque-rn-est) · [Custo
 | RN-EST-02 | Efeitos: venda (SAIDA −), cancelamento de venda (ENTRADA +), compra/XML (ENTRADA + qtd × fator), cancelamento de compra (SAIDA −), consumo de OP (SAIDA −), produção concluída (ENTRADA +), ajuste entrada/saída (±), inventário (AJUSTE = contado − saldo). |
 | RN-EST-03 | Saldo arredondado em 3 casas (venda fracionada, ex.: kg). |
 | RN-EST-04 | O saldo **pode ficar negativo** quando a operação sem estoque é permitida/confirmada (RN-VEN-03, RN-PRO-05) ou ao cancelar compra já vendida. |
-| RN-EST-05 | Ajuste exige motivo; ajuste que não altera o saldo não é gravado. |
-| RN-EST-06 | Situação: SEM ESTOQUE (saldo ≤ 0), BAIXO (saldo ≤ mínimo), OK. Sugestão de compra = máx(mínimo − saldo, 0). Valor em estoque = máx(saldo, 0) × custo médio. |
+| RN-EST-05 | Ajuste exige motivo; ajuste que não altera o saldo não é gravado. Inventário usa o saldo do banco no momento de aplicar (não o da tela). Saída manual que deixaria o saldo negativo pede confirmação. |
+| RN-EST-06 | Situação: SEM ESTOQUE (saldo ≤ 0), BAIXO (saldo ≤ mínimo), OK. Sugestão de compra = máx(mínimo − saldo, 0). Valor em estoque = máx(saldo, 0) × custo médio. "Gerar pedido de compra" monta um pedido de compra (não gravado) com a sugestão dos produtos listados, pelo custo médio. |
 
 ## Custo (RN-CUS)
 
@@ -54,7 +54,7 @@ Sumário: [Cadastros](#cadastros-rn-cad) · [Estoque](#estoque-rn-est) · [Custo
 | RN-CUS-01 | O custo do produto é o **custo médio ponderado**: se o saldo antes da entrada é > 0, `(saldo × custo + qtd × custo_entrada) ÷ (saldo + qtd)` (4 casas); senão, o custo da entrada. Vale para compras e produção. |
 | RN-CUS-02 | Cancelar compra **não** recalcula o custo retroativamente. |
 | RN-CUS-03 | Cada item vendido guarda o custo médio do momento; o lucro bruto usa esse custo. |
-| RN-CUS-04 | Pedido de compra: frete e desconto geral são rateados pelo valor dos itens: `custo unit. = total do item × (total do pedido ÷ soma dos itens) ÷ qtd`. |
+| RN-CUS-04 | Pedido de compra: frete e desconto geral são rateados pelo valor dos itens: `custo unit. = total do item × (total do pedido ÷ soma dos itens) ÷ qtd`. Total da compra e contas a pagar = total do pedido (sem diferença de centavos do rateio). |
 | RN-CUS-05 | XML: custo efetivo do item = vProd − vDesc + vFrete + vSeg + vOutro + vIPI + vICMSST, dividido por qCom × fator. |
 | RN-CUS-06 | Produção: custo real = Σ(consumo × custo médio do insumo) + custo adicional da ficha × (produzido ÷ rendimento). |
 | RN-CUS-07 | Margem exibida = (preço − custo) ÷ custo × 100. |
@@ -89,7 +89,7 @@ Sumário: [Cadastros](#cadastros-rn-cad) · [Estoque](#estoque-rn-est) · [Custo
 
 | ID | Regra |
 |---|---|
-| RN-PED-01 | Item: `total = arredondar(qtd × preço − desconto do item, 2)`. Total = máx(subtotal − descontos − desconto geral + frete, 0); descontos não podem zerar um total com itens. |
+| RN-PED-01 | Item: `total = arredondar(qtd × preço − desconto do item, 2)`. Total = máx(subtotal − descontos − desconto geral + frete, 0); descontos não podem zerar um total com itens; o desconto de um item não pode passar de qtd × preço do item. |
 | RN-PED-02 | Só documentos ABERTOS podem ser alterados. Orçamento ABERTO com validade vencida é exibido como VENCIDO (não gravado) e pode ser aprovado com confirmação. |
 | RN-PED-03 | Transições: Orçamento ABERTO → APROVADO (gera pedido de venda) / RECUSADO / CANCELADO. Pedido de venda ABERTO → FATURADO (gera venda) / CANCELADO. Pedido de compra ABERTO → RECEBIDO (gera compra) / CANCELADO. Cancelar a venda/compra gerada reabre o pedido. |
 | RN-PED-04 | Faturar: aplica RN-VEN-03; venda com desconto = descontos dos itens + geral, e frete. "Salvar e faturar"/"Salvar e receber" concluem a partir do editor. |
@@ -101,13 +101,14 @@ Sumário: [Cadastros](#cadastros-rn-cad) · [Estoque](#estoque-rn-est) · [Custo
 |---|---|
 | RN-COM-01 | Toda entrada de mercadoria acontece por **pedido de compra recebido** ou **importação de XML** (um ponto de entrada por origem). |
 | RN-COM-02 | Entrada gera estoque, recálculo do custo médio e contas a pagar (à vista: paga; a prazo: parcelas ou duplicatas). |
-| RN-COM-03 | Cancelamento (só administrador): retira o estoque, cancela as contas a pagar e reabre o pedido de origem. |
+| RN-COM-03 | Cancelamento (só administrador): retira o estoque, cancela as contas a pagar e reabre o pedido de origem. Antes, avisa produtos que ficarão negativos e contas já pagas. |
+| RN-COM-04 | Mesma NF (fornecedor + número, sem zeros à esquerda) em compra ativa: receber pedido pede confirmação; na importação do XML "Lançar compra" vem desmarcado. |
 
 ## Importação de XML (RN-XML)
 
 | ID | Regra |
 |---|---|
-| RN-XML-01 | Aceita NF-e/NFC-e (com ou sem `nfeProc`). A chave de acesso identifica a nota: **não importa duas vezes**. |
+| RN-XML-01 | Aceita NF-e/NFC-e (com ou sem `nfeProc`). A chave de acesso identifica a nota: **não importa duas vezes**, exceto se a compra gerada foi cancelada (correção de vínculo/fator): a importação anterior fica CANCELADA no histórico e a chave é liberada. Arquivo que não é XML de NF-e é recusado com mensagem clara. |
 | RN-XML-02 | Fornecedor localizado pelo CNPJ (só dígitos); inexistente é cadastrado; existente recebe o papel fornecedor. |
 | RN-XML-03 | Vínculo de cada item: (1) vínculo memorizado fornecedor+código, com fator; (2) EAN/GTIN válido (8, 12, 13 ou 14 dígitos; "SEM GTIN" ignorado) igual ao código de barras ou código do produto; (3) escolha do usuário ou "cadastrar novo". |
 | RN-XML-04 | Estoque entra `qCom × fator`. Custo conforme RN-CUS-05. |

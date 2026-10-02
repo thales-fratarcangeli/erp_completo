@@ -75,7 +75,7 @@ Use *Configurações > E-mail > Enviar e-mail de teste* para validar a configura
 | Situação | Causa | Resolução |
 |---|---|---|
 | "O arquivo não é um XML de NF-e" | Arquivo de outro tipo (ex.: XML de evento/cancelamento, PDF renomeado) | Pedir ao fornecedor o XML da nota (procNFe) |
-| "Esta nota já foi importada" | Mesma chave de acesso | Nada a fazer; ela já está em *Notas fiscais* |
+| "Esta nota já foi importada" | Mesma chave de acesso | Nada a fazer; ela já está em *Notas fiscais*. Para corrigir vínculo/fator, cancele a compra em *Compras realizadas* e importe de novo |
 | Estoque entrou com quantidade errada | Unidade do fornecedor diferente da sua (caixa x unidade) | Cancelar a compra, reimportar ajustando o **Fator**. O fator fica memorizado |
 | Produto novo com preço zero | Comportamento esperado | Ajustar o preço de venda em *Cadastros > Produtos* |
 

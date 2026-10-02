@@ -18,6 +18,7 @@ public class EstoqueForm : Form
             Ui.Rotulo("Pesquisar:"), busca, somenteBaixo,
             Ui.Botao("Atualizar", (_, _) => Carregar()),
             Ui.Botao("Ajustar estoque", (_, _) => Ajustar(), primario: true),
+            Ui.Botao("Gerar pedido de compra", (_, _) => GerarPedido()),
             Ui.Botao("Exportar CSV", (_, _) => Ui.ExportarCsv(produtos, "estoque")),
             resumo,
         ]);
@@ -31,7 +32,11 @@ public class EstoqueForm : Form
         Controls.Add(split);
         Controls.Add(barra);
 
-        busca.TextChanged += (_, _) => Ui.Filtrar(produtos, busca.Text);
+        busca.TextChanged += (_, _) =>
+        {
+            Ui.Filtrar(produtos, busca.Text);
+            AtualizarResumo();
+        };
         somenteBaixo.CheckedChanged += (_, _) => Carregar();
         produtos.SelectionChanged += (_, _) => CarregarMovimentos();
         Load += (_, _) =>
@@ -57,8 +62,7 @@ public class EstoqueForm : Form
         produtos.DataSource = dt;
         Ui.Filtrar(produtos, busca.Text);
 
-        var valor = dt.Rows.Cast<DataRow>().Sum(r => Ui.Dec(r["Valor em estoque"]));
-        resumo.Text = $"{dt.Rows.Count} produto(s) · Valor do estoque (custo): {Ui.Moeda(valor)}";
+        AtualizarResumo();
 
         if (selecionado != null)
             foreach (DataGridViewRow r in produtos.Rows)
@@ -69,6 +73,16 @@ public class EstoqueForm : Form
                     break;
                 }
         CarregarMovimentos();
+    }
+
+    /// <summary>Quantidade e valor dos produtos que estão na grade (respeita a pesquisa).</summary>
+    void AtualizarResumo()
+    {
+        if (produtos.DataSource is not DataTable dt)
+            return;
+        var linhas = dt.DefaultView.Cast<DataRowView>().ToList();
+        var valor = linhas.Sum(r => Ui.Dec(r["Valor em estoque"]));
+        resumo.Text = $"{linhas.Count} produto(s) · Valor do estoque (custo): {Ui.Moeda(valor)}";
     }
 
     void CarregarMovimentos()
@@ -86,6 +100,27 @@ public class EstoqueForm : Form
             """, id);
     }
 
+    /// <summary>Monta um pedido de compra com a sugestão (mínimo − saldo) dos produtos listados na grade.</summary>
+    void GerarPedido()
+    {
+        var ids = produtos.Rows.Cast<DataGridViewRow>()
+            .Where(r => r.Visible && r.DataBoundItem is DataRowView v && Ui.Dec(v["Sugestão de compra"]) > 0)
+            .Select(r => Convert.ToInt64(((DataRowView)r.DataBoundItem!)["id"])).ToList();
+        var pedido = Pedidos.SugestaoDeCompra(ids);
+        if (pedido.Itens.Count == 0)
+        {
+            Ui.Info("Nenhum produto listado está abaixo do estoque mínimo. Não há o que sugerir.\n" +
+                    "Dica: o estoque mínimo de cada produto é definido em Cadastros > Produtos.");
+            return;
+        }
+        using var f = new PedidoEditorForm(pedido);
+        if (f.ShowDialog(this) == DialogResult.OK && f.IdSalvo is long id)
+        {
+            Ui.Info($"Pedido de compra nº {id} gravado com {pedido.Itens.Count} item(ns). Acompanhe em Compras > Pedidos de compra.");
+            Carregar();
+        }
+    }
+
     void Ajustar()
     {
         if (Ui.Linha(produtos) is not DataRowView linha)
@@ -94,7 +129,7 @@ public class EstoqueForm : Form
             return;
         }
         var id = Convert.ToInt64(linha["id"]);
-        var atual = Ui.Dec(linha["Estoque"]);
+        var atual = Ui.Dec(Db.Scalar("SELECT estoque FROM produtos WHERE id = @p0", id)); // saldo do momento (a grade pode estar desatualizada)
 
         using var d = new Dialogo("Ajustar estoque", "ajuste_estoque", "Aplicar");
         d.Nota($"{linha["Produto"]} — saldo atual: {atual:N3} {linha["Un."]}");
@@ -112,18 +147,29 @@ public class EstoqueForm : Form
         if (d.ShowDialog(this) != DialogResult.OK)
             return;
 
-        var (tipoMov, delta) = tipo.SelectedIndex switch
+        var texto = motivo.Text.Trim();
+        // saldo do banco, não o da grade: pode ter havido venda/compra desde que a tela foi carregada
+        var saldoAgora = Ui.Dec(Db.Scalar("SELECT estoque FROM produtos WHERE id = @p0", id));
+        switch (tipo.SelectedIndex)
         {
-            0 => ("ENTRADA", quantidade.Value),
-            1 => ("SAIDA", -quantidade.Value),
-            _ => ("AJUSTE", quantidade.Value - atual),
-        };
-        if (delta == 0)
-        {
-            Ui.Info("O saldo informado é igual ao atual. Nada foi alterado.");
-            return;
+            case 0:
+                Operacoes.AjustarEstoque(id, "ENTRADA", quantidade.Value, texto);
+                break;
+            case 1:
+                if (saldoAgora - quantidade.Value < 0 &&
+                    !Ui.Confirmar($"A saída de {quantidade.Value:N3} deixará o saldo negativo ({saldoAgora - quantidade.Value:N3} {linha["Un."]}).\n" +
+                                  $"O saldo atual é {saldoAgora:N3}. Confirma a saída mesmo assim?"))
+                    return;
+                Operacoes.AjustarEstoque(id, "SAIDA", -quantidade.Value, texto);
+                break;
+            default:
+                if (Operacoes.DefinirSaldo(id, quantidade.Value, texto) == 0)
+                {
+                    Ui.Info("O saldo informado é igual ao atual. Nada foi alterado.");
+                    return;
+                }
+                break;
         }
-        Operacoes.AjustarEstoque(id, tipoMov, delta, motivo.Text.Trim());
         Carregar();
     }
 }

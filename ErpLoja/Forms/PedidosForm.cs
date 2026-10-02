@@ -303,7 +303,18 @@ public static class FluxoPedidos
     public static bool Receber(IWin32Window dono, long id)
     {
         var p = Pedidos.Carregar(id);
+        // custo zero puxa o custo médio para baixo: só faz sentido em bonificação
+        var semCusto = p.Itens.Where(i => i.Unitario == 0).Select(i => "• " + i.Produto).ToList();
+        if (semCusto.Count > 0 &&
+            !Ui.Confirmar("Estes itens estão com custo unitário ZERO:\n" + string.Join("\n", semCusto) +
+                          "\n\nEles entrarão no estoque sem custo e o custo médio desses produtos vai cair.\n" +
+                          "É uma bonificação? Responda Não para voltar e informar o custo."))
+            return false;
         if (!PerguntarPagamento(dono, p, "Receber mercadoria", out var forma, out var parcelas, out var vencimento, out var nota))
+            return false;
+        if (p.FornecedorId is long fornecedor && Operacoes.CompraComMesmaNota(fornecedor, nota) is long existente &&
+            !Ui.Confirmar($"Já existe a compra nº {existente} deste fornecedor com a nota fiscal {nota}.\n" +
+                          "Receber de novo dará entrada em dobro no estoque e nas contas a pagar.\n\nConfirma que é outra entrega?"))
             return false;
         try
         {
