@@ -150,6 +150,8 @@ public static class Operacoes
             MovimentarEstoque(s, (long)r["produto_id"], "ENTRADA", Convert.ToDecimal(r["quantidade"]), $"Cancelamento da venda nº {id}", id);
 
         s.Exec("UPDATE vendas SET status = 'CANCELADA' WHERE id = @p0", id);
+        foreach (DataRow c in s.Query("SELECT id FROM contas WHERE venda_id = @p0", id).Rows)
+            Cobranca.EncerrarBoletosDaConta(s, (long)c["id"]); // boleto da venda cancelada não pode continuar cobrando o cliente
         s.Exec("UPDATE contas SET status = 'CANCELADA' WHERE venda_id = @p0", id);
         s.Exec("UPDATE pedidos SET status = 'ABERTO', venda_id = NULL WHERE venda_id = @p0", id); // pedido volta a ficar pendente
         s.Commit();
@@ -196,18 +198,41 @@ public static class Operacoes
         s.Commit();
     }
 
-    public static void BaixarConta(long id, DateTime data, decimal valorPago, string forma) =>
-        Db.Exec("""
-            UPDATE contas SET status = 'PAGA', data_pagamento = @p0, valor_pago = @p1, forma_pagamento = @p2
-            WHERE id = @p3 AND status = 'ABERTA'
-            """, Db.Dia(data), valorPago, forma, id);
+    /// <summary>
+    /// Baixa manual (RN-FIN-03). Se a conta tinha boleto ativo, ele é cancelado ou tem a baixa pedida ao banco (o cliente não
+    /// paga duas vezes). Devolve o aviso sobre o boleto (null = não havia boleto ativo).
+    /// </summary>
+    public static string? BaixarConta(long id, DateTime data, decimal valorPago, string forma)
+    {
+        if (valorPago <= 0)
+            throw new InvalidOperationException("Informe o valor pago (maior que zero).");
+        if (data.Date > DateTime.Today)
+            throw new InvalidOperationException("A data do pagamento não pode ser futura. Baixe a conta no dia em que o dinheiro entrar ou sair.");
+        using var s = new DbSessao(transacao: true);
+        if (s.Exec("""
+                UPDATE contas SET status = 'PAGA', data_pagamento = @p0, valor_pago = @p1, forma_pagamento = @p2
+                WHERE id = @p3 AND status = 'ABERTA'
+                """, Db.Dia(data), valorPago, forma, id) == 0)
+            throw new InvalidOperationException("Esta conta não está mais em aberto (pode ter sido baixada ou cancelada em outro computador). Clique em Pesquisar para atualizar.");
+        var aviso = Cobranca.EncerrarBoletosDaConta(s, id);
+        s.Commit();
+        return aviso;
+    }
 
     public static void EstornarConta(long id) =>
         Db.Exec("""
-            UPDATE contas SET status = 'ABERTA', data_pagamento = NULL, valor_pago = NULL
+            UPDATE contas SET status = 'ABERTA', data_pagamento = NULL, valor_pago = NULL, forma_pagamento = NULL
             WHERE id = @p0 AND status = 'PAGA'
             """, id);
 
-    public static void CancelarConta(long id) =>
-        Db.Exec("UPDATE contas SET status = 'CANCELADA' WHERE id = @p0 AND status = 'ABERTA'", id);
+    /// <summary>Cancela a conta aberta; boleto ativo dela é cancelado ou tem a baixa pedida ao banco. Devolve o aviso sobre o boleto.</summary>
+    public static string? CancelarConta(long id)
+    {
+        using var s = new DbSessao(transacao: true);
+        if (s.Exec("UPDATE contas SET status = 'CANCELADA' WHERE id = @p0 AND status = 'ABERTA'", id) == 0)
+            throw new InvalidOperationException("Esta conta não está mais em aberto. Clique em Pesquisar para atualizar.");
+        var aviso = Cobranca.EncerrarBoletosDaConta(s, id);
+        s.Commit();
+        return aviso;
+    }
 }

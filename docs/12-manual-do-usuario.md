@@ -243,9 +243,10 @@ Todas as contas geradas por vendas, compras e lançamentos manuais.
 
 - Filtros por tipo, situação e período de vencimento. "Vencidas" mostra as abertas com vencimento passado e os dias de atraso.
 - Nova conta: despesas e receitas avulsas (aluguel, energia, serviços), com parcelas mensais.
-- Baixar: registra o pagamento/recebimento (data, valor e forma). Juros ou descontos são lançados ajustando o valor.
-- Estornar baixa: volta a conta para aberta.
+- Baixar: registra o pagamento/recebimento (data, valor e forma). Juros ou descontos são lançados ajustando o valor. A data não pode ser futura.
+- Estornar baixa: volta a conta para aberta (limpa data, valor e forma do pagamento).
 - Cancelar conta: somente contas em aberto.
+- Conta com boleto em aberto: ao baixar ou cancelar, o boleto é cancelado (se ainda não foi ao banco) ou tem a baixa pedida na próxima remessa, para o cliente não pagar duas vezes.
 - O rodapé mostra o total em aberto a receber e a pagar, o saldo previsto e o realizado no mês.
 
 ## Cobrança bancária (boletos)
@@ -260,6 +261,8 @@ Boletos, remessa e retorno no padrão CNAB 240 Febraban — serve para qualquer 
 ### Remessa e retorno
 - Gerar remessa: arquivo com os boletos novos e pedidos de baixa, para enviar ao banco.
 - Importar retorno: lê o arquivo do banco; confirma registros, aponta rejeições e liquida os pagos (a conta a receber é baixada sozinha).
+- O mesmo retorno não é importado duas vezes, e liquidação repetida é ignorada. Se o banco liquidar um boleto cuja conta já tinha sido recebida no caixa ou cancelada, o retorno avisa para conferir pagamento em duplicidade.
+- Conta a receber baixada ou cancelada no Financeiro encerra o boleto dela: o não enviado é cancelado; o já enviado ganha pedido de baixa na próxima remessa.
 
 ### Homologação
 Siga o roteiro da aba: boletos de teste, remessa de teste, validador CNAB 240 (confere tamanho das linhas, lotes, quantidades e totais) e simulação do retorno do banco. Aprovado pelo banco, mude a conta para PRODUCAO.
@@ -375,10 +378,11 @@ Conta usada para emitir boletos. Funciona com qualquer banco: os dados vêm do c
 ### Campo livre
 As 25 posições do código de barras que cada banco define. Monte o modelo com as marcações:
 - {agencia:N} {agenciadv:N} {conta:N} {contadv:N} {carteira:N} {convenio:N} {nossonumero:N} {zeros:N} e dígitos fixos.
-- N é o número de posições (zeros à esquerda). O total precisa somar 25.
+- N é o número de posições (zeros à esquerda). O total precisa somar 25 e o modelo tem que conter {nossonumero:N}.
 
 ### Demais campos
-- Dígitos do nosso número e último usado: o próximo boleto usa o seguinte.
+- Dígitos do nosso número (1 a 20, no máximo o espaço reservado no modelo) e último usado: o próximo boleto usa o seguinte. O último usado não pode voltar abaixo de um nosso número já emitido.
+- Espécie do título: código numérico de 2 dígitos do manual do banco (02 = duplicata mercantil).
 - Multa, juros ao mês e dias para protesto vão na remessa e nas instruções do boleto.
 - Ambiente HOMOLOGACAO marca boletos e arquivos como teste; mude para PRODUCAO após a aprovação do banco.
 
@@ -408,7 +412,8 @@ Com mais de uma parcela, o valor é dividido igualmente e os vencimentos são me
 
 ## Baixa de conta
 
-Registra o recebimento/pagamento. Informe a data efetiva, o valor (ajuste para juros ou desconto) e a forma.
+Registra o recebimento/pagamento. Informe a data efetiva (hoje ou passada, nunca futura), o valor (ajuste para juros ou desconto) e a forma.
+Se a conta tiver boleto em aberto, ele é cancelado ou tem a baixa pedida ao banco na próxima remessa.
 O valor pago é o que entra no fluxo de caixa realizado e no gráfico de entradas x saídas.
 
 ## Condição de pagamento

@@ -96,6 +96,15 @@ public class CobrancaForm : Form
 
     long? ContaId => Ui.Id(conta);
 
+    /// <summary>Conta bancária selecionada no topo; sem nenhuma, explica o que fazer.</summary>
+    long? ContaEscolhida()
+    {
+        if (ContaId is long c)
+            return c;
+        Ui.Erro("Nenhuma conta bancária selecionada. Cadastre uma em Financeiro > Contas bancárias e escolha-a no topo desta tela.");
+        return null;
+    }
+
     void Registrar(string texto) => log.AppendText($"[{DateTime.Now:HH:mm:ss}] {texto}\r\n");
 
     void Carregar()
@@ -199,7 +208,7 @@ public class CobrancaForm : Form
 
     void GerarRemessa()
     {
-        if (ContaId is not long c)
+        if (ContaEscolhida() is not long c)
             return;
         try
         {
@@ -221,7 +230,7 @@ public class CobrancaForm : Form
 
     void ImportarRetorno()
     {
-        if (ContaId is not long c)
+        if (ContaEscolhida() is not long c)
             return;
         using var dlg = new OpenFileDialog { Filter = "Retorno CNAB (*.ret;*.txt)|*.ret;*.txt|Todos|*.*", Title = "Arquivo de retorno do banco" };
         if (dlg.ShowDialog(this) != DialogResult.OK)
@@ -263,11 +272,17 @@ public class CobrancaForm : Form
 
     void BoletosDeTeste()
     {
-        if (ContaId is not long c)
+        if (ContaEscolhida() is not long c)
             return;
-        if (!ContaBancaria.Carregar(c).Homologacao)
+        var banco = ContaBancaria.Carregar(c);
+        if (!banco.Homologacao)
         {
             Ui.Erro("Os boletos de teste só podem ser gerados em conta no ambiente HOMOLOGACAO.");
+            return;
+        }
+        if (Cobranca.ValidarModeloCampoLivre(banco.ModeloCampoLivre) is string erroModelo)
+        {
+            Ui.Erro("A conta bancária está com o modelo do campo livre inválido: " + erroModelo + "\nCorrija em Financeiro > Contas bancárias.");
             return;
         }
         using var s = new DbSessao(transacao: true);
@@ -309,7 +324,7 @@ public class CobrancaForm : Form
 
     void Simular(bool liquidar)
     {
-        if (ContaId is not long c)
+        if (ContaEscolhida() is not long c)
             return;
         var remessa = Db.Scalar("SELECT id FROM remessas WHERE conta_bancaria_id = @p0 ORDER BY id DESC LIMIT 1", c) as long?;
         if (remessa is null)

@@ -52,7 +52,61 @@ public static class Cobranca
         if (fixos.Any(c => !char.IsDigit(c)))
             return "Fora das marcações só são aceitos dígitos fixos.";
         total += fixos.Length;
-        return total == 25 ? null : $"O campo livre precisa ter 25 posições (o modelo tem {total}).";
+        if (total != 25)
+            return $"O campo livre precisa ter 25 posições (o modelo tem {total}).";
+        // sem o nosso número todos os boletos teriam o mesmo campo livre (códigos de barras iguais para títulos diferentes)
+        return DigitosNossoNumeroNoModelo(modelo) is null
+            ? "O modelo precisa conter o nosso número ({nossonumero:N}): é ele que diferencia um boleto do outro."
+            : null;
+    }
+
+    /// <summary>Quantas posições o modelo reserva para o nosso número (null = o modelo não tem a marcação).</summary>
+    public static int? DigitosNossoNumeroNoModelo(string modelo) =>
+        Marca.Matches(modelo).Where(m => m.Groups[1].Value == "nossonumero").Select(m => (int?)int.Parse(m.Groups[2].Value)).FirstOrDefault();
+
+    /// <summary>
+    /// Validação do cadastro da conta bancária (coluna → valor), além das validações de cada campo.
+    /// Devolve a mensagem de erro ou null.
+    /// </summary>
+    public static string? ValidarContaBancaria(IReadOnlyDictionary<string, object?> r)
+    {
+        string Txt(string c) => Convert.ToString(r.GetValueOrDefault(c), CultureInfo.InvariantCulture)?.Trim() ?? "";
+        decimal Num(string c) => r.GetValueOrDefault(c) is { } v and not DBNull ? Convert.ToDecimal(v, CultureInfo.InvariantCulture) : 0;
+
+        foreach (var (coluna, nome) in new[] { ("agencia", "A agência"), ("conta", "A conta corrente"), ("carteira", "A carteira"), ("convenio", "O convênio") })
+            if (Txt(coluna).Any(ch => !char.IsDigit(ch) && ch is not ('.' or '-' or ' ' or '/')))
+                return $"{nome} deve ter só números (o dígito verificador vai no campo próprio).";
+        if (Fiscal.SoDigitos(Txt("agencia")).Length == 0 || Fiscal.SoDigitos(Txt("conta")).Length == 0)
+            return "Informe a agência e a conta corrente com números.";
+        if (Txt("agencia_dv").Length > 1 || Txt("conta_dv").Length > 1)
+            return "Os dígitos da agência e da conta têm uma posição só (ex.: 5 ou X).";
+        var digitos = Num("nosso_numero_digitos");
+        if (digitos is < 1 or > 20)
+            return "Dígitos do nosso número: informe de 1 a 20 (veja o manual do banco).";
+        if (DigitosNossoNumeroNoModelo(Txt("campo_livre_modelo")) is int noModelo && digitos > noModelo)
+            return $"O nosso número tem {digitos} dígitos, mas o modelo do campo livre reserva só {noModelo} posições para ele ({{nossonumero:{noModelo}}}). " +
+                   "Ajuste um dos dois conforme o manual do banco, senão boletos diferentes podem sair com o mesmo código de barras.";
+        if (Num("nosso_numero_atual") < 0 || Num("remessa_sequencia") < 0)
+            return "O último nosso número e a última sequência de remessa não podem ser negativos.";
+        if (Num("nosso_numero_atual") >= (decimal)Math.Pow(10, (double)digitos))
+            return $"O último nosso número ({Num("nosso_numero_atual"):0}) não cabe em {digitos} dígitos.";
+        var especie = Txt("especie_titulo");
+        if (especie.Length != 2 || !especie.All(char.IsDigit))
+            return "Espécie do título: informe o código de 2 dígitos do manual do banco (ex.: 02 = duplicata mercantil, 04 = duplicata de serviço).";
+        if (Num("multa_pct") is < 0 or > 100 || Num("juros_mes_pct") is < 0 or > 100)
+            return "Multa e juros devem ficar entre 0% e 100%.";
+        if (Num("dias_protesto") is < 0 or > 99)
+            return "Dias para protesto: de 0 (não protestar) a 99.";
+
+        // o último nosso número não pode voltar para trás: os próximos boletos repetiriam números já enviados ao banco
+        var maior = Db.Scalar("""
+            SELECT MAX(CAST(b.nosso_numero AS INTEGER)) FROM boletos b JOIN contas_bancarias cb ON cb.id = b.conta_bancaria_id
+            WHERE cb.banco_codigo = @p0 AND cb.agencia = @p1 AND cb.conta = @p2
+            """, Txt("banco_codigo"), Txt("agencia"), Txt("conta"));
+        if (maior is not null and not DBNull && Num("nosso_numero_atual") < Convert.ToDecimal(maior))
+            return $"Já foram emitidos boletos até o nosso número {maior} nesta conta. O \"último nosso número usado\" não pode ser menor que isso, " +
+                   "senão os próximos boletos repetiriam números.";
+        return null;
     }
 
     public static string CampoLivre(ContaBancaria c, string nossoNumero)
@@ -152,6 +206,10 @@ public static class Cobranca
             .Rows.Cast<DataRow>().FirstOrDefault() ?? throw new InvalidOperationException("Conta não encontrada.");
         if (Ui.Txt(conta["tipo"]) != "RECEBER" || Ui.Txt(conta["status"]) != "ABERTA")
             throw new InvalidOperationException("Só é possível emitir boleto de conta a receber em aberto.");
+        if (conta["cliente_id"] is DBNull)
+            throw new InvalidOperationException("A conta não tem cliente: o boleto precisa de um pagador identificado. Informe o cliente na conta ou na venda.");
+        if (Ui.Dec(conta["valor"]) <= 0)
+            throw new InvalidOperationException("A conta está com valor zero: não há o que cobrar por boleto.");
         if (s.Scalar("SELECT 1 FROM boletos WHERE conta_id = @p0 AND status NOT IN ('CANCELADO', 'BAIXADO', 'REJEITADO')", contaReceberId) != null)
             throw new InvalidOperationException("Esta conta já tem boleto ativo.");
 
@@ -186,6 +244,30 @@ public static class Cobranca
             default:
                 throw new InvalidOperationException($"Boleto {status}: nada a cancelar.");
         }
+    }
+
+    /// <summary>
+    /// A conta a receber deixou de ser cobrada pelo banco (paga no caixa ou cancelada): cancela o boleto ainda não enviado
+    /// e pede a baixa dos já enviados/registrados na próxima remessa, para o cliente não pagar duas vezes.
+    /// Devolve o aviso para o usuário (null = a conta não tinha boleto ativo).
+    /// </summary>
+    public static string? EncerrarBoletosDaConta(DbSessao s, long contaId)
+    {
+        var avisos = new List<string>();
+        foreach (DataRow b in s.Query("SELECT id, nosso_numero, status FROM boletos WHERE conta_id = @p0 AND status IN ('EMITIDO', 'ENVIADO', 'REGISTRADO')", contaId).Rows)
+        {
+            if (Ui.Txt(b["status"]) == "EMITIDO")
+            {
+                s.Exec("UPDATE boletos SET status = 'CANCELADO', ocorrencia = 'Cancelado: conta baixada ou cancelada no financeiro' WHERE id = @p0", b["id"]);
+                avisos.Add($"O boleto nosso número {b["nosso_numero"]} (ainda não enviado ao banco) foi cancelado.");
+            }
+            else
+            {
+                s.Exec("UPDATE boletos SET baixa_solicitada = 1 WHERE id = @p0", b["id"]);
+                avisos.Add($"O boleto nosso número {b["nosso_numero"]} já está no banco: o pedido de baixa vai na próxima remessa (Cobrança bancária > Gerar remessa).");
+            }
+        }
+        return avisos.Count == 0 ? null : string.Join("\n", avisos);
     }
 
     /// <summary>Texto da ficha de compensação (o código de barras é desenhado à parte).</summary>
@@ -424,7 +506,13 @@ public static class Cobranca
         var c = ContaBancaria.Carregar(contaBancariaId);
         var linhas = conteudo.Replace("\r\n", "\n").Split('\n').Where(l => l.Length == 240).ToList();
         if (Pos(linhas[0], 1, 3) != c.Banco)
-            throw new InvalidOperationException($"O retorno é do banco {Pos(linhas[0], 1, 3)}, e a conta selecionada é do banco {c.Banco}.");
+            throw new InvalidOperationException($"O retorno é do banco {Pos(linhas[0], 1, 3)}, e a conta selecionada é do banco {c.Banco}. " +
+                                                "Selecione a conta bancária certa no topo da tela e importe de novo.");
+        var normalizado = string.Join("\n", linhas);
+        foreach (DataRow anterior in Db.Query("SELECT data, arquivo, conteudo FROM retornos WHERE conta_bancaria_id = @p0", contaBancariaId).Rows)
+            if (string.Join("\n", Ui.Txt(anterior["conteudo"]).Replace("\r\n", "\n").Split('\n').Where(l => l.Length == 240)) == normalizado)
+                throw new InvalidOperationException($"Este retorno já foi importado em {Db.LerData(anterior["data"]):dd/MM/yyyy HH:mm} (arquivo {anterior["arquivo"]}). " +
+                                                    "Nada foi alterado. Importe só os retornos novos que o banco disponibilizar.");
 
         int registros = 0, confirmados = 0, rejeitados = 0, liquidados = 0, naoEncontrados = 0;
         decimal valorLiquidado = 0;
@@ -464,16 +552,21 @@ public static class Cobranca
                     rejeitados++;
                     mensagens.Add($"Nosso número {nossoNumero}: entrada rejeitada (motivos {Pos(t, 214, 223).Trim()}).");
                     break;
+                case "06" or "17" when Ui.Txt(boleto["status"]) == "PAGO":
+                    mensagens.Add($"Nosso número {nossoNumero}: liquidação já registrada antes; ignorada.");
+                    break;
                 case "06" or "17":
                     var pago = u is null ? decimal.Parse(Pos(t, 82, 96)) / 100 : decimal.Parse(Pos(u, 78, 92)) / 100;
                     var data = u is null ? DateTime.Today : DateTime.ParseExact(Pos(u, 138, 145), "ddMMyyyy", CultureInfo.InvariantCulture);
                     s.Exec("UPDATE boletos SET status = 'PAGO', data_pagamento = @p0, valor_pago = @p1, ocorrencia = @p2 WHERE id = @p3",
                         Db.Dia(data), pago, descricao, id);
-                    if (boleto["conta_id"] is long contaId)
+                    if (boleto["conta_id"] is long contaId &&
                         s.Exec("""
                             UPDATE contas SET status = 'PAGA', data_pagamento = @p0, valor_pago = @p1, forma_pagamento = 'Boleto'
                             WHERE id = @p2 AND status = 'ABERTA'
-                            """, Db.Dia(data), pago, contaId);
+                            """, Db.Dia(data), pago, contaId) == 0)
+                        mensagens.Add($"Nosso número {nossoNumero}: pago no banco (R$ {pago:N2}), mas a conta a receber nº {contaId} já estava " +
+                                      $"{Ui.Txt(s.Scalar("SELECT status FROM contas WHERE id = @p0", contaId))}. Confira se o cliente pagou em duplicidade.");
                     liquidados++;
                     valorLiquidado += pago;
                     break;
@@ -502,6 +595,10 @@ public static class Cobranca
         var rem = Db.Query("SELECT * FROM remessas WHERE id = @p0", remessaId).Rows[0];
         var c = ContaBancaria.Carregar((long)rem["conta_bancaria_id"]);
         var boletos = Db.Query("SELECT * FROM boletos WHERE remessa_id = @p0 ORDER BY id", remessaId);
+        // movimento de cada título na remessa (segmento P, uso da empresa = id do boleto): 01 = entrada, 02 = pedido de baixa
+        var movimentoRemessa = Ui.Txt(rem["conteudo"]).Replace("\r\n", "\n").Split('\n')
+            .Where(l => l.Length == 240 && Pos(l, 8, 8) == "3" && Pos(l, 14, 14) == "P")
+            .GroupBy(l => Pos(l, 196, 220).Trim()).ToDictionary(g => g.Key, g => Pos(g.Last(), 16, 17));
         var (tipoInscricao, inscricao) = InscricaoEmpresa();
         var hoje = DateTime.Today;
         var linhas = new List<string>
@@ -527,6 +624,11 @@ public static class Cobranca
         }
         foreach (DataRow b in boletos.Rows)
         {
+            if (movimentoRemessa.GetValueOrDefault(Ui.Txt(b["id"])) == "02")
+            {
+                Titulo(b, "09", 0); // o banco atende ao pedido de baixa
+                continue;
+            }
             Titulo(b, "02", 0);
             if (liquidar)
                 Titulo(b, "06", Ui.Dec(b["valor"]));
