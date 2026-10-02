@@ -204,6 +204,7 @@ public static class Ajuda
             - O rodapé mostra o custo do lote, o custo unitário estimado e a margem sobre o preço de venda (em vermelho se negativa).
             - Digitar o código de um insumo que já está na ficha soma a quantidade na mesma linha. F3 abre a busca de produtos.
             - O produto não pode ser insumo de si mesmo, nem de forma indireta (ex.: a massa usa a torta e a torta usa a massa).
+            - Trocar de produto ou fechar a tela com a ficha alterada e não salva pede confirmação antes de descartar.
             - "Nova ordem de produção" já abre a OP para o produto.
             """),
         new("OrdensProducaoForm", "Ordens de produção", """
@@ -242,8 +243,8 @@ public static class Ajuda
 
             ## CIOT
             - O Código Identificador da Operação de Transporte é obrigatório quando o transportador é autônomo (TAC, CPF) — o editor avisa. Sem o CIOT declarado (ou com ele cancelado), o frete não passa para EM TRÂNSITO nem ENTREGUE.
-            - Declarar CIOT envia a operação à administradora configurada (Pamcard, ou SIMULADOR para testes) e grava o código. Depois de declarado, valores e envolvidos ficam travados.
-            - Encerrar CIOT ao final da viagem; Cancelar CIOT (com motivo) se a viagem não acontecer — cancele o CIOT antes de cancelar o frete.
+            - Declarar CIOT envia a operação à administradora configurada (Pamcard, ou SIMULADOR para testes) e grava o código. Depois de declarado, valores, envolvidos e rota (origem/destino) ficam travados.
+            - Encerrar CIOT ao final da viagem (ao marcar Entregue com CIOT declarado, o sistema lembra); Cancelar CIOT (com motivo) se a viagem não acontecer — cancele o CIOT antes de cancelar o frete.
             - Configure a administradora e as credenciais em Configurações > Transporte e CIOT.
             """),
         new("FinanceiroForm", "Financeiro - contas a receber e a pagar", """

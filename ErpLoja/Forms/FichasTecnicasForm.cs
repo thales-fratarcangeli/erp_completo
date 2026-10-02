@@ -13,6 +13,8 @@ public class FichasTecnicasForm : Form
     readonly Panel editor = new() { Dock = DockStyle.Fill, Visible = false };
     Producao.Ficha? ficha;
     decimal precoVenda;
+    string assinatura = "";
+    bool voltando;
 
     public FichasTecnicasForm()
     {
@@ -64,7 +66,12 @@ public class FichasTecnicasForm : Form
         Controls.Add(esquerda);
 
         busca.TextChanged += (_, _) => Ui.Filtrar(produtos, busca.Text);
-        produtos.SelectionChanged += (_, _) => { if (Ui.IdLinha(produtos) is long id) Abrir(id); };
+        produtos.SelectionChanged += (_, _) => TrocarProduto();
+        FormClosing += (_, e) =>
+        {
+            if (Alterada() && !Ui.Confirmar("A ficha técnica tem alterações não salvas. Fechar e descartar as alterações?"))
+                e.Cancel = true;
+        };
         insumos.DataBindingComplete += (_, _) =>
         {
             foreach (DataGridViewColumn c in insumos.Columns)
@@ -100,6 +107,49 @@ public class FichasTecnicasForm : Form
         Ui.Filtrar(produtos, busca.Text);
     }
 
+    /// <summary>Retrato da ficha em edição, para saber se há alteração não salva.</summary>
+    string Assinatura() => ficha is null ? "" :
+        $"{rendimento.Value}|{custoAdicional.Value}|{observacoes.Text.Trim()}|" +
+        string.Join(";", ficha.Insumos.Select(i => $"{i.InsumoId}:{i.Quantidade}:{i.PerdaPct}"));
+
+    bool Alterada()
+    {
+        insumos.EndEdit();
+        return ficha != null && Assinatura() != assinatura;
+    }
+
+    /// <summary>Outro produto selecionado: avisa antes de descartar alterações não salvas da ficha aberta.</summary>
+    void TrocarProduto()
+    {
+        if (voltando || Ui.IdLinha(produtos) is not long id || id == ficha?.ProdutoId)
+            return;
+        if (Alterada() && !Ui.Confirmar("A ficha técnica aberta tem alterações não salvas. Descartar as alterações e abrir outro produto?"))
+        {
+            // volta a seleção para o produto em edição (depois do evento, para não reentrar na grade)
+            var atual = ficha!.ProdutoId;
+            voltando = true;
+            BeginInvoke(() =>
+            {
+                try
+                {
+                    foreach (DataGridViewRow r in produtos.Rows)
+                        if (r.DataBoundItem is DataRowView v && Convert.ToInt64(v["id"]) == atual && r.Visible)
+                        {
+                            produtos.CurrentCell = r.Cells.Cast<DataGridViewCell>().First(c => c.Visible);
+                            produtos.ClearSelection();
+                            r.Selected = true;
+                        }
+                }
+                finally
+                {
+                    voltando = false;
+                }
+            });
+            return;
+        }
+        Abrir(id);
+    }
+
     void Abrir(long produtoId)
     {
         var p = Db.Query("SELECT codigo, nome, unidade, preco_venda FROM produtos WHERE id = @p0", produtoId).Rows[0];
@@ -114,6 +164,7 @@ public class FichasTecnicasForm : Form
         editor.Visible = true;
         editor.BringToFront();
         Resumo();
+        assinatura = Assinatura();
     }
 
     Producao.Ficha Atual() => ficha! with { Rendimento = rendimento.Value, CustoAdicional = custoAdicional.Value, Observacoes = observacoes.Text.Trim() };
@@ -170,6 +221,7 @@ public class FichasTecnicasForm : Form
         try
         {
             Producao.SalvarFicha(Atual());
+            assinatura = Assinatura();
             Ui.Feito("Ficha técnica salva.");
             var id = ficha.ProdutoId;
             Carregar();

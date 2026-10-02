@@ -99,16 +99,18 @@ public class LogisticaMontaViagemAutonomo : ICenario
         u.Ok(u.Viu("ERRO", "já foram geradas") && ProducaoLogisticaUtil.Dec("SELECT COUNT(*) FROM contas WHERE frete_id = @p0", frete) == 2,
             "as contas do frete são geradas uma única vez");
 
-        bool? valorTravado = null;
+        bool? valorTravado = null, rotaTravada = null;
         u.QuandoAbrirJanela($"Frete nº {frete}", d =>
         {
             valorTravado = !ProducaoLogisticaUtil.CampoApos<NumericUpDown>(d, "Outras despesas").Enabled;
+            rotaTravada = !ProducaoLogisticaUtil.CampoApos<TextBox>(d, "Destino (cidade)").Enabled;
             d.DialogResult = DialogResult.Cancel;
         });
         u.Clicar(f, "Abrir / editar");
         Usuario.Esperar(300);
         u.ConferirJanelas();
         u.Ok(valorTravado == true, "depois de gerar as contas, valores do frete ficam travados no editor");
+        u.Ok(rotaTravada == true, "com CIOT declarado, a rota (origem/destino declarados à ANTT) fica travada");
 
         u.Clicar(f, "Em trânsito");
         u.Ok(LogisticaUtil.Status(frete) == "EM_TRANSITO", "com CIOT declarado a viagem sai (em trânsito)");

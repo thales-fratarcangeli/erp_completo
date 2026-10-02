@@ -26,9 +26,13 @@ static class ProducaoLogisticaUtil
         foreach (DataGridViewRow r in g.Rows)
             if (r.DataBoundItem is System.Data.DataRowView v && Convert.ToInt64(v["id"]) == id)
             {
-                g.ClearSelection();
+                // como um clique: muda a célula atual (a grade seleciona a linha inteira)
                 g.CurrentCell = r.Cells.Cast<DataGridViewCell>().First(c => c.Visible);
-                r.Selected = true;
+                if (!r.Selected)
+                {
+                    g.ClearSelection();
+                    r.Selected = true;
+                }
                 Usuario.Esperar(100);
                 return true;
             }
@@ -249,6 +253,48 @@ public class ProducaoEncarregadoConduzOrdem : ICenario
         u.Ok(Ui.Txt(Db.Scalar("SELECT status FROM ordens_producao WHERE id = @p0", op3)) == Producao.Cancelada
              && ProducaoLogisticaUtil.Dec("SELECT COUNT(*) FROM movimentacoes_estoque WHERE referencia_id = @p0 AND origem LIKE '%OP nº%'", op3) == 0,
             "cancelar OP planejada não mexe no estoque");
+        f.Close();
+    }
+}
+
+/// <summary>
+/// Regressão: trocar de produto (ou fechar a tela) descartava sem aviso a ficha técnica em edição.
+/// O encarregado adiciona um insumo, clica em outro produto, responde Não (continua na ficha) e depois Sim (descarta).
+/// </summary>
+public class ProducaoFichaNaoSalvaAvisa : ICenario
+{
+    public string Area => "Produção";
+
+    public void Executar(Usuario u)
+    {
+        ProducaoLogisticaUtil.Produto("TINS1", "Farinha teste", "KG", 2, 100, "INSUMO");
+        var bolo = ProducaoLogisticaUtil.Produto("TBOLO", "Bolo teste", "UN", 0, 0, "MERCADORIA", 30);
+        var torta = ProducaoLogisticaUtil.Produto("TTORTA", "Torta teste", "UN", 0, 0, "MERCADORIA", 40);
+
+        var f = u.AbrirTela("FichasTecnicasForm");
+        var produtos = Usuario.Achar<DataGridView>(f, g => g.Columns.Contains("Ficha"));
+        ProducaoLogisticaUtil.SelecionarLinha(produtos, bolo);
+        var titulo = Usuario.Todos(f).OfType<Label>().First(l => l.Text.StartsWith("TBOLO"));
+        ProducaoLogisticaUtil.SelecionarLinha(produtos, torta);
+        u.Ok(!u.Viu("CONFIRMAR", "não salvas") && titulo.Text.StartsWith("TTORTA"), "sem alteração, trocar de produto não pergunta nada");
+
+        u.Digitar(ProducaoLogisticaUtil.CampoApos<TextBox>(f, "Insumo (código)"), "TINS1", enter: true);
+        u.RespostasConfirmacao.Enqueue(false);
+        ProducaoLogisticaUtil.SelecionarLinha(produtos, bolo);
+        var insumos = Usuario.Achar<DataGridView>(f, g => !g.ReadOnly);
+        u.Ok(u.Viu("CONFIRMAR", "não salvas") && titulo.Text.StartsWith("TTORTA") && insumos.Rows.Count == 1 && Ui.IdLinha(produtos) == torta,
+            "com insumo não salvo, trocar de produto pergunta; respondendo Não, a ficha em edição continua aberta");
+
+        u.RespostasConfirmacao.Enqueue(false);
+        f.Close();
+        Usuario.Esperar();
+        u.Ok(!f.IsDisposed && f.Visible, "fechar a tela com ficha não salva pergunta; respondendo Não, a tela continua aberta");
+
+        u.RespostasConfirmacao.Enqueue(true);
+        ProducaoLogisticaUtil.SelecionarLinha(produtos, bolo);
+        u.Ok(titulo.Text.StartsWith("TBOLO") && insumos.Rows.Count == 0
+             && ProducaoLogisticaUtil.Dec("SELECT COUNT(*) FROM fichas_tecnicas WHERE produto_id = @p0", torta) == 0,
+            "respondendo Sim, descarta e abre o outro produto (nada gravado)");
         f.Close();
     }
 }

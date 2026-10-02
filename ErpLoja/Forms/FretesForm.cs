@@ -31,7 +31,12 @@ public class FretesForm : Form
             Ui.Botao("Cancelar CIOT", async (_, _) => await CancelarCiot()),
             Ui.Botao("Gerar contas a pagar", (_, _) => Executar(id => Ui.Feito($"{Fretes.GerarContas(id)} conta(s) a pagar gerada(s).")) ),
             Ui.Botao("Em trânsito", (_, _) => Executar(id => Fretes.MudarStatus(id, "EM_TRANSITO"))),
-            Ui.Botao("Entregue", (_, _) => Executar(id => Fretes.MudarStatus(id, "ENTREGUE"))),
+            Ui.Botao("Entregue", (_, _) => Executar(id =>
+            {
+                Fretes.MudarStatus(id, "ENTREGUE");
+                if (Convert.ToString(Db.Scalar("SELECT ciot_status FROM fretes WHERE id = @p0", id)) == "DECLARADO")
+                    Ui.Aviso("Frete entregue. Lembre de encerrar o CIOT (botão \"Encerrar CIOT\", filtro Entregues ou Todos).");
+            })),
             Ui.Botao("Cancelar frete", (_, _) => Executar(id => { if (Ui.Confirmar("Cancelar este frete?")) Fretes.MudarStatus(id, "CANCELADO"); })),
             Ui.Botao("Imprimir", (_, _) => { if (Ui.IdLinha(fretes) is long id) CupomForm.Visualizar(this, $"Frete nº {id}", Texto(id), 80); }),
         ]);
@@ -243,7 +248,7 @@ public static class FreteEditor
         transportador.SelectedIndexChanged += (_, _) => AtualizarCiot();
         AtualizarCiot();
         if (ciotDeclarado)
-            foreach (var c in new Control[] { modalidade, transportador, motorista, veiculo, valor, pedagio, adiantamento })
+            foreach (var c in new Control[] { modalidade, transportador, motorista, veiculo, valor, pedagio, adiantamento, origem, origemUf, destino, destinoUf })
                 c.Enabled = false;
         // contas a pagar já geradas: os valores ficariam diferentes das contas (que não são refeitas)
         if (f != null && Ui.Dec(f["contas_geradas"]) == 1)
