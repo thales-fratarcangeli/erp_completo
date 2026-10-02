@@ -19,14 +19,14 @@ public class PedidoEditorForm : Form
 
     public long? IdSalvo => p.Id;
 
-    public PedidoEditorForm(string tipo, long? id)
+    public PedidoEditorForm(string tipo, long? id) : this(id is long existente ? Pedidos.Carregar(existente) : Pedidos.Novo(tipo))
     {
-        p = id is long existente ? Pedidos.Carregar(existente) : new Pedido
-        {
-            Tipo = tipo,
-            Validade = DateTime.Today.AddDays(tipo == Pedidos.Orcamento ? Parametros.ValidadeOrcamentoDias : 7),
-            Forma = tipo == Pedidos.Compra ? Operacoes.APrazo : "Dinheiro",
-        };
+    }
+
+    /// <summary>Abre um documento ainda não gravado, já preenchido (ex.: pedido de compra gerado pela sugestão do estoque).</summary>
+    public PedidoEditorForm(Pedido pedido)
+    {
+        p = pedido;
         editavel = p.Status == "ABERTO";
         var compra = p.Tipo == Pedidos.Compra;
 

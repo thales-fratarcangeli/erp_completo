@@ -18,6 +18,7 @@ public class EstoqueForm : Form
             Ui.Rotulo("Pesquisar:"), busca, somenteBaixo,
             Ui.Botao("Atualizar", (_, _) => Carregar()),
             Ui.Botao("Ajustar estoque", (_, _) => Ajustar(), primario: true),
+            Ui.Botao("Gerar pedido de compra", (_, _) => GerarPedido()),
             Ui.Botao("Exportar CSV", (_, _) => Ui.ExportarCsv(produtos, "estoque")),
             resumo,
         ]);
@@ -84,6 +85,27 @@ public class EstoqueForm : Form
             FROM movimentacoes_estoque m LEFT JOIN usuarios u ON u.id = m.usuario_id
             WHERE m.produto_id = @p0 ORDER BY m.id DESC LIMIT 500
             """, id);
+    }
+
+    /// <summary>Monta um pedido de compra com a sugestão (mínimo − saldo) dos produtos listados na grade.</summary>
+    void GerarPedido()
+    {
+        var ids = produtos.Rows.Cast<DataGridViewRow>()
+            .Where(r => r.Visible && r.DataBoundItem is DataRowView v && Ui.Dec(v["Sugestão de compra"]) > 0)
+            .Select(r => Convert.ToInt64(((DataRowView)r.DataBoundItem!)["id"])).ToList();
+        var pedido = Pedidos.SugestaoDeCompra(ids);
+        if (pedido.Itens.Count == 0)
+        {
+            Ui.Info("Nenhum produto listado está abaixo do estoque mínimo. Não há o que sugerir.\n" +
+                    "Dica: o estoque mínimo de cada produto é definido em Cadastros > Produtos.");
+            return;
+        }
+        using var f = new PedidoEditorForm(pedido);
+        if (f.ShowDialog(this) == DialogResult.OK && f.IdSalvo is long id)
+        {
+            Ui.Info($"Pedido de compra nº {id} gravado com {pedido.Itens.Count} item(ns). Acompanhe em Compras > Pedidos de compra.");
+            Carregar();
+        }
     }
 
     void Ajustar()

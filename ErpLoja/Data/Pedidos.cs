@@ -49,6 +49,43 @@ public static class Pedidos
         _ => "Pedido de compra",
     };
 
+    /// <summary>Documento novo com os padrões do tipo (validade, forma de pagamento).</summary>
+    public static Pedido Novo(string tipo) => new()
+    {
+        Tipo = tipo,
+        Validade = DateTime.Today.AddDays(tipo == Orcamento ? Parametros.ValidadeOrcamentoDias : 7),
+        Forma = tipo == Compra ? Operacoes.APrazo : "Dinheiro",
+    };
+
+    /// <summary>
+    /// Pedido de compra (não gravado) com a sugestão de compra dos produtos informados: quantidade = mínimo − saldo
+    /// (só os que estão abaixo do mínimo) e custo = custo médio atual. Sem itens a sugerir, devolve pedido vazio.
+    /// </summary>
+    public static Pedido SugestaoDeCompra(IEnumerable<long> produtos)
+    {
+        var p = Novo(Compra);
+        p.Observacoes = "Gerado pela sugestão de compra do estoque";
+        foreach (var id in produtos.Distinct())
+        {
+            var r = Db.Query("""
+                SELECT codigo, nome, unidade, preco_custo, estoque_minimo - estoque AS falta
+                FROM produtos WHERE id = @p0 AND ativo = 1
+                """, id).Rows.Cast<DataRow>().FirstOrDefault();
+            if (r is null || Ui.Dec(r["falta"]) <= 0)
+                continue;
+            p.Itens.Add(new PedidoItem
+            {
+                ProdutoId = id,
+                Codigo = Ui.Txt(r["codigo"]),
+                Produto = Ui.Txt(r["nome"]),
+                Unidade = Ui.Txt(r["unidade"]),
+                Quantidade = Ui.Dec(r["falta"]),
+                Unitario = Ui.Dec(r["preco_custo"]),
+            });
+        }
+        return p;
+    }
+
     public static Pedido Carregar(long id)
     {
         var r = Db.Query("SELECT * FROM pedidos WHERE id = @p0", id).Rows[0];

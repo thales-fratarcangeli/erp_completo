@@ -43,7 +43,7 @@ Sumário: [Cadastros](#cadastros-rn-cad) · [Estoque](#estoque-rn-est) · [Custo
 | RN-EST-03 | Saldo arredondado em 3 casas (venda fracionada, ex.: kg). |
 | RN-EST-04 | O saldo **pode ficar negativo** quando a operação sem estoque é permitida/confirmada (RN-VEN-03, RN-PRO-05) ou ao cancelar compra já vendida. |
 | RN-EST-05 | Ajuste exige motivo; ajuste que não altera o saldo não é gravado. Inventário usa o saldo do banco no momento de aplicar (não o da tela). Saída manual que deixaria o saldo negativo pede confirmação. |
-| RN-EST-06 | Situação: SEM ESTOQUE (saldo ≤ 0), BAIXO (saldo ≤ mínimo), OK. Sugestão de compra = máx(mínimo − saldo, 0). Valor em estoque = máx(saldo, 0) × custo médio. |
+| RN-EST-06 | Situação: SEM ESTOQUE (saldo ≤ 0), BAIXO (saldo ≤ mínimo), OK. Sugestão de compra = máx(mínimo − saldo, 0). Valor em estoque = máx(saldo, 0) × custo médio. "Gerar pedido de compra" monta um pedido de compra (não gravado) com a sugestão dos produtos listados, pelo custo médio. |
 
 ## Custo (RN-CUS)
 

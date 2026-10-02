@@ -226,6 +226,7 @@ public static class Ajuda
             ## Situação
             - SEM ESTOQUE (saldo ≤ 0), BAIXO (saldo ≤ mínimo), OK.
             - Sugestão de compra = mínimo − saldo, quando positivo.
+            - Gerar pedido de compra: monta um pedido com a sugestão dos produtos listados (respeita a pesquisa e "Somente estoque baixo"), pelo custo médio atual. Escolha o fornecedor, ajuste quantidades/preços e salve.
 
             ## Ajustar estoque
             - Entrada ou Saída (perda, quebra, uso interno) somam/subtraem do saldo.
