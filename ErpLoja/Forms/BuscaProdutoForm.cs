@@ -8,7 +8,7 @@ public class BuscaProdutoForm : Form
 
     BuscaProdutoForm(string termo)
     {
-        Ui.Estilizar(this, "Buscar produto", 900, 520);
+        Ui.Estilizar(this, "Buscar produto", 900, 520, nameof(BuscaProdutoForm));
         StartPosition = FormStartPosition.CenterParent;
         MinimizeBox = false;
         ShowInTaskbar = false;

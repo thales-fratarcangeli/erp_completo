@@ -83,9 +83,16 @@ public sealed class DbSessao : IDisposable
     readonly SqliteConnection conexao;
     SqliteTransaction? tx;
 
-    public DbSessao(bool transacao = false, bool criar = false)
+    /// <param name="semChavesEstrangeiras">Desliga a verificação de FKs nesta conexão (só migrações que reconstroem tabelas).</param>
+    public DbSessao(bool transacao = false, bool criar = false, bool semChavesEstrangeiras = false)
     {
         conexao = Db.NovaConexao(criar);
+        if (semChavesEstrangeiras)
+        {
+            using var cmd = conexao.CreateCommand();
+            cmd.CommandText = "PRAGMA foreign_keys = OFF";
+            cmd.ExecuteNonQuery();
+        }
         if (transacao)
             tx = conexao.BeginTransaction();
     }

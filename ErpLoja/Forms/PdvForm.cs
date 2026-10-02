@@ -1,113 +1,258 @@
+using System.Text.RegularExpressions;
+
 namespace ErpLoja.Forms;
 
 /// <summary>Linha da grade de itens do PDV.</summary>
+[System.Reflection.Obfuscation(Exclude = true, ApplyToMembers = true)]
 public class ItemLinha
 {
+    [DisplayName("#")] public int Seq { get; set; }
     [Browsable(false)] public long ProdutoId { get; set; }
     [DisplayName("Código")] public string Codigo { get; set; } = "";
-    [DisplayName("Produto")] public string Produto { get; set; } = "";
-    [DisplayName("Un.")] public string Unidade { get; set; } = "";
+    [DisplayName("Descrição")] public string Produto { get; set; } = "";
     [DisplayName("Qtd.")] public decimal Quantidade { get; set; }
-    [DisplayName("Preço unit.")] public decimal Unitario { get; set; }
+    [DisplayName("Un.")] public string Unidade { get; set; } = "";
+    [DisplayName("Preço")] public decimal Unitario { get; set; }
     [DisplayName("Total")] public decimal Total => Math.Round(Quantidade * Unitario, 2);
     [Browsable(false)] public decimal Custo { get; set; }
-    [Browsable(false)] public decimal Estoque { get; set; }
 }
 
-/// <summary>PDV: venda de balcão.</summary>
+/// <summary>PDV: frente de caixa em tela cheia, operado pelo teclado.</summary>
 public class PdvForm : Form
 {
+    static readonly Color Fundo = ColorTranslator.FromHtml("#0b1220");
+    static readonly Color Barra = ColorTranslator.FromHtml("#111827");
+    static readonly Color Cartao = ColorTranslator.FromHtml("#1e293b");
+    static readonly Color Linha = ColorTranslator.FromHtml("#334155");
+    static readonly Color Suave = ColorTranslator.FromHtml("#94a3b8");
+    static readonly Color Verde = ColorTranslator.FromHtml("#4ade80");
+    static readonly Color Ambar = ColorTranslator.FromHtml("#fbbf24");
+
     readonly BindingList<ItemLinha> itens = new();
-    readonly DataGridView grid = Ui.Grid(somenteLeitura: false);
-    readonly ComboBox cliente = Ui.Combo(320), forma = Ui.Combo(170);
-    readonly TextBox codigo = new() { Width = 220, Margin = new Padding(4, 7, 4, 4) };
-    readonly NumericUpDown qtd = Ui.Numero(3), desconto = Ui.Numero(), recebido = Ui.Numero(), parcelas = Ui.Numero(0, 60, 1);
-    readonly DateTimePicker vencimento = Ui.Data();
-    readonly Label lblResumo = Ui.Rotulo(""), lblTroco = Ui.Rotulo("");
-    readonly Label lblTotal = new() { AutoSize = true, Font = new Font("Segoe UI Semibold", 18F), ForeColor = Ui.Primaria, Margin = new Padding(16, 4, 16, 0) };
+    readonly DataGridView grid = new();
+    readonly TextBox codigo = new();
+    readonly Label lblUltimo = Rotulo("Caixa livre", 18F, Color.White, negrito: true);
+    readonly Label lblUltimoCalculo = Rotulo("Leia o código de barras ou digite o código do produto", 12F, Suave);
+    readonly Label lblCliente = Rotulo("Consumidor final", 12F, Color.White);
+    readonly Label lblItens = Rotulo("0 itens", 12F, Suave);
+    readonly Label lblSubtotal = Rotulo("R$ 0,00", 12F, Color.White);
+    readonly Label lblDesconto = Rotulo("R$ 0,00", 12F, Color.White);
+    readonly Label lblTotal = Rotulo("R$ 0,00", 40F, Verde, negrito: true);
+    readonly Label lblSituacao = new() { AutoSize = false, Size = new Size(210, 30), TextAlign = ContentAlignment.MiddleCenter, Font = new Font("Segoe UI Semibold", 10F), ForeColor = Color.Black };
+    readonly Label lblRelogio = Rotulo("", 14F, Color.White, negrito: true);
+    readonly Label lblQuantidade = Rotulo("Qtd. 1", 11F, Ambar, negrito: true);
+    readonly Panel painelTotal = new() { Dock = DockStyle.Bottom, Height = 132, BackColor = Cartao, Padding = new Padding(22, 14, 22, 10) };
+    readonly System.Windows.Forms.Timer relogio = new() { Interval = 1000 };
+
+    decimal proximaQuantidade = 1, desconto;
+    long? clienteId;
+
+    static Label Rotulo(string texto, float tamanho, Color cor, bool negrito = false) => new()
+    {
+        Text = texto,
+        AutoSize = true,
+        ForeColor = cor,
+        Font = new Font(negrito ? "Segoe UI Semibold" : "Segoe UI", tamanho),
+        BackColor = Color.Transparent,
+    };
 
     public PdvForm()
     {
-        Ui.Estilizar(this, "PDV - venda no balcão", 1150, 720);
-        qtd.Value = 1;
-        parcelas.Width = 60;
-        parcelas.Maximum = Parametros.MaxParcelas;
+        Ui.Estilizar(this, "PDV - frente de caixa", 1280, 760, nameof(PdvForm));
+        WindowState = FormWindowState.Maximized;
+        BackColor = Fundo;
+        ForeColor = Color.White;
 
-        var topo = Ui.Barra();
-        topo.Controls.AddRange([Ui.Rotulo("Cliente:"), cliente]);
+        // ---------------- topo
+        var topo = new Panel { Dock = DockStyle.Top, Height = 66, BackColor = Barra, Padding = new Padding(16, 0, 64, 0) };
+        var marca = new FlowLayoutPanel { Dock = DockStyle.Left, AutoSize = true, WrapContents = false, BackColor = Barra, Padding = new Padding(0, 12, 0, 0) };
+        marca.Controls.Add(new PictureBox { Image = Ui.Logo(40), Size = new Size(40, 40), Margin = new Padding(0, 0, 12, 0) });
+        var identificacao = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false, BackColor = Barra, Margin = new Padding(0) };
+        identificacao.Controls.Add(Rotulo(Db.Config("nome_loja"), 13F, Color.White, negrito: true));
+        identificacao.Controls.Add(Rotulo($"CAIXA {Parametros.CaixaNumero}   ·   Operador: {Sessao.Nome}", 9.5F, Suave));
+        marca.Controls.Add(identificacao);
+        var direita = new FlowLayoutPanel { Dock = DockStyle.Right, AutoSize = true, WrapContents = false, BackColor = Barra, Padding = new Padding(0, 17, 0, 0) };
+        lblSituacao.Margin = new Padding(0, 0, 18, 0);
+        direita.Controls.Add(lblSituacao);
+        direita.Controls.Add(lblRelogio);
+        topo.Controls.Add(direita);
+        topo.Controls.Add(marca);
 
-        var entrada = Ui.Barra();
-        entrada.Controls.AddRange([
-            Ui.Rotulo("Código ou cód. barras:"), codigo, Ui.Rotulo("Qtd.:"), qtd,
-            Ui.Botao("Adicionar (Enter)", (_, _) => Adicionar(), primario: true),
-            Ui.Botao("Buscar produto (F3)", (_, _) => Adicionar(buscar: true)),
-            Ui.Botao("Remover item (Del)", (_, _) => Remover()),
-        ]);
+        // ---------------- barra de teclas
+        var teclas = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 58, BackColor = Barra, Padding = new Padding(12, 11, 12, 0), WrapContents = false };
+        foreach (var (tecla, texto, acao) in new (string, string, Action)[]
+                 {
+                     ("F2", "Cliente", EscolherCliente), ("F3", "Buscar", () => Adicionar(buscar: true)), ("F4", "Quantidade", DefinirQuantidade),
+                     ("F5", "Desconto", DarDesconto), ("F6", "Remover item", Remover), ("F7", "Cancelar venda", () => Limpar(perguntar: true)),
+                     ("F10", "Pagamento", Pagar), ("Esc", "Sair", Close),
+                 })
+            teclas.Controls.Add(Tecla(tecla, texto, acao, tecla == "F10"));
 
-        var pagamento = Ui.Barra(DockStyle.Bottom);
-        pagamento.Controls.AddRange([
-            Ui.Rotulo("Pagamento:"), forma, Ui.Rotulo("Parcelas:"), parcelas, Ui.Rotulo("1º vencimento:"), vencimento,
-            Ui.Rotulo("Desconto R$:"), desconto, Ui.Rotulo("Valor recebido R$:"), recebido,
-        ]);
+        // ---------------- painel direito
+        var lateral = new Panel { Dock = DockStyle.Right, Width = 430, BackColor = Fundo, Padding = new Padding(14, 14, 16, 14) };
+        var entrada = new Panel { Dock = DockStyle.Top, Height = 98, BackColor = Cartao, Padding = new Padding(18, 10, 18, 10) };
+        codigo.Dock = DockStyle.Bottom;
+        codigo.Font = new Font("Segoe UI", 20F);
+        codigo.BackColor = Fundo;
+        codigo.ForeColor = Color.White;
+        codigo.BorderStyle = BorderStyle.FixedSingle;
+        codigo.PlaceholderText = "código, código de barras ou 3*código";
+        var cabecalhoEntrada = new Panel { Dock = DockStyle.Top, Height = 26, BackColor = Cartao };
+        cabecalhoEntrada.Controls.Add(lblQuantidade);
+        lblQuantidade.Dock = DockStyle.Right;
+        var rotuloEntrada = Rotulo("PRODUTO", 9.5F, Suave, negrito: true);
+        rotuloEntrada.Dock = DockStyle.Left;
+        cabecalhoEntrada.Controls.Add(rotuloEntrada);
+        entrada.Controls.Add(codigo);
+        entrada.Controls.Add(cabecalhoEntrada);
 
-        var totais = Ui.Barra(DockStyle.Bottom);
-        totais.Controls.AddRange([
-            Ui.Botao("Finalizar (F10)", (_, _) => Finalizar(), primario: true),
-            Ui.Botao("Limpar", (_, _) => Limpar(perguntar: true)),
-            lblTotal, lblResumo, lblTroco,
-        ]);
+        var ultimo = new Panel { Dock = DockStyle.Top, Height = 116, BackColor = Cartao, Padding = new Padding(18, 12, 18, 10), Margin = new Padding(0, 12, 0, 0) };
+        var rotuloUltimo = Rotulo("ÚLTIMO ITEM", 9.5F, Suave, negrito: true);
+        rotuloUltimo.Dock = DockStyle.Top;
+        lblUltimo.Dock = DockStyle.Top;
+        lblUltimo.AutoSize = false;
+        lblUltimo.Height = 38;
+        lblUltimo.AutoEllipsis = true;
+        lblUltimoCalculo.Dock = DockStyle.Top;
+        ultimo.Controls.Add(lblUltimoCalculo);
+        ultimo.Controls.Add(lblUltimo);
+        ultimo.Controls.Add(rotuloUltimo);
 
-        Controls.Add(grid);
-        Controls.Add(entrada);
+        var resumo = new TableLayoutPanel { Dock = DockStyle.Top, Height = 132, ColumnCount = 2, BackColor = Fundo, Padding = new Padding(4, 14, 4, 0) };
+        resumo.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        resumo.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        void LinhaResumo(string nome, Label valor)
+        {
+            resumo.Controls.Add(Rotulo(nome, 12F, Suave));
+            valor.Anchor = AnchorStyles.Right;
+            resumo.Controls.Add(valor);
+        }
+        LinhaResumo("Cliente (F2)", lblCliente);
+        LinhaResumo("Itens", lblItens);
+        LinhaResumo("Subtotal", lblSubtotal);
+        LinhaResumo("Desconto (F5)", lblDesconto);
+
+        var rotuloTotal = Rotulo("TOTAL A PAGAR", 11F, Suave, negrito: true);
+        rotuloTotal.Dock = DockStyle.Top;
+        lblTotal.Dock = DockStyle.Fill;
+        lblTotal.AutoSize = false;
+        lblTotal.TextAlign = ContentAlignment.MiddleRight;
+        painelTotal.Controls.Add(lblTotal);
+        painelTotal.Controls.Add(rotuloTotal);
+
+        var espaco1 = new Panel { Dock = DockStyle.Top, Height = 12, BackColor = Fundo };
+        lateral.Controls.Add(painelTotal);
+        lateral.Controls.Add(resumo);
+        lateral.Controls.Add(ultimo);
+        lateral.Controls.Add(espaco1);
+        lateral.Controls.Add(entrada);
+
+        // ---------------- grade
+        var centro = new Panel { Dock = DockStyle.Fill, BackColor = Fundo, Padding = new Padding(16, 14, 0, 14) };
+        EstilizarGrade();
+        centro.Controls.Add(grid);
+
+        Controls.Add(centro);
+        Controls.Add(lateral);
+        Controls.Add(teclas);
         Controls.Add(topo);
-        Controls.Add(pagamento);
-        Controls.Add(totais);
-
-        forma.Items.AddRange(["Dinheiro", "PIX", "Cartão de débito", "Cartão de crédito", Operacoes.APrazo]);
-
-        grid.DataSource = itens;
-        grid.DataBindingComplete += (_, _) =>
-        {
-            foreach (DataGridViewColumn c in grid.Columns)
-                c.ReadOnly = c.DataPropertyName is not (nameof(ItemLinha.Quantidade) or nameof(ItemLinha.Unitario));
-        };
-        grid.CellValidating += (_, e) =>
-        {
-            var nome = grid.Columns[e.ColumnIndex].DataPropertyName;
-            if (nome is not (nameof(ItemLinha.Quantidade) or nameof(ItemLinha.Unitario)))
-                return;
-            if (!decimal.TryParse(Convert.ToString(e.FormattedValue), out var v) || v < 0 || (nome == nameof(ItemLinha.Quantidade) && v == 0))
-            {
-                Ui.Erro("Informe um valor válido (maior que zero).");
-                e.Cancel = true;
-            }
-        };
-        grid.CellEndEdit += (_, e) => { grid.InvalidateRow(e.RowIndex); AtualizarTotais(); };
 
         itens.ListChanged += (_, _) => AtualizarTotais();
-        desconto.ValueChanged += (_, _) => AtualizarTotais();
-        recebido.ValueChanged += (_, _) => AtualizarTotais();
-        forma.SelectedIndexChanged += (_, _) =>
-        {
-            parcelas.Enabled = vencimento.Enabled = forma.Text == Operacoes.APrazo;
-            recebido.Enabled = EmDinheiro;
-            AtualizarTotais();
-        };
         codigo.KeyDown += (_, e) =>
         {
-            if (e.KeyCode == Keys.Enter) { Adicionar(); e.SuppressKeyPress = true; }
+            if (e.KeyCode == Keys.Enter)
+            {
+                e.SuppressKeyPress = true;
+                Adicionar();
+            }
         };
-
+        relogio.Tick += (_, _) => lblRelogio.Text = DateTime.Now.ToString("HH:mm:ss");
         Load += (_, _) =>
         {
-            Ui.Preencher(cliente, Db.Query("SELECT id, nome FROM clientes WHERE ativo = 1 ORDER BY nome"), "Consumidor final");
-            Limpar(perguntar: false);
+            relogio.Start();
+            lblRelogio.Text = DateTime.Now.ToString("HH:mm:ss");
+            AtualizarTotais();
         };
         Shown += (_, _) => codigo.Focus();
         FormClosing += (_, e) =>
         {
-            if (itens.Count > 0 && !Ui.Confirmar("Há itens lançados que não foram finalizados. Descartar e fechar?"))
+            if (itens.Count > 0 && !Ui.Confirmar("Há uma venda em andamento. Cancelar a venda e sair do PDV?"))
                 e.Cancel = true;
+        };
+        FormClosed += (_, _) => relogio.Dispose();
+    }
+
+    Control Tecla(string tecla, string texto, Action acao, bool destaque)
+    {
+        var p = new FlowLayoutPanel { AutoSize = true, WrapContents = false, BackColor = Barra, Margin = new Padding(0, 0, 18, 0), Cursor = Cursors.Hand };
+        var tampa = new Label
+        {
+            Text = tecla,
+            AutoSize = false,
+            Size = new Size(tecla.Length > 2 ? 46 : 38, 30),
+            TextAlign = ContentAlignment.MiddleCenter,
+            Font = new Font("Segoe UI Semibold", 10F),
+            BackColor = destaque ? ColorTranslator.FromHtml("#16a34a") : Linha,
+            ForeColor = Color.White,
+            Margin = new Padding(0, 0, 6, 0),
+        };
+        var legenda = Rotulo(texto, 10.5F, Color.FromArgb(203, 213, 225));
+        legenda.Margin = new Padding(0, 5, 0, 0);
+        p.Controls.Add(tampa);
+        p.Controls.Add(legenda);
+        foreach (Control c in new Control[] { p, tampa, legenda })
+            c.Click += (_, _) => acao();
+        Animacao.Hover(tampa, tampa.BackColor, Animacao.Clarear(tampa.BackColor, 0.25));
+        return p;
+    }
+
+    void EstilizarGrade()
+    {
+        grid.Dock = DockStyle.Fill;
+        grid.ReadOnly = true;
+        grid.AllowUserToAddRows = grid.AllowUserToDeleteRows = grid.AllowUserToResizeRows = false;
+        grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+        grid.MultiSelect = false;
+        grid.RowHeadersVisible = false;
+        grid.BorderStyle = BorderStyle.None;
+        grid.BackgroundColor = Fundo;
+        grid.GridColor = Linha;
+        grid.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+        grid.EnableHeadersVisualStyles = false;
+        grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+        grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+        grid.ColumnHeadersHeight = 40;
+        grid.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
+        grid.ColumnHeadersDefaultCellStyle.BackColor = Cartao;
+        grid.ColumnHeadersDefaultCellStyle.ForeColor = Suave;
+        grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Cartao;
+        grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 10F);
+        grid.DefaultCellStyle.BackColor = Fundo;
+        grid.DefaultCellStyle.ForeColor = Color.White;
+        grid.DefaultCellStyle.Font = new Font("Segoe UI", 13F);
+        grid.DefaultCellStyle.SelectionBackColor = ColorTranslator.FromHtml("#1d4ed8");
+        grid.DefaultCellStyle.SelectionForeColor = Color.White;
+        grid.AlternatingRowsDefaultCellStyle.BackColor = Barra;
+        grid.RowTemplate.Height = 40;
+        grid.DataSource = itens;
+        grid.DataBindingComplete += (_, _) =>
+        {
+            foreach (DataGridViewColumn c in grid.Columns)
+            {
+                c.SortMode = DataGridViewColumnSortMode.NotSortable;
+                if (c.ValueType == typeof(decimal))
+                {
+                    c.DefaultCellStyle.Format = c.DataPropertyName == nameof(ItemLinha.Quantidade) ? "N3" : "N2";
+                    c.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+                }
+                c.FillWeight = c.DataPropertyName switch
+                {
+                    nameof(ItemLinha.Produto) => 300,
+                    nameof(ItemLinha.Seq) => 30,
+                    nameof(ItemLinha.Unidade) => 40,
+                    _ => 90,
+                };
+            }
         };
     }
 
@@ -115,51 +260,79 @@ public class PdvForm : Form
     {
         switch (keyData)
         {
+            case Keys.F2: EscolherCliente(); return true;
             case Keys.F3: Adicionar(buscar: true); return true;
-            case Keys.F10: Finalizar(); return true;
-            case Keys.Delete when grid.Focused: Remover(); return true;
+            case Keys.F4: DefinirQuantidade(); return true;
+            case Keys.F5: DarDesconto(); return true;
+            case Keys.F6: Remover(); return true;
+            case Keys.F7: Limpar(perguntar: true); return true;
+            case Keys.F10: Pagar(); return true;
+            case Keys.Escape: Close(); return true;
         }
         return base.ProcessCmdKey(ref msg, keyData);
     }
 
     decimal Subtotal => itens.Sum(i => i.Total);
-    decimal Total => Math.Max(0, Subtotal - desconto.Value);
-    bool EmDinheiro => forma.Text == "Dinheiro";
+    decimal Total => Math.Max(0, Subtotal - desconto);
 
     void AtualizarTotais()
     {
-        lblTotal.Text = "TOTAL " + Ui.Moeda(Total);
-        lblResumo.Text = $"{itens.Count} item(ns) · Subtotal {Ui.Moeda(Subtotal)}"
-            + (desconto.Value > 0 ? $" · Desconto {Ui.Moeda(desconto.Value)}" : "");
-        lblTroco.Text = EmDinheiro && recebido.Value > 0 ? "Troco: " + Ui.Moeda(Math.Max(0, recebido.Value - Total)) : "";
+        var antes = lblTotal.Text;
+        lblTotal.Text = Ui.Moeda(Total);
+        lblSubtotal.Text = Ui.Moeda(Subtotal);
+        lblDesconto.Text = desconto > 0 ? "- " + Ui.Moeda(desconto) : Ui.Moeda(0);
+        lblItens.Text = $"{itens.Count} item(ns)";
+        lblQuantidade.Text = $"Qtd. {proximaQuantidade:0.###}";
+        var emVenda = itens.Count > 0;
+        lblSituacao.Text = emVenda ? "VENDA EM ANDAMENTO" : "CAIXA LIVRE";
+        lblSituacao.BackColor = emVenda ? Ambar : Verde;
+        if (antes != lblTotal.Text && emVenda)
+            Animacao.Pulsar(painelTotal, ColorTranslator.FromHtml("#14532d"), 450);
     }
+
+    static readonly Regex Multiplicador = new(@"^\s*(\d+(?:[.,]\d+)?)\s*[*xX]\s*(.+)$");
 
     void Adicionar(bool buscar = false)
     {
-        var id = buscar ? BuscaProdutoForm.Escolher(this, codigo.Text.Trim()) : BuscaProdutoForm.Localizar(this, codigo.Text);
-        if (id is not long produto)
+        var texto = codigo.Text.Trim();
+        var quantidade = proximaQuantidade;
+        if (Multiplicador.Match(texto) is { Success: true } m)
+        {
+            quantidade = decimal.Parse(m.Groups[1].Value.Replace('.', ','));
+            texto = m.Groups[2].Value.Trim();
+        }
+        if (!buscar && texto.Length == 0)
             return;
-        var quantidade = qtd.Value;
+        var id = buscar ? BuscaProdutoForm.Escolher(this, texto) : BuscaProdutoForm.Localizar(this, texto);
+        if (id is not long produto)
+        {
+            codigo.SelectAll();
+            return;
+        }
         if (quantidade <= 0)
         {
-            Ui.Erro("Informe a quantidade.");
+            Ui.Aviso("Quantidade inválida.");
             return;
         }
         var p = Db.Query("SELECT codigo, nome, unidade, preco_venda, preco_custo, estoque FROM produtos WHERE id = @p0", produto).Rows[0];
-        var item = itens.FirstOrDefault(i => i.ProdutoId == produto);
+        var existente = itens.FirstOrDefault(i => i.ProdutoId == produto);
         var estoque = Ui.Dec(p["estoque"]);
-        if ((item?.Quantidade ?? 0) + quantidade > estoque &&
+        if ((existente?.Quantidade ?? 0) + quantidade > estoque &&
             !Parametros.PodeVenderSemEstoque($"Estoque insuficiente para \"{p["nome"]}\" (disponível: {estoque:N2})."))
             return;
 
-        if (item != null)
+        ItemLinha item;
+        if (existente != null)
         {
-            item.Quantidade += quantidade;
-            itens.ResetItem(itens.IndexOf(item));
+            existente.Quantidade += quantidade;
+            itens.ResetItem(itens.IndexOf(existente));
+            item = existente;
         }
         else
-            itens.Add(new ItemLinha
+        {
+            item = new ItemLinha
             {
+                Seq = itens.Count + 1,
                 ProdutoId = produto,
                 Codigo = Ui.Txt(p["codigo"]),
                 Produto = Ui.Txt(p["nome"]),
@@ -167,84 +340,183 @@ public class PdvForm : Form
                 Quantidade = quantidade,
                 Unitario = Ui.Dec(p["preco_venda"]),
                 Custo = Ui.Dec(p["preco_custo"]),
-                Estoque = estoque,
-            });
+            };
+            itens.Add(item);
+        }
+        lblUltimo.Text = item.Produto;
+        lblUltimoCalculo.Text = $"{quantidade:0.###} {item.Unidade} × {Ui.Moeda(item.Unitario)} = {Ui.Moeda(Math.Round(quantidade * item.Unitario, 2))}";
+        var linha = itens.IndexOf(item);
+        if (linha >= 0 && linha < grid.Rows.Count)
+        {
+            grid.ClearSelection();
+            grid.Rows[linha].Selected = true;
+            grid.FirstDisplayedScrollingRowIndex = Math.Max(0, linha - 8);
+        }
+        proximaQuantidade = 1;
         codigo.Clear();
-        qtd.Value = 1;
+        codigo.Focus();
+        AtualizarTotais();
+    }
+
+    void EscolherCliente()
+    {
+        using var d = new Dialogo("Cliente da venda", "PdvForm", "Selecionar");
+        var combo = d.Adicionar("Cliente:", Ui.Combo(380));
+        Ui.Preencher(combo, Db.Query("SELECT id, nome FROM pessoas WHERE eh_cliente = 1 AND ativo = 1 ORDER BY nome"), "Consumidor final");
+        Ui.Selecionar(combo, clienteId);
+        combo.DropDownStyle = ComboBoxStyle.DropDown;
+        combo.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
+        combo.AutoCompleteSource = AutoCompleteSource.ListItems;
+        d.Nota("Digite parte do nome para localizar. Venda a prazo exige cliente.");
+        if (d.ShowDialog(this) != DialogResult.OK)
+            return;
+        clienteId = Ui.Id(combo);
+        lblCliente.Text = clienteId is null ? "Consumidor final" : combo.Text;
         codigo.Focus();
     }
 
-    void Remover()
+    void DefinirQuantidade()
     {
-        if (grid.CurrentRow?.DataBoundItem is ItemLinha i)
-            itens.Remove(i);
-    }
-
-    void Limpar(bool perguntar)
-    {
-        if (perguntar && itens.Count > 0 && !Ui.Confirmar("Descartar os itens lançados?"))
+        using var d = new Dialogo("Quantidade do próximo item", "PdvForm");
+        var q = d.Adicionar("Quantidade:", Ui.Numero(3, 99_999, 0.001m));
+        q.Value = proximaQuantidade;
+        q.Select(0, q.Text.Length);
+        if (d.ShowDialog(this) != DialogResult.OK)
             return;
-        itens.Clear();
-        desconto.Value = recebido.Value = 0;
-        parcelas.Value = 1;
-        vencimento.Value = DateTime.Today.AddDays(Parametros.PrazoVencimentoDias);
-        if (cliente.Items.Count > 0)
-            cliente.SelectedIndex = 0;
-        forma.SelectedIndex = 0;
+        proximaQuantidade = q.Value;
         AtualizarTotais();
         codigo.Focus();
     }
 
-    void Finalizar()
+    void DarDesconto()
     {
-        grid.EndEdit();
+        if (itens.Count == 0)
+            return;
+        using var d = new Dialogo("Desconto na venda", "PdvForm", "Aplicar");
+        var valor = d.Adicionar("Desconto (R$):", Ui.Numero(2, Subtotal));
+        var percentual = d.Adicionar("ou percentual (%):", Ui.Numero(2, 100));
+        valor.Value = Math.Min(desconto, Subtotal);
+        percentual.ValueChanged += (_, _) => { if (percentual.Value > 0) valor.Value = Math.Round(Subtotal * percentual.Value / 100, 2); };
+        d.Validar = () => Parametros.ValidarDesconto(valor.Value, Subtotal) is not string erro || Falhar(erro);
+        if (d.ShowDialog(this) != DialogResult.OK)
+            return;
+        desconto = valor.Value;
+        AtualizarTotais();
+        codigo.Focus();
+    }
+
+    static bool Falhar(string mensagem)
+    {
+        Ui.Erro(mensagem);
+        return false;
+    }
+
+    void Remover()
+    {
+        if (grid.CurrentRow?.DataBoundItem is not ItemLinha i)
+            return;
+        if (!Ui.Confirmar($"Remover \"{i.Produto}\" da venda?"))
+            return;
+        itens.Remove(i);
+        for (int k = 0; k < itens.Count; k++)
+            itens[k].Seq = k + 1;
+        itens.ResetBindings();
+        desconto = Math.Min(desconto, Subtotal);
+        AtualizarTotais();
+        codigo.Focus();
+    }
+
+    void Limpar(bool perguntar)
+    {
+        if (perguntar && itens.Count > 0 && !Ui.Confirmar("Cancelar a venda em andamento?"))
+            return;
+        itens.Clear();
+        desconto = 0;
+        proximaQuantidade = 1;
+        clienteId = null;
+        lblCliente.Text = "Consumidor final";
+        lblUltimo.Text = "Caixa livre";
+        lblUltimoCalculo.Text = "Leia o código de barras ou digite o código do produto";
+        AtualizarTotais();
+        codigo.Focus();
+    }
+
+    void Pagar()
+    {
         if (itens.Count == 0)
         {
-            Ui.Erro("Adicione pelo menos um item.");
+            Ui.Aviso("Adicione pelo menos um item antes do pagamento.");
             return;
         }
-        var clienteId = Ui.Id(cliente);
-        var aPrazo = forma.Text == Operacoes.APrazo;
-        if (aPrazo && clienteId is null)
+        using var pagamento = new PagamentoForm(Total, clienteId != null);
+        if (pagamento.ShowDialog(this) != DialogResult.OK)
         {
-            Ui.Erro("Para vender a prazo, selecione o cliente.");
+            codigo.Focus();
             return;
         }
-        if (desconto.Value > Subtotal)
+        if (pagamento.Forma == Operacoes.APrazo && clienteId is long cliente &&
+            Operacoes.CreditoDisponivel(cliente) is decimal disponivel && Total > disponivel && !Sessao.Admin)
         {
-            Ui.Erro("O desconto não pode ser maior que o subtotal.");
+            Ui.Erro($"Limite de crédito do cliente excedido (disponível: {Ui.Moeda(disponivel)}). Peça a um administrador.");
             return;
         }
-        if (Parametros.ValidarDesconto(desconto.Value, Subtotal) is string erroDesconto)
-        {
-            Ui.Erro(erroDesconto);
-            return;
-        }
-        if (EmDinheiro && recebido.Value > 0 && recebido.Value < Total)
-        {
-            Ui.Erro("O valor recebido é menor que o total.");
-            return;
-        }
-        var texto = $"Confirmar venda de {Ui.Moeda(Total)} em {forma.Text}"
-            + (aPrazo ? $" ({parcelas.Value:N0}x, 1º vencimento {vencimento.Value:dd/MM/yyyy})" : "") + "?";
-        if (!Ui.Confirmar(texto))
-            return;
 
+        ResultadoTef? tef = null;
+        if (Parametros.TefAtivo && pagamento.Modalidade is ModalidadeTef modalidade)
+        {
+            tef = Tef.Pagar(this, Total, modalidade, pagamento.Parcelas);
+            if (!tef.Aprovada)
+            {
+                Ui.Erro("Pagamento não aprovado: " + tef.Mensagem);
+                return;
+            }
+        }
+
+        long id;
+        var total = Total;
         try
         {
-            var troco = EmDinheiro && recebido.Value > 0 ? recebido.Value - Total : 0;
             var lista = itens.Select(i => new ItemDoc(i.ProdutoId, i.Quantidade, i.Unitario, i.Custo)).ToList();
-            var id = Operacoes.RegistrarVenda(clienteId, lista, desconto.Value, forma.Text, (int)parcelas.Value, vencimento.Value.Date);
-            itens.Clear();
-            var msg = $"Venda nº {id} registrada." + (troco > 0 ? $"\n\nTROCO: {Ui.Moeda(troco)}" : "")
-                      + "\n\nDeseja ver/imprimir o comprovante?";
-            if (Ui.Confirmar(msg))
-                CupomForm.Mostrar(this, id);
-            Limpar(perguntar: false);
+            id = Operacoes.RegistrarVenda(clienteId, lista, desconto, pagamento.Forma, pagamento.Parcelas, pagamento.Vencimento);
         }
         catch (Exception ex)
         {
-            Ui.Erro("Erro ao registrar: " + ex.Message);
+            if (tef != null)
+                Tef.Desfazer(tef.TransacaoId);
+            Ui.Erro("Erro ao registrar a venda" + (tef != null ? " (a transação do cartão foi desfeita)" : "") + ":\n" + ex.Message);
+            return;
         }
+        if (tef != null)
+            Tef.Confirmar(tef.TransacaoId, id);
+
+        var imprimir = Parametros.ImprimirCupom switch
+        {
+            "SEMPRE" => true,
+            "NUNCA" => false,
+            _ => Ui.Confirmar($"Venda nº {id} registrada.\n\nImprimir o comprovante?"),
+        };
+        if (imprimir)
+        {
+            try
+            {
+                Impressao.ImprimirCupom(CupomForm.Gerar(id), abrirGaveta: pagamento.Forma == "Dinheiro");
+                if (tef != null)
+                {
+                    Impressao.ImprimirCupom(tef.ComprovanteCliente);
+                    if (Parametros.TefViaLoja)
+                        Impressao.ImprimirCupom(tef.ComprovanteLoja);
+                }
+            }
+            catch (Exception ex)
+            {
+                Ui.Aviso("Venda registrada, mas a impressão falhou: " + ex.Message);
+            }
+        }
+        itens.Clear();
+        Limpar(perguntar: false);
+        var troco = pagamento.Recebido - total;
+        lblUltimo.Text = troco > 0 ? $"TROCO: {Ui.Moeda(troco)}" : $"Venda nº {id} concluída";
+        lblUltimoCalculo.Text = $"Pagamento: {pagamento.Forma}" + (tef?.Bandeira is string b ? $" · {b} · NSU {tef.Nsu}" : "");
+        Ui.Feito($"Venda nº {id} registrada ({Ui.Moeda(total)}).");
     }
 }

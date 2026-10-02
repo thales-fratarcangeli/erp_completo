@@ -30,7 +30,7 @@ public class PedidoEditorForm : Form
         editavel = p.Status == "ABERTO";
         var compra = p.Tipo == Pedidos.Compra;
 
-        Ui.Estilizar(this, Pedidos.Nome(p.Tipo) + (p.Id is long n ? $" nº {n}" : " (novo)") + (editavel ? "" : $" — {p.Status}"), 1150, 720);
+        Ui.Estilizar(this, Pedidos.Nome(p.Tipo) + (p.Id is long n ? $" nº {n}" : " (novo)") + (editavel ? "" : $" — {p.Status}"), 1150, 720, nameof(PedidoEditorForm));
         parcelas.Maximum = Parametros.MaxParcelas;
         StartPosition = FormStartPosition.CenterParent;
         ShowInTaskbar = false;
@@ -112,9 +112,9 @@ public class PedidoEditorForm : Form
         Load += (_, _) =>
         {
             if (compra)
-                Ui.Preencher(pessoa, Db.Query("SELECT id, nome FROM fornecedores WHERE ativo = 1 OR id = @p0 ORDER BY nome", p.FornecedorId), "(selecione o fornecedor)");
+                Ui.Preencher(pessoa, Db.Query("SELECT id, nome FROM pessoas WHERE (eh_fornecedor = 1 AND ativo = 1) OR id = @p0 ORDER BY nome", p.FornecedorId), "(selecione o fornecedor)");
             else
-                Ui.Preencher(pessoa, Db.Query("SELECT id, nome FROM clientes WHERE ativo = 1 OR id = @p0 ORDER BY nome", p.ClienteId), "Consumidor final");
+                Ui.Preencher(pessoa, Db.Query("SELECT id, nome FROM pessoas WHERE (eh_cliente = 1 AND ativo = 1) OR id = @p0 ORDER BY nome", p.ClienteId), "Consumidor final");
             Ui.Selecionar(pessoa, compra ? p.FornecedorId : p.ClienteId);
             validade.Value = p.Validade ?? DateTime.Today;
             forma.SelectedItem = forma.Items.Contains(p.Forma) ? p.Forma : forma.Items[0];

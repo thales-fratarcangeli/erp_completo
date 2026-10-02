@@ -48,14 +48,14 @@ public class DocumentosForm : Form
               SELECT v.id, v.id AS "Nº", strftime('%d/%m/%Y %H:%M', v.data) AS "Data", COALESCE(c.nome, 'Consumidor final') AS "Cliente",
                      u.nome AS "Usuário", v.forma_pagamento AS "Pagamento", v.subtotal AS "Subtotal", v.desconto AS "Desconto",
                      v.total AS "Total", v.status AS "Situação"
-              FROM vendas v LEFT JOIN clientes c ON c.id = v.cliente_id LEFT JOIN usuarios u ON u.id = v.usuario_id
+              FROM vendas v LEFT JOIN pessoas c ON c.id = v.cliente_id LEFT JOIN usuarios u ON u.id = v.usuario_id
               WHERE date(v.data) BETWEEN @p0 AND @p1 ORDER BY v.id DESC
               """
             : """
               SELECT o.id, o.id AS "Nº", strftime('%d/%m/%Y %H:%M', o.data) AS "Data", f.nome AS "Fornecedor",
                      o.numero_nota AS "Nota fiscal", u.nome AS "Usuário", o.forma_pagamento AS "Pagamento",
                      o.total AS "Total", o.status AS "Situação"
-              FROM compras o JOIN fornecedores f ON f.id = o.fornecedor_id LEFT JOIN usuarios u ON u.id = o.usuario_id
+              FROM compras o JOIN pessoas f ON f.id = o.fornecedor_id LEFT JOIN usuarios u ON u.id = o.usuario_id
               WHERE date(o.data) BETWEEN @p0 AND @p1 ORDER BY o.id DESC
               """;
         var dt = Db.Query(sql, Db.Dia(de.Value), Db.Dia(ate.Value));
@@ -110,8 +110,15 @@ public class DocumentosForm : Form
             return;
         try
         {
-            if (venda) Operacoes.CancelarVenda(id);
-            else Operacoes.CancelarCompra(id);
+            if (venda)
+            {
+                Operacoes.CancelarVenda(id);
+                var estornos = Tef.CancelarDaVenda(this, id);
+                if (estornos.Count > 0)
+                    Ui.Info("Estorno das transações de cartão/PIX:\n" + string.Join("\n", estornos));
+            }
+            else
+                Operacoes.CancelarCompra(id);
             Carregar();
         }
         catch (Exception ex)

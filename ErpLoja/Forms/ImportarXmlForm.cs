@@ -12,7 +12,7 @@ public class ImportarXmlForm : Form
     ImportarXmlForm(NotaXml nota)
     {
         this.nota = nota;
-        Ui.Estilizar(this, $"Importar NF-e nº {nota.Numero} — {nota.EmitNome}", 1250, 720);
+        Ui.Estilizar(this, $"Importar NF-e nº {nota.Numero} — {nota.EmitNome}", 1250, 720, nameof(ImportarXmlForm));
         StartPosition = FormStartPosition.CenterParent;
         ShowInTaskbar = false;
 

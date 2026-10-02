@@ -13,7 +13,7 @@ public class FinanceiroForm : Form
 
     public FinanceiroForm()
     {
-        Ui.Estilizar(this, "Financeiro - contas a receber e a pagar", 1200, 720);
+        Ui.Estilizar(this, "Financeiro - contas a receber e a pagar", 1200, 720, nameof(FinanceiroForm));
         var inicioMes = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
         de = Ui.Data(inicioMes);
         ate = Ui.Data(inicioMes.AddMonths(1).AddDays(-1));
@@ -78,8 +78,8 @@ public class FinanceiroForm : Form
                         THEN CAST(julianday(date('now', 'localtime')) - julianday(c.vencimento) AS INTEGER) END AS "Dias de atraso",
                    strftime('%d/%m/%Y', c.data_pagamento) AS "Pago em", c.valor_pago AS "Valor pago", c.forma_pagamento AS "Forma"
             FROM contas c
-            LEFT JOIN clientes cl ON cl.id = c.cliente_id
-            LEFT JOIN fornecedores f ON f.id = c.fornecedor_id
+            LEFT JOIN pessoas cl ON cl.id = c.cliente_id
+            LEFT JOIN pessoas f ON f.id = c.fornecedor_id
             WHERE {string.Join(" AND ", condicoes)}
             ORDER BY c.vencimento, c.id
             """, Db.Dia(de.Value), Db.Dia(ate.Value));
@@ -124,8 +124,8 @@ public class FinanceiroForm : Form
         var cliente = d.Adicionar("Cliente:", Ui.Combo());
         var fornecedor = d.Adicionar("Fornecedor:", Ui.Combo());
         d.Nota("Ex.: aluguel, energia, salários, serviços, venda avulsa.");
-        Ui.Preencher(cliente, Db.Query("SELECT id, nome FROM clientes WHERE ativo = 1 ORDER BY nome"), "(nenhum)");
-        Ui.Preencher(fornecedor, Db.Query("SELECT id, nome FROM fornecedores WHERE ativo = 1 ORDER BY nome"), "(nenhum)");
+        Ui.Preencher(cliente, Db.Query("SELECT id, nome FROM pessoas WHERE eh_cliente = 1 AND ativo = 1 ORDER BY nome"), "(nenhum)");
+        Ui.Preencher(fornecedor, Db.Query("SELECT id, nome FROM pessoas WHERE eh_fornecedor = 1 AND ativo = 1 ORDER BY nome"), "(nenhum)");
         tipoConta.SelectedIndexChanged += (_, _) =>
         {
             cliente.Enabled = tipoConta.SelectedIndex == 1;

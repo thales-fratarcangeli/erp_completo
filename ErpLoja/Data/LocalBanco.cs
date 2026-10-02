@@ -15,7 +15,9 @@ public static class LocalBanco
 
     /// <summary>Pasta das preferências locais da máquina (substituível nos testes).</summary>
     public static string PastaPreferencias { get; set; } =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ErpLoja");
+        Environment.GetEnvironmentVariable("ERPLOJA_PREFERENCIAS") is { Length: > 0 } pasta
+            ? pasta
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ErpLoja");
 
     static string ArquivoLembrado => Path.Combine(PastaPreferencias, "banco.txt");
 

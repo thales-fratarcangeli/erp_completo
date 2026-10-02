@@ -2,11 +2,11 @@ using Microsoft.Data.Sqlite;
 
 namespace ErpLoja.Forms;
 
-public enum TipoCampo { Texto, MultiLinha, Inteiro, Decimal, Booleano, Lookup, Senha }
+public enum TipoCampo { Texto, MultiLinha, Inteiro, Decimal, Booleano, Lookup, Senha, Opcoes }
 
 /// <summary>Campo editável de um cadastro. Lookup = SQL "SELECT id, nome ..." para um combo.</summary>
 public record Campo(string Coluna, string Rotulo, TipoCampo Tipo = TipoCampo.Texto, bool Obrigatorio = false,
-    string? Lookup = null, object? Padrao = null, Func<string, string?>? Validacao = null);
+    string? Lookup = null, object? Padrao = null, Func<string, string?>? Validacao = null, string[]? Opcoes = null);
 
 /// <summary>Tela genérica de cadastro: lista com pesquisa à esquerda, edição à direita.</summary>
 public class CrudForm : Form
@@ -21,9 +21,20 @@ public class CrudForm : Form
     readonly Label modo = new() { AutoSize = true, Font = new Font("Segoe UI Semibold", 11F), Margin = new Padding(0, 0, 0, 10) };
     long? idAtual;
     bool carregando;
+    FlowLayoutPanel barra = null!;
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Func<long, string?>? ValidarExclusao { get; init; }
+
+    /// <summary>Filtros da lista (rótulo, condição SQL). A consulta da lista deve conter {filtro}.</summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public (string Rotulo, string Condicao)[]? Filtros { get; init; }
+
+    /// <summary>Validação do registro completo (coluna → valor) antes de salvar. Devolve a mensagem de erro ou null.</summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public Func<IReadOnlyDictionary<string, object?>, string?>? ValidarRegistro { get; init; }
+
+    readonly ComboBox filtro = Ui.Combo(170);
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string? Dica { get; init; }
 
@@ -56,6 +67,7 @@ public class CrudForm : Form
                 TipoCampo.Decimal => Ui.Numero(2),
                 TipoCampo.Booleano => new CheckBox { Text = c.Rotulo, AutoSize = true },
                 TipoCampo.Lookup => Ui.Combo(350),
+                TipoCampo.Opcoes => OpcoesCombo(c.Opcoes ?? []),
                 _ => new TextBox { Width = 350 },
             };
             if (ed is NumericUpDown)
@@ -77,7 +89,7 @@ public class CrudForm : Form
         if (campos.Any(c => c.Tipo == TipoCampo.Senha))
             AdicionarNota("Ao editar, deixe a senha em branco para mantê-la.");
 
-        var barra = Ui.Barra();
+        barra = Ui.Barra();
         barra.Controls.AddRange([
             Ui.Rotulo("Pesquisar:"), busca,
             Ui.Botao("Atualizar", (_, _) => { CarregarLookups(); Recarregar(idAtual); }),
@@ -97,12 +109,30 @@ public class CrudForm : Form
         };
         Load += (_, _) =>
         {
+            if (Filtros is { Length: > 0 })
+            {
+                foreach (var (rotulo, _) in Filtros)
+                    filtro.Items.Add(rotulo);
+                filtro.SelectedIndex = 0;
+                filtro.SelectedIndexChanged += (_, _) => Recarregar();
+                barra.Controls.Add(Ui.Rotulo("Mostrar:"));
+                barra.Controls.Add(filtro);
+                barra.Controls.SetChildIndex(filtro, 2);
+                barra.Controls.SetChildIndex(barra.Controls[^1], 2);
+            }
             if (Dica != null)
                 AdicionarNota(Dica);
             CarregarLookups();
             Recarregar();
         };
         Shown += (_, _) => Novo();
+    }
+
+    static ComboBox OpcoesCombo(string[] opcoes)
+    {
+        var cb = Ui.Combo(350);
+        cb.Items.AddRange(opcoes);
+        return cb;
     }
 
     void AdicionarNota(string texto) =>
@@ -124,7 +154,8 @@ public class CrudForm : Form
         carregando = true;
         try
         {
-            grid.DataSource = Db.Query(sqlLista);
+            var condicao = Filtros is { Length: > 0 } && filtro.SelectedIndex >= 0 ? Filtros[filtro.SelectedIndex].Condicao : "1 = 1";
+            grid.DataSource = Db.Query(sqlLista.Replace("{filtro}", condicao));
             Ui.Filtrar(grid, busca.Text);
             grid.ClearSelection();
             if (selecionar != null)
@@ -162,6 +193,7 @@ public class CrudForm : Form
             {
                 case CheckBox cb: cb.Checked = Ui.Dec(v) == 1; break;
                 case NumericUpDown n: n.Value = Math.Clamp(Ui.Dec(v), n.Minimum, n.Maximum); break;
+                case ComboBox cb when c.Tipo == TipoCampo.Opcoes: cb.SelectedItem = cb.Items.Contains(Ui.Txt(v)) ? Ui.Txt(v) : null; break;
                 case ComboBox cb: Ui.Selecionar(cb, v); break;
                 case TextBox tb: tb.Text = c.Tipo == TipoCampo.Senha ? "" : Ui.Txt(v); break;
             }
@@ -181,6 +213,7 @@ public class CrudForm : Form
             {
                 case CheckBox cb: cb.Checked = c.Padrao is true; break;
                 case NumericUpDown n: n.Value = c.Padrao is null ? 0 : Convert.ToDecimal(c.Padrao); break;
+                case ComboBox cb when c.Tipo == TipoCampo.Opcoes: cb.SelectedItem = c.Padrao as string ?? (cb.Items.Count > 0 ? cb.Items[0] : null); break;
                 case ComboBox cb: if (cb.Items.Count > 0) cb.SelectedIndex = 0; break;
                 case TextBox tb: tb.Text = c.Padrao as string ?? ""; break;
             }
@@ -198,6 +231,7 @@ public class CrudForm : Form
             {
                 CheckBox cb => cb.Checked ? 1L : 0L,
                 NumericUpDown n => c.Tipo == TipoCampo.Inteiro ? (long)n.Value : n.Value,
+                ComboBox cb when c.Tipo == TipoCampo.Opcoes => string.IsNullOrEmpty(cb.Text) ? null : cb.Text,
                 ComboBox cb => Ui.Id(cb),
                 TextBox tb => string.IsNullOrWhiteSpace(tb.Text) ? null : tb.Text.Trim(),
                 _ => null,
@@ -233,6 +267,11 @@ public class CrudForm : Form
             valores.Add(v);
         }
 
+        if (ValidarRegistro?.Invoke(colunas.Zip(valores).ToDictionary(x => x.First, x => x.Second)) is string erroRegistro)
+        {
+            Ui.Erro(erroRegistro);
+            return;
+        }
         try
         {
             if (idAtual is null)

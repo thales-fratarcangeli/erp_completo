@@ -171,6 +171,16 @@ public static class Operacoes
         s.Commit();
     }
 
+    /// <summary>Crédito a prazo ainda disponível do cliente (limite − contas a receber em aberto). Null = sem limite.</summary>
+    public static decimal? CreditoDisponivel(long clienteId)
+    {
+        var limite = Convert.ToDecimal(Db.Scalar("SELECT limite_credito FROM pessoas WHERE id = @p0", clienteId) ?? 0);
+        if (limite <= 0)
+            return null;
+        var aberto = Convert.ToDecimal(Db.Scalar("SELECT COALESCE(SUM(valor), 0) FROM contas WHERE tipo = 'RECEBER' AND status = 'ABERTA' AND cliente_id = @p0", clienteId) ?? 0);
+        return limite - aberto;
+    }
+
     public static void AjustarEstoque(long produtoId, string tipo, decimal delta, string motivo)
     {
         using var s = new DbSessao(transacao: true);

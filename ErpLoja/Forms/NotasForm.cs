@@ -12,7 +12,7 @@ public class NotasForm : Form
 
     public NotasForm()
     {
-        Ui.Estilizar(this, "Notas fiscais", 1250, 740);
+        Ui.Estilizar(this, "Notas fiscais", 1250, 740, nameof(NotasForm));
         tipo.Items.AddRange(["Todas", "Saída", "Entrada"]);
         situacao.Items.AddRange(["Todas", "Em digitação", "Emitidas", "Canceladas"]);
         tipo.SelectedIndex = situacao.SelectedIndex = 0;
@@ -155,7 +155,7 @@ public class NotasForm : Form
         var venda = EscolherOrigem("Nova NF de saída", """
             SELECT v.id, 'Venda nº ' || v.id || '  ·  ' || strftime('%d/%m/%Y', v.data) || '  ·  ' ||
                    COALESCE(c.nome, 'Consumidor final') || '  ·  R$ ' || printf('%.2f', v.total) AS nome
-            FROM vendas v LEFT JOIN clientes c ON c.id = v.cliente_id
+            FROM vendas v LEFT JOIN pessoas c ON c.id = v.cliente_id
             WHERE v.status = 'FINALIZADA' AND date(v.data) >= date('now', 'localtime', '-180 day')
               AND NOT EXISTS (SELECT 1 FROM notas_fiscais n WHERE n.venda_id = v.id AND n.status <> 'CANCELADA')
             ORDER BY v.id DESC
@@ -170,7 +170,7 @@ public class NotasForm : Form
         var compra = EscolherOrigem("Nova NF de entrada", """
             SELECT o.id, 'Compra nº ' || o.id || '  ·  ' || strftime('%d/%m/%Y', o.data) || '  ·  ' || f.nome ||
                    '  ·  R$ ' || printf('%.2f', o.total) AS nome
-            FROM compras o JOIN fornecedores f ON f.id = o.fornecedor_id
+            FROM compras o JOIN pessoas f ON f.id = o.fornecedor_id
             WHERE o.status = 'FINALIZADA' AND date(o.data) >= date('now', 'localtime', '-180 day')
               AND NOT EXISTS (SELECT 1 FROM notas_fiscais n WHERE n.compra_id = o.id AND n.status <> 'CANCELADA')
             ORDER BY o.id DESC

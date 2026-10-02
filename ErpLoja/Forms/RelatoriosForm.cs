@@ -27,7 +27,7 @@ public class RelatoriosForm : Form
         new("Vendas por cliente", true, ["Vendas", "Total"], """
             SELECT COALESCE(c.nome, 'Consumidor final') AS "Cliente", COUNT(*) AS "Vendas", SUM(v.total) AS "Total",
                    strftime('%d/%m/%Y', MAX(v.data)) AS "Última compra"
-            FROM vendas v LEFT JOIN clientes c ON c.id = v.cliente_id
+            FROM vendas v LEFT JOIN pessoas c ON c.id = v.cliente_id
             WHERE v.status = 'FINALIZADA' AND date(v.data) BETWEEN @p0 AND @p1
             GROUP BY v.cliente_id ORDER BY 3 DESC
             """),
@@ -74,7 +74,7 @@ public class RelatoriosForm : Form
             """),
         new("Compras por fornecedor", true, ["Compras", "Total"], """
             SELECT f.nome AS "Fornecedor", COUNT(*) AS "Compras", SUM(o.total) AS "Total"
-            FROM compras o JOIN fornecedores f ON f.id = o.fornecedor_id
+            FROM compras o JOIN pessoas f ON f.id = o.fornecedor_id
             WHERE o.status = 'FINALIZADA' AND date(o.data) BETWEEN @p0 AND @p1
             GROUP BY f.id ORDER BY 3 DESC
             """),
@@ -87,7 +87,7 @@ public class RelatoriosForm : Form
 
     public RelatoriosForm()
     {
-        Ui.Estilizar(this, "Relatórios", 1200, 720);
+        Ui.Estilizar(this, "Relatórios", 1200, 720, nameof(RelatoriosForm));
         lista.Items.AddRange(Relatorios);
         lista.ItemHeight = 26;
 

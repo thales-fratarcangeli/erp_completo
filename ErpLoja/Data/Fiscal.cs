@@ -3,6 +3,7 @@ using System.Text;
 
 namespace ErpLoja.Data;
 
+[System.Reflection.Obfuscation(Exclude = true, ApplyToMembers = true)]
 public class NotaItem
 {
     [Browsable(false)] public long? ProdutoId { get; set; }
@@ -24,6 +25,20 @@ public class NotaItem
     [Browsable(false)] public decimal ValorPis => Imposto(AliqPis);
     [DisplayName("% COFINS")] public decimal AliqCofins { get; set; }
     [Browsable(false)] public decimal ValorCofins => Imposto(AliqCofins);
+
+    // Reforma tributária (IBS/CBS/IS)
+    [DisplayName("CST IBS/CBS")] public string CstIbsCbs { get; set; } = "";
+    [DisplayName("cClassTrib")] public string CClassTrib { get; set; } = "";
+    [DisplayName("% IBS UF")] public decimal AliqIbsUf { get; set; }
+    [DisplayName("% IBS Mun")] public decimal AliqIbsMun { get; set; }
+    [DisplayName("% CBS")] public decimal AliqCbs { get; set; }
+    [DisplayName("% IS")] public decimal AliqIs { get; set; }
+    [Browsable(false)] public decimal BaseIbsCbs => ValorTotal;
+    [DisplayName("IBS")] public decimal ValorIbs => ValorIbsUf + ValorIbsMun;
+    [Browsable(false)] public decimal ValorIbsUf => Imposto(AliqIbsUf);
+    [Browsable(false)] public decimal ValorIbsMun => Imposto(AliqIbsMun);
+    [DisplayName("CBS")] public decimal ValorCbs => Imposto(AliqCbs);
+    [Browsable(false)] public decimal ValorIs => Imposto(AliqIs);
 
     decimal Imposto(decimal aliquota) => Math.Round(ValorTotal * aliquota / 100, 2);
 }
@@ -60,6 +75,13 @@ public class NotaFiscal
     public decimal ValorIpi => Itens.Sum(i => i.ValorIpi);
     public decimal ValorPis => Itens.Sum(i => i.ValorPis);
     public decimal ValorCofins => Itens.Sum(i => i.ValorCofins);
+    public decimal ValorIbs => Itens.Sum(i => i.ValorIbs);
+    public decimal ValorCbs => Itens.Sum(i => i.ValorCbs);
+    public decimal ValorIs => Itens.Sum(i => i.ValorIs);
+
+    /// <summary>
+    /// Total = produtos − descontos + frete + IPI. IBS/CBS ficam destacados "por fora" (em 2026, caráter de teste) e não somam ao total.
+    /// </summary>
     public decimal ValorTotal => Math.Max(0, ValorProdutos - DescontoTotal + Frete + ValorIpi);
 }
 
@@ -82,6 +104,35 @@ public static class Fiscal
     public static string[] Ufs => CodigosUf.Keys.Order().ToArray();
 
     public static string SoDigitos(string? s) => new((s ?? "").Where(char.IsDigit).ToArray());
+
+    /// <summary>CPF (11) ou CNPJ (14 dígitos) com dígitos verificadores corretos. Vazio é aceito (campo opcional).</summary>
+    public static bool DocumentoValido(string? documento)
+    {
+        var d = SoDigitos(documento);
+        if (d.Length == 0)
+            return true;
+        if (d.Distinct().Count() == 1)
+            return false;
+        int Dv(string baseNumeros, int[] pesos)
+        {
+            var soma = baseNumeros.Select((c, i) => (c - '0') * pesos[i]).Sum();
+            var resto = soma % 11;
+            return resto < 2 ? 0 : 11 - resto;
+        }
+        if (d.Length == 11)
+        {
+            var d1 = Dv(d[..9], [10, 9, 8, 7, 6, 5, 4, 3, 2]);
+            var d2 = Dv(d[..10], [11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
+            return d[9] - '0' == d1 && d[10] - '0' == d2;
+        }
+        if (d.Length == 14)
+        {
+            var d1 = Dv(d[..12], [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+            var d2 = Dv(d[..13], [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+            return d[12] - '0' == d1 && d[13] - '0' == d2;
+        }
+        return false;
+    }
 
     /// <summary>5102/6102 (venda) ou 1102/2102 (compra) conforme o participante esteja na mesma UF da loja.</summary>
     public static string CfopPadrao(string tipo, string? ufParticipante)
@@ -116,8 +167,8 @@ public static class Fiscal
             return;
         }
         var r = Db.Query(cliente
-            ? "SELECT nome, cpf_cnpj AS doc, ie, endereco, cidade, uf FROM clientes WHERE id = @p0"
-            : "SELECT nome, cnpj AS doc, ie, endereco, cidade, uf FROM fornecedores WHERE id = @p0", id).Rows[0];
+            ? "SELECT nome, cpf_cnpj AS doc, ie, endereco, cidade, uf FROM pessoas WHERE id = @p0"
+            : "SELECT nome, cpf_cnpj AS doc, ie, endereco, cidade, uf FROM pessoas WHERE id = @p0", id).Rows[0];
         n.PartNome = Ui.Txt(r["nome"]);
         n.PartDocumento = Ui.Txt(r["doc"]);
         n.PartIe = Ui.Txt(r["ie"]);
@@ -144,8 +195,17 @@ public static class Fiscal
             AliqIpi = Ui.Dec(p["aliq_ipi"]),
             AliqPis = Ui.Dec(p["aliq_pis"]),
             AliqCofins = Ui.Dec(p["aliq_cofins"]),
+            CstIbsCbs = Ui.Txt(p["cst_ibscbs"]) is { Length: > 0 } cst ? cst : Parametros.CstIbsCbsPadrao,
+            CClassTrib = Ui.Txt(p["cclass_trib"]) is { Length: > 0 } cc ? cc : Parametros.CClassTribPadrao,
+            AliqIbsUf = Parametros.ReformaAtiva ? Reduzir(Parametros.AliqIbsUf, Ui.Dec(p["red_ibs_pct"])) : 0,
+            AliqIbsMun = Parametros.ReformaAtiva ? Reduzir(Parametros.AliqIbsMun, Ui.Dec(p["red_ibs_pct"])) : 0,
+            AliqCbs = Parametros.ReformaAtiva ? Reduzir(Parametros.AliqCbs, Ui.Dec(p["red_cbs_pct"])) : 0,
+            AliqIs = Parametros.ReformaAtiva ? Ui.Dec(p["aliq_is"]) : 0,
         };
     }
+
+    /// <summary>Alíquota efetiva com redução (regimes diferenciados, ex.: redução de 60%).</summary>
+    static decimal Reduzir(decimal aliquota, decimal reducaoPct) => Math.Round(aliquota * (1 - Math.Clamp(reducaoPct, 0, 100) / 100), 4);
 
     /// <summary>Id da nota (não cancelada) já gerada para a venda/compra, se houver.</summary>
     public static long? NotaExistente(string coluna, long id) =>
@@ -224,6 +284,12 @@ public static class Fiscal
                 AliqIpi = Ui.Dec(i["aliq_ipi"]),
                 AliqPis = Ui.Dec(i["aliq_pis"]),
                 AliqCofins = Ui.Dec(i["aliq_cofins"]),
+                CstIbsCbs = Ui.Txt(i["cst_ibscbs"]),
+                CClassTrib = Ui.Txt(i["cclass_trib"]),
+                AliqIbsUf = Ui.Dec(i["aliq_ibs_uf"]),
+                AliqIbsMun = Ui.Dec(i["aliq_ibs_mun"]),
+                AliqCbs = Ui.Dec(i["aliq_cbs"]),
+                AliqIs = Ui.Dec(i["aliq_is"]),
             });
         return n;
     }
@@ -236,6 +302,7 @@ public static class Fiscal
             n.Tipo, n.Modelo, n.Serie, n.DataEmissao, n.Natureza, n.ClienteId, n.FornecedorId, n.VendaId, n.CompraId,
             n.PartNome, n.PartDocumento, n.PartIe, n.PartEndereco, n.PartCidade, n.PartUf,
             n.ValorProdutos, n.DescontoTotal, n.Frete, n.ValorIcms, n.ValorIpi, n.ValorPis, n.ValorCofins, n.ValorTotal, n.Info,
+            n.ValorIbs, n.ValorCbs, n.ValorIs,
         ];
         if (n.Id is long id)
         {
@@ -246,8 +313,9 @@ public static class Fiscal
                     cliente_id = @p5, fornecedor_id = @p6, venda_id = @p7, compra_id = @p8, part_nome = @p9,
                     part_documento = @p10, part_ie = @p11, part_endereco = @p12, part_cidade = @p13, part_uf = @p14,
                     valor_produtos = @p15, desconto = @p16, frete = @p17, valor_icms = @p18, valor_ipi = @p19,
-                    valor_pis = @p20, valor_cofins = @p21, valor_total = @p22, info_complementar = @p23
-                WHERE id = @p24
+                    valor_pis = @p20, valor_cofins = @p21, valor_total = @p22, info_complementar = @p23,
+                    valor_ibs = @p24, valor_cbs = @p25, valor_is = @p26
+                WHERE id = @p27
                 """, [.. cab, id]);
             s.Exec("DELETE FROM nota_itens WHERE nota_id = @p0", id);
         }
@@ -257,9 +325,9 @@ public static class Fiscal
                 INSERT INTO notas_fiscais(tipo, modelo, serie, data_emissao, natureza_operacao, cliente_id, fornecedor_id,
                     venda_id, compra_id, part_nome, part_documento, part_ie, part_endereco, part_cidade, part_uf,
                     valor_produtos, desconto, frete, valor_icms, valor_ipi, valor_pis, valor_cofins, valor_total,
-                    info_complementar, usuario_id)
+                    info_complementar, valor_ibs, valor_cbs, valor_is, usuario_id)
                 VALUES(@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15, @p16,
-                       @p17, @p18, @p19, @p20, @p21, @p22, @p23, @p24)
+                       @p17, @p18, @p19, @p20, @p21, @p22, @p23, @p24, @p25, @p26, @p27)
                 """, [.. cab, Sessao.UsuarioId]);
             n.Id = id;
         }
@@ -274,11 +342,14 @@ public static class Fiscal
             s.Exec("""
                 INSERT INTO nota_itens(nota_id, produto_id, codigo, descricao, ncm, cfop, cst, unidade, quantidade,
                     valor_unitario, desconto, valor_total, aliq_icms, valor_icms, aliq_ipi, valor_ipi, aliq_pis, valor_pis,
-                    aliq_cofins, valor_cofins)
-                VALUES(@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15, @p16, @p17, @p18, @p19)
+                    aliq_cofins, valor_cofins, cst_ibscbs, cclass_trib, base_ibscbs, aliq_ibs_uf, aliq_ibs_mun, aliq_cbs,
+                    valor_ibs_uf, valor_ibs_mun, valor_cbs, aliq_is, valor_is)
+                VALUES(@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15, @p16, @p17, @p18, @p19,
+                       @p20, @p21, @p22, @p23, @p24, @p25, @p26, @p27, @p28, @p29, @p30)
                 """, notaId, i.ProdutoId, i.Codigo, i.Descricao, i.Ncm, i.Cfop, i.Cst, i.Unidade, i.Quantidade,
                 i.ValorUnitario, i.Desconto, i.ValorTotal, i.AliqIcms, i.ValorIcms, i.AliqIpi, i.ValorIpi, i.AliqPis,
-                i.ValorPis, i.AliqCofins, i.ValorCofins);
+                i.ValorPis, i.AliqCofins, i.ValorCofins, i.CstIbsCbs, i.CClassTrib, i.BaseIbsCbs, i.AliqIbsUf, i.AliqIbsMun,
+                i.AliqCbs, i.ValorIbsUf, i.ValorIbsMun, i.ValorCbs, i.AliqIs, i.ValorIs);
     }
 
     /// <summary>Lista do que falta para a nota poder ser emitida (vazia = ok).</summary>
@@ -294,6 +365,8 @@ public static class Fiscal
             if (SoDigitos(i.Cfop).Length != 4) erros.Add($"Item \"{i.Descricao}\": CFOP deve ter 4 dígitos.");
             if (string.IsNullOrWhiteSpace(i.Cst)) erros.Add($"Item \"{i.Descricao}\": informe o CST/CSOSN.");
             if (i.Quantidade <= 0) erros.Add($"Item \"{i.Descricao}\": quantidade inválida.");
+            if (Parametros.ReformaAtiva && (SoDigitos(i.CstIbsCbs).Length != 3 || SoDigitos(i.CClassTrib).Length != 6))
+                erros.Add($"Item \"{i.Descricao}\": reforma tributária exige CST IBS/CBS (3 dígitos) e cClassTrib (6 dígitos).");
         }
         return erros;
     }
@@ -429,6 +502,13 @@ public static class Fiscal
                       Col("Desconto", 12) + Col("Produtos", 12) + Col("VALOR TOTAL", 12, true));
         sb.AppendLine(Col(N2("valor_icms"), 14) + Col(N2("valor_ipi"), 14) + Col(N2("valor_pis"), 12) + Col(N2("valor_cofins"), 12) +
                       Col(N2("frete"), 12) + Col(N2("desconto"), 12) + Col(N2("valor_produtos"), 12) + Col(N2("valor_total"), 12, true));
+
+        if (Ui.Dec(r["valor_ibs"]) + Ui.Dec(r["valor_cbs"]) + Ui.Dec(r["valor_is"]) > 0)
+        {
+            Secao("REFORMA TRIBUTÁRIA (IBS / CBS / IS)");
+            sb.AppendLine(Col("Valor IBS", 20) + Col("Valor CBS", 20) + Col("Imposto Seletivo", 20));
+            sb.AppendLine(Col(N2("valor_ibs"), 20) + Col(N2("valor_cbs"), 20) + Col(N2("valor_is"), 20));
+        }
 
         Secao("DADOS DOS PRODUTOS / SERVIÇOS");
         sb.AppendLine(Col("Código", 10) + Col("Descrição", 27) + Col("NCM", 9) + Col("CST", 5) + Col("CFOP", 5) + Col("Un", 4) +

@@ -31,6 +31,28 @@ static class Program
             }
         }
 
+        // ErpLoja.exe --dados-demo <caminho>  → aplica as migrações e insere dados fictícios de demonstração
+        var demo = Array.FindIndex(args, a => a.Equals("--dados-demo", StringComparison.OrdinalIgnoreCase));
+        if (demo >= 0 && demo + 1 < args.Length)
+        {
+            try
+            {
+                Db.Caminho = Path.GetFullPath(args[demo + 1]);
+                Migracoes.Atualizar(criar: true);
+                Sessao.UsuarioId = 1;
+                Sessao.Nome = "Administrador";
+                Sessao.Admin = true;
+                Backups.Criar("antes_dados_demo");
+                Console.WriteLine(DadosDemo.Gerar());
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine(ex.Message);
+                return 2;
+            }
+        }
+
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
         Application.ThreadException += (_, e) => Ui.Erro("Ocorreu um erro inesperado:\n" + e.Exception.Message);
 

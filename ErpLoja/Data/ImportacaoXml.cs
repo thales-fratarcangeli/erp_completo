@@ -153,8 +153,8 @@ public static class ImportacaoXml
     public static void SugerirVinculos(NotaXml n)
     {
         n.FornecedorId = Db.Scalar("""
-            SELECT id FROM fornecedores
-            WHERE replace(replace(replace(replace(COALESCE(cnpj, ''), '.', ''), '/', ''), '-', ''), ' ', '') = @p0
+            SELECT id FROM pessoas
+            WHERE replace(replace(replace(replace(COALESCE(cpf_cnpj, ''), '.', ''), '/', ''), '-', ''), ' ', '') = @p0
             LIMIT 1
             """, n.EmitCnpj) as long?;
 
@@ -188,8 +188,10 @@ public static class ImportacaoXml
 
         using var s = new DbSessao(transacao: true);
         var fornecedor = n.FornecedorId ?? s.Inserir("""
-            INSERT INTO fornecedores(nome, cnpj, ie, telefone, endereco, cidade, uf) VALUES(@p0, @p1, @p2, @p3, @p4, @p5, @p6)
+            INSERT INTO pessoas(nome, cpf_cnpj, ie, telefone, endereco, cidade, uf, eh_fornecedor)
+            VALUES(@p0, @p1, @p2, @p3, @p4, @p5, @p6, 1)
             """, n.EmitNome, n.EmitCnpj, n.EmitIe, n.EmitFone, n.EmitEndereco, n.EmitCidade, n.EmitUf);
+        s.Exec("UPDATE pessoas SET eh_fornecedor = 1 WHERE id = @p0", fornecedor);
 
         int novos = 0;
         foreach (var item in n.Itens)

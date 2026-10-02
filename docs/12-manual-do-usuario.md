@@ -4,22 +4,31 @@
 
 ## Início e navegação
 
-O ERP Loja controla vendas, compras, estoque, financeiro e notas fiscais de uma loja.
+O ERP Loja controla vendas, compras, produção, logística, estoque, financeiro, cobrança bancária e notas fiscais.
 
 ### Menu lateral
-Cada função existe em um único lugar do menu:
-- Vendas: PDV (balcão), orçamentos, pedidos de venda e o histórico de vendas.
-- Compras: pedidos de compra, importação do XML da nota do fornecedor e o histórico de compras.
-- Estoque, Financeiro, Fiscal (notas fiscais), Cadastros e Relatórios.
-- Configurações: todos os parâmetros do sistema, banco de dados, e-mail e sua senha.
+O menu é dividido por áreas, cada uma com sua cor (a mesma cor aparece na faixa superior das janelas daquela área). Clique no nome da área para abrir ou fechar a lista de telas.
+Cada função existe em um único lugar do menu — não há duas telas fazendo a mesma coisa.
 
-### Painel (dashboard)
-A tela inicial mostra os indicadores do período escolhido: faturamento, lucro bruto, margem, número de vendas, ticket médio e itens vendidos, cada um comparado com o período anterior de mesmo tamanho (▲ subiu, ▼ caiu). Os gráficos mostram faturamento por dia (ou por mês em períodos longos), produtos e categorias que mais venderam, formas de pagamento, entradas x saídas do caixa e movimento por hora. Passe o mouse sobre uma barra para ver o valor.
+### Buscar tela (Ctrl+K)
+Não sabe onde fica? Clique em "Buscar tela" ou tecle Ctrl+K e digite uma palavra (ex.: boleto, frete, senha, estoque). O sistema mostra todas as telas relacionadas, procurando nos nomes, nas palavras-chave e no texto de ajuda.
+
+### Tela inicial
+Fica limpa de propósito: use o menu ou a busca. Indicadores e gráficos ficam em Gestão > Painel gerencial (F5).
 
 ### Atalhos
-- F2 PDV · F4 Pedidos de compra · F6 Estoque · F7 Financeiro · F8 Relatórios
-- Ctrl+O Orçamentos · Ctrl+P Pedidos de venda · Ctrl+N Notas fiscais
-- F1 em qualquer tela abre esta ajuda.
+- F2 PDV · F4 Pedidos de compra · F5 Painel gerencial · F6 Estoque · F7 Financeiro · F8 Relatórios
+- Ctrl+O Orçamentos · Ctrl+P Pedidos de venda · Ctrl+N Notas fiscais · Ctrl+K Buscar tela
+- F1 em qualquer tela abre a ajuda dela.
+
+## Painel gerencial
+
+Indicadores do período escolhido — faturamento, lucro bruto, margem, número de vendas, ticket médio e itens vendidos — comparados com o período anterior de mesmo tamanho (▲ subiu, ▼ caiu).
+
+### Gráficos
+- Faturamento por dia (ou por mês em períodos longos), produtos e categorias que mais venderam, formas de pagamento, entradas x saídas do caixa e movimento por hora.
+- Passe o mouse sobre uma barra para ver o valor exato.
+- Troque o período no topo; os números são recalculados na hora.
 
 ## Banco de dados não encontrado
 
@@ -49,22 +58,37 @@ Se o seu usuário não tiver e-mail, um administrador pode definir uma nova senh
 - O código vale 15 minutos e aceita até 5 tentativas. Pedir um novo código invalida o anterior.
 - O envio usa o serviço Resend, configurado pelo administrador em Configurações > E-mail.
 
-## PDV - venda no balcão
+## PDV - frente de caixa
 
-Venda rápida, com pagamento na hora (ou a prazo para cliente cadastrado).
+Tela de caixa em tela cheia, feita para ser usada pelo teclado.
 
-### Como vender
-- Leia o código de barras ou digite o código e tecle Enter. Sem código, F3 abre a busca.
-- Para vender mais de uma unidade, informe a quantidade antes de adicionar. Quantidade e preço também podem ser editados na grade.
-- Escolha a forma de pagamento. Em dinheiro, informe o valor recebido para calcular o troco.
-- F10 finaliza. Del remove o item selecionado.
+### Lançar itens
+- Leia o código de barras ou digite o código e tecle Enter.
+- Para vender várias unidades: digite 3*código (ou 3xcódigo), ou tecle F4 antes para definir a quantidade.
+- F3 abre a busca por nome. O cartão "Último item" confirma o que entrou; o total aparece em destaque.
+
+### Teclas
+- F2 cliente · F3 buscar · F4 quantidade · F5 desconto (em R$ ou %) · F6 remover item · F7 cancelar venda · F10 pagamento · Esc sair.
+
+### Pagamento (F10)
+- Escolha a forma com as teclas 1 a 5: dinheiro, PIX, débito, crédito ou a prazo.
+- Em dinheiro, informe o valor recebido para ver o troco.
+- Cartão e PIX acionam o TEF (se ativo em Configurações). Se a venda não puder ser gravada, a transação do cartão é desfeita automaticamente.
+- O comprovante é impresso conforme Configurações (perguntar, sempre ou nunca), na impressora de cupom; em dinheiro a gaveta pode abrir sozinha.
 
 ### Regras
-- A venda baixa o estoque e lança o recebimento no financeiro (à vista já entra como pago; a prazo gera as parcelas mensais em aberto).
-- Venda a prazo exige cliente identificado.
-- Estoque insuficiente: o comportamento (perguntar, permitir ou bloquear) é definido em Configurações > Vendas e compras.
-- Desconto acima do limite configurado só com usuário administrador.
-- Para venda com entrega, negociação ou prazo de aprovação, use Orçamentos / Pedidos de venda.
+- A venda baixa o estoque e lança o recebimento no financeiro. A prazo exige cliente e respeita o limite de crédito dele.
+- Estoque insuficiente segue a regra de Configurações (perguntar, permitir ou bloquear). Desconto acima do limite só com administrador.
+
+## Pagamento e TEF
+
+### Formas de pagamento
+- 1 Dinheiro: informe o valor recebido para calcular o troco.
+- 2 PIX, 3 Débito, 4 Crédito: o TEF é acionado ao confirmar (se estiver ativo). No crédito, informe as parcelas.
+- 5 A prazo: gera parcelas no contas a receber do cliente (exige cliente identificado com F2).
+
+### TEF
+O TEF conversa com a maquininha/adquirente. Com o provedor SIMULADOR (Configurações > TEF) a tela imita a maquininha: aprove, negue ou cancele para testar. A transação aprovada só é confirmada depois que a venda é gravada; se algo falhar, ela é desfeita. Cancelar a venda estorna as transações de cartão/PIX.
 
 ## Busca de produto
 
@@ -155,6 +179,30 @@ Lê o arquivo XML da NF-e recebida do fornecedor e lança a compra.
 - A mesma nota (chave de acesso) não pode ser importada duas vezes.
 - Produtos novos entram com preço de venda zero: ajuste em Cadastros > Produtos.
 
+## Fichas técnicas
+
+A ficha técnica é a receita do produto fabricado: quais insumos e quanto de cada um.
+
+- Selecione o produto à esquerda (produtos acabados aparecem primeiro).
+- Rendimento: quanto a receita produz (ex.: 10 kg de pão). As quantidades dos insumos são para esse rendimento.
+- Perda %: quebra/desperdício do insumo no processo (soma na necessidade e no custo).
+- Custo adicional por lote: mão de obra, energia, embalagem.
+- O rodapé mostra o custo do lote, o custo unitário estimado e a margem sobre o preço de venda (em vermelho se negativa).
+- "Nova ordem de produção" já abre a OP para o produto.
+
+## Ordens de produção
+
+A ordem de produção (OP) planeja e registra a fabricação.
+
+### Fluxo
+- Nova OP: escolha o produto (precisa de ficha técnica) e a quantidade; a necessidade de insumos é calculada pela ficha (proporção do rendimento + perdas).
+- Iniciar produção: marca a OP como em produção.
+- Concluir: informe a quantidade realmente produzida. Os insumos são baixados do estoque na proporção, o produto acabado entra no estoque e o custo médio dele é recalculado com o custo real.
+- Cancelar: só OP não concluída. Imprimir: ficha da OP para a produção.
+
+### Insumos insuficientes
+A grade de baixo mostra previsto, consumido e saldo. Faltando insumo, a regra de Configurações > Produção decide: perguntar, permitir ou bloquear.
+
 ## Estoque
 
 Posição do estoque, valor investido, sugestão de compra e histórico de movimentações de cada produto.
@@ -168,6 +216,21 @@ Posição do estoque, valor investido, sugestão de compra e histórico de movim
 - Definir saldo (inventário) grava a diferença entre o contado e o saldo atual.
 - Todo ajuste exige motivo e fica no histórico com data e usuário.
 
+## Fretes e CIOT
+
+Controle dos fretes: contratação, CIOT, contas a pagar ao transportador e situação da viagem.
+
+### Frete
+- Modalidade: frota própria ou contratado. Informe transportador, motorista, veículo, rota, carga e valores (frete, pedágio, adiantamento).
+- Situação: ABERTO → EM TRÂNSITO → ENTREGUE (ou CANCELADO).
+- Gerar contas a pagar: adiantamento (na data do frete) e saldo (na previsão de entrega) para o transportador, uma única vez.
+
+### CIOT
+- O Código Identificador da Operação de Transporte é obrigatório quando o transportador é autônomo (TAC, CPF) — o editor avisa.
+- Declarar CIOT envia a operação à administradora configurada (Pamcard, ou SIMULADOR para testes) e grava o código. Depois de declarado, valores e envolvidos ficam travados.
+- Encerrar CIOT ao final da viagem; Cancelar CIOT (com motivo) se a viagem não acontecer — cancele o CIOT antes de cancelar o frete.
+- Configure a administradora e as credenciais em Configurações > Transporte e CIOT.
+
 ## Financeiro - contas a receber e a pagar
 
 Todas as contas geradas por vendas, compras e lançamentos manuais.
@@ -178,6 +241,28 @@ Todas as contas geradas por vendas, compras e lançamentos manuais.
 - Estornar baixa: volta a conta para aberta.
 - Cancelar conta: somente contas em aberto.
 - O rodapé mostra o total em aberto a receber e a pagar, o saldo previsto e o realizado no mês.
+
+## Cobrança bancária (boletos)
+
+Boletos, remessa e retorno no padrão CNAB 240 Febraban — serve para qualquer banco configurado em Financeiro > Contas bancárias.
+
+### Boletos
+- Emitir boletos: escolha as contas a receber em aberto (de clientes identificados). O sistema gera nosso número, código de barras e linha digitável.
+- Visualizar/imprimir: ficha de compensação com código de barras.
+- Cancelar: boleto ainda não enviado é cancelado; já enviado vira pedido de baixa na próxima remessa.
+
+### Remessa e retorno
+- Gerar remessa: arquivo com os boletos novos e pedidos de baixa, para enviar ao banco.
+- Importar retorno: lê o arquivo do banco; confirma registros, aponta rejeições e liquida os pagos (a conta a receber é baixada sozinha).
+
+### Homologação
+Siga o roteiro da aba: boletos de teste, remessa de teste, validador CNAB 240 (confere tamanho das linhas, lotes, quantidades e totais) e simulação do retorno do banco. Aprovado pelo banco, mude a conta para PRODUCAO.
+
+## Buscar tela
+
+Digite uma ou mais palavras (ex.: "boleto", "nota entrada", "senha"). Aparecem todas as telas relacionadas, ordenadas pela relevância — a busca considera o nome da tela, palavras-chave e o texto de ajuda dela.
+- Setas ↑ ↓ para escolher, Enter para abrir, Esc para fechar.
+- Atalho em qualquer lugar da janela principal: Ctrl+K.
 
 ## Notas fiscais
 
@@ -199,6 +284,7 @@ Notas de compra com XML são importadas em Compras > Importar XML e aparecem aqu
 - CFOP: 5102/6102 na saída e 1102/2102 na entrada, conforme a UF do participante ser igual ou diferente da UF da loja. Muda sozinho ao trocar a UF.
 - NCM (8 dígitos), CST/CSOSN e alíquotas vêm do cadastro do produto e podem ser editados na grade.
 - Impostos: ICMS, IPI, PIS e COFINS = valor do item × alíquota. O IPI soma no total da nota.
+- Reforma tributária: IBS (estadual e municipal), CBS e Imposto Seletivo por item, com CST IBS/CBS e cClassTrib. Em 2026 ficam destacados sem somar ao total.
 - Total da nota = produtos − descontos + frete + IPI.
 - Salvar rascunho guarda sem numerar. Salvar e emitir valida e numera.
 
@@ -215,35 +301,62 @@ Visões que já existem em outras telas não se repetem aqui: gráficos no paine
 
 ## Configurações
 
-Tela única de configuração. Administradores veem todas as abas; os demais usuários veem apenas Minha conta.
+Tela única de configuração. Administradores veem todas as abas; os demais usuários veem apenas Minha conta. Cada aba tem seu botão Salvar.
 
-- Empresa: dados que saem no comprovante, orçamentos e DANFE. CNPJ e UF são necessários para a chave de acesso das notas.
-- Fiscal: regime tributário, séries e próximos números da NF-e/NFC-e, naturezas de operação e CST padrão.
-- Vendas e compras: venda sem estoque (perguntar/permitir/bloquear), desconto máximo sem administrador, validade do orçamento, prazo do 1º vencimento e máximo de parcelas.
-- E-mail: chave da API do Resend e remetente, usados na recuperação de senha. Use "Enviar e-mail de teste" para conferir.
-- Banco de dados: arquivo em uso, versão e migrações aplicadas, backup agora, backup automático diário e troca de banco.
+- Empresa: dados que saem no comprovante, pedidos, boletos e DANFE. CNPJ e UF são necessários para a chave de acesso.
+- Fiscal: regime tributário, séries e próximos números da NF-e/NFC-e, naturezas de operação, CST padrão.
+- Reforma tributária: liga o cálculo de IBS/CBS e define as alíquotas do ano (padrão 2026: CBS 0,9% e IBS 0,1%, em caráter de teste). Confirme as alíquotas com o contador a cada ano da transição.
+- Vendas e compras: venda sem estoque, desconto máximo, validade do orçamento, prazos, parcelas, número do caixa e impressão do comprovante.
+- Produção: o que fazer quando falta insumo ao concluir uma OP.
+- Transporte e CIOT: administradora (Pamcard, simulador...), ambiente e credenciais.
+- TEF: liga o TEF no PDV e escolhe o provedor (SIMULADOR para testes).
+- Impressoras: impressora de cupom (Windows ou térmica ESC/POS com corte e gaveta), colunas, acentuação e impressora de documentos A4. Use "Imprimir página de teste".
+- E-mail: chave do Resend e remetente para a recuperação de senha. Use "Enviar e-mail de teste".
+- Banco de dados: arquivo em uso, migrações aplicadas, backups, troca de banco e geração de dados de demonstração (apenas para testes).
 - Minha conta: seu e-mail de recuperação e troca de senha.
 
-## Cadastro de clientes
+## Clientes e fornecedores
 
-Selecione um cliente na lista para editar, ou clique em Novo. Nome é obrigatório.
-UF e inscrição estadual são usados na nota fiscal (definem o CFOP dentro/fora do estado).
-Cliente com vendas não pode ser excluído: o sistema oferece inativá-lo (some das listas de seleção, mas o histórico continua).
+Cadastro único de pessoas e empresas. Uma mesma pessoa pode ter vários papéis — marque cliente, fornecedor, transportador e/ou motorista em vez de cadastrar duas vezes.
 
-## Cadastro de fornecedores
-
-Selecione um fornecedor para editar, ou clique em Novo. Fornecedores também são cadastrados automaticamente na importação de XML (pelo CNPJ).
-Fornecedor com compras não pode ser excluído: o sistema oferece inativá-lo.
+- Use o filtro "Mostrar" para ver só clientes, fornecedores, transportadores, motoristas ou inativos.
+- CPF/CNPJ é conferido pelos dígitos verificadores. UF e inscrição estadual definem o CFOP das notas.
+- Limite de crédito: quanto o cliente pode ter em aberto em vendas a prazo (0 = sem limite).
+- Transportador: informe o RNTRC (exigido no CIOT). Motorista: CPF e CNH obrigatórios.
+- Quem tem histórico (vendas, compras, fretes) não pode ser excluído: o sistema oferece inativar.
 
 ## Cadastro de produtos
 
 Código e descrição são obrigatórios; o código e o código de barras são usados no PDV.
 
-- Preço de custo é o custo médio: atualizado automaticamente a cada compra recebida. A margem é calculada sobre o custo.
-- Estoque mínimo define a situação BAIXO e a sugestão de compra.
-- O saldo de estoque não é editado aqui: ele muda por vendas, compras e ajustes (tela Estoque).
+- Tipo: Mercadoria (revenda), Produto acabado (fabricado com ficha técnica) ou Insumo (matéria-prima, não aparece para venda na ficha).
+- Preço de custo é o custo médio, atualizado a cada compra recebida ou produção concluída. A margem é calculada sobre o custo.
+- Estoque mínimo define a situação BAIXO e a sugestão de compra. O saldo muda só por vendas, compras, produção e ajustes.
 - Dados fiscais (NCM, CST/CSOSN, alíquotas) preenchem as notas automaticamente.
-- Produto com movimentação não pode ser excluído: o sistema oferece inativá-lo.
+- Reforma tributária: CST IBS/CBS, classificação tributária (cClassTrib), reduções de alíquota (regimes diferenciados) e Imposto Seletivo.
+- Produto com movimentação não pode ser excluído: o sistema oferece inativar.
+
+## Cadastro de veículos
+
+Veículos da frota própria e de terceiros usados nos fretes.
+
+- Placa no padrão Mercosul (ABC1D23) ou antigo (ABC1234).
+- Veículo de terceiro precisa do proprietário (cadastrado como transportador) e, para o CIOT, do RNTRC.
+- Capacidade e tara ajudam a conferir o peso das cargas.
+
+## Contas bancárias (cobrança)
+
+Conta usada para emitir boletos. Funciona com qualquer banco: os dados vêm do contrato de cobrança e do manual técnico do banco.
+
+### Campo livre
+As 25 posições do código de barras que cada banco define. Monte o modelo com as marcações:
+- {agencia:N} {agenciadv:N} {conta:N} {contadv:N} {carteira:N} {convenio:N} {nossonumero:N} {zeros:N} e dígitos fixos.
+- N é o número de posições (zeros à esquerda). O total precisa somar 25.
+
+### Demais campos
+- Dígitos do nosso número e último usado: o próximo boleto usa o seguinte.
+- Multa, juros ao mês e dias para protesto vão na remessa e nas instruções do boleto.
+- Ambiente HOMOLOGACAO marca boletos e arquivos como teste; mude para PRODUCAO após a aprovação do banco.
 
 ## Cadastro de categorias
 

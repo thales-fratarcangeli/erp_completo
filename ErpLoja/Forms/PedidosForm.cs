@@ -119,8 +119,8 @@ public class PedidosPainel : UserControl
                             CASE WHEN p.origem_id IS NOT NULL THEN 'Do orçamento nº ' || p.origem_id END, '') AS "Vínculo",
                    u.nome AS "Usuário"
             FROM pedidos p
-            LEFT JOIN clientes c ON c.id = p.cliente_id
-            LEFT JOIN fornecedores f ON f.id = p.fornecedor_id
+            LEFT JOIN pessoas c ON c.id = p.cliente_id
+            LEFT JOIN pessoas f ON f.id = p.fornecedor_id
             LEFT JOIN usuarios u ON u.id = p.usuario_id
             WHERE p.tipo = @p0 AND {filtro}
             ORDER BY p.id DESC

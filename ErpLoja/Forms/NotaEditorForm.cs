@@ -28,7 +28,7 @@ public class NotaEditorForm : Form
         var titulo = $"Nota fiscal de {(saida ? "saída" : "entrada")}"
             + (n.Numero is long num ? $" nº {num}" : n.Id is long id ? $" (rascunho {id})" : " (nova)")
             + (editavel ? "" : $" — {n.Status}");
-        Ui.Estilizar(this, titulo, 1250, 760);
+        Ui.Estilizar(this, titulo, 1250, 760, nameof(NotaEditorForm));
         StartPosition = FormStartPosition.CenterParent;
         ShowInTaskbar = false;
         qtd.Value = 1;
@@ -87,7 +87,8 @@ public class NotaEditorForm : Form
         {
             foreach (DataGridViewColumn col in grid.Columns)
             {
-                col.ReadOnly = col.DataPropertyName is nameof(NotaItem.ValorTotal) or nameof(NotaItem.ValorIcms) or nameof(NotaItem.ValorIpi);
+                // colunas de valores calculados (Total, ICMS, IPI, IBS, CBS...) já vêm somente leitura do binding:
+                // nunca forçar ReadOnly = false nelas (o WinForms lança exceção)
                 col.MinimumWidth = col.DataPropertyName == nameof(NotaItem.Descricao) ? 200 : 60;
             }
         };
@@ -105,8 +106,8 @@ public class NotaEditorForm : Form
         Load += (_, _) =>
         {
             Ui.Preencher(cadastro, saida
-                ? Db.Query("SELECT id, nome FROM clientes WHERE ativo = 1 OR id = @p0 ORDER BY nome", n.ClienteId)
-                : Db.Query("SELECT id, nome FROM fornecedores WHERE ativo = 1 OR id = @p0 ORDER BY nome", n.FornecedorId),
+                ? Db.Query("SELECT id, nome FROM pessoas WHERE (eh_cliente = 1 AND ativo = 1) OR id = @p0 ORDER BY nome", n.ClienteId)
+                : Db.Query("SELECT id, nome FROM pessoas WHERE (eh_fornecedor = 1 AND ativo = 1) OR id = @p0 ORDER BY nome", n.FornecedorId),
                 saida ? "(consumidor / digitar)" : "(digitar)");
             Ui.Selecionar(cadastro, saida ? n.ClienteId : n.FornecedorId);
             modelo.SelectedIndex = n.Modelo == "65" ? 1 : 0;

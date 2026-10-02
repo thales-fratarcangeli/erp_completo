@@ -1,5 +1,4 @@
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -23,7 +22,13 @@ public static class Email
         http.Timeout = TimeSpan.FromSeconds(20);
         using var req = new HttpRequestMessage(HttpMethod.Post, "https://api.resend.com/emails")
         {
-            Content = JsonContent.Create(new { from = remetente, to = new[] { para }, subject = assunto, html }),
+            Content = new StringContent(new System.Text.Json.Nodes.JsonObject
+            {
+                ["from"] = remetente,
+                ["to"] = new System.Text.Json.Nodes.JsonArray(para),
+                ["subject"] = assunto,
+                ["html"] = html,
+            }.ToJsonString(), System.Text.Encoding.UTF8, "application/json"),
         };
         req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", chave);
 

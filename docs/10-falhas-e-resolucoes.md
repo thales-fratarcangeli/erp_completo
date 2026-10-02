@@ -1,4 +1,9 @@
-# Falhas e resoluções
+# 10 — Falhas e resoluções
+
+| | |
+|---|---|
+| **Documento** | Base de conhecimento de suporte e registro de falhas de desenvolvimento |
+| **Sistema** | ERP Loja 1.1.0 |
 
 Duas partes: **(1) problemas que podem acontecer no uso** e como resolver; **(2) falhas encontradas durante o desenvolvimento**
 e como foram resolvidas (registro técnico, para não repetir).
@@ -81,6 +86,58 @@ Use *Configurações > E-mail > Enviar e-mail de teste* para validar a configura
 ### Cancelei a venda mas a nota continua emitida
 - Comportamento esperado: venda e nota são documentos separados. Cancele a nota em *Notas fiscais*.
 
+### TEF (cartão e PIX no PDV)
+| Situação | Causa | Resolução |
+|---|---|---|
+| "TEF SITEF/PAYGO não disponível: ..." | Provedor real escolhido sem a integração do provedor | Usar o SIMULADOR (treino) ou desligar o TEF em *Configurações > TEF* e registrar o cartão manualmente |
+| Transação aprovada mas a venda não gravou | Falha ao gravar (ex.: banco bloqueado) | Automático: a transação é **desfeita** (situação DESFEITA); o cliente não é cobrado |
+| Cancelei a venda paga com cartão | — | O cancelamento da venda estorna a transação TEF (situação CANCELADA) |
+| Comprovante não sai | Impressora de cupom não configurada | Ver "Impressoras" abaixo; o comprovante também aparece na tela |
+
+### CIOT e fretes
+| Situação | Causa | Resolução |
+|---|---|---|
+| "A integração com a Pamcard não está configurada..." | Credenciais em branco | Preencher em *Configurações > Transporte e CIOT* com os dados do credenciamento |
+| "A integração com X ainda não foi implementada" | e-Frete/Repom/Target escolhida | Usar PAMCARD ou SIMULADOR; ou declarar no portal da administradora |
+| "Corrija antes de declarar o CIOT" (CPF do motorista, RNTRC, origem/destino, valores) | Cadastro ou frete incompleto | Completar a pessoa (papel motorista), o veículo/transportador (RNTRC) e o frete |
+| "Cancele o CIOT antes de cancelar o frete." | CIOT declarado | Cancelar o CIOT primeiro (com motivo), depois o frete |
+| Pamcard devolve erro de leiaute | Leiaute do adaptador diferente do manual vigente | Ajustar `PamcardAdministradora.MontarDeclaracao/Interpretar` conforme o manual técnico (só o adaptador muda — [ADR-0012](adr/0012-ciot-administradora-abstrata.md)) |
+
+### Cobrança bancária
+| Situação | Causa | Resolução |
+|---|---|---|
+| "Modelo do campo livre inválido na conta bancária." | Marcações erradas ou soma diferente de 25 posições | Corrigir o modelo da conta conforme o manual do banco (ex.: `{agencia:4}{carteira:2}{nossonumero:11}{conta:7}{zeros:1}`) |
+| Banco recusa a remessa | Posições específicas do banco | Validar no validador CNAB 240; comparar com o manual do banco; homologar antes de usar em produção |
+| "O retorno é do banco X, e a conta selecionada é do banco Y." | Arquivo de outra conta/banco | Selecionar a conta bancária correta antes de importar |
+| Retorno importado não baixou contas | Nosso número diferente / ocorrência não é liquidação | Conferir as ocorrências do retorno (02 entrada confirmada, 06 liquidação, 09 baixa) |
+| Linha digitável não lê no banco | Fator de vencimento, valor ou campo livre | Conferir o vencimento (a partir de 22/02/2025 o fator reinicia em 1000) e o modelo da conta |
+
+### Produção
+| Situação | Resolução |
+|---|---|
+| Falta de insumo ao concluir a OP | Comprar/ajustar o estoque do insumo ou mudar *Configurações > Produção* (perguntar/permitir) |
+| Custo do produto produzido estranho | Conferir o custo médio dos insumos, as perdas e o rendimento da ficha técnica |
+| Produto não pode ser insumo de si mesmo | Comportamento esperado (evita ciclo) |
+
+### Impressoras
+| Situação | Causa | Resolução |
+|---|---|---|
+| Cupom sai com acentos trocados | Página de código diferente da impressora | Trocar entre 850 e 860 em *Configurações > Impressoras* |
+| Cupom sai com símbolos estranhos | Tipo ESCPOS numa impressora que não entende ESC/POS | Usar o tipo WINDOWS |
+| Texto cortado ou quebrado | Colunas erradas | 80 mm = 48 (ou 42) colunas; 58 mm = 32 |
+| Gaveta não abre | Impressora não ESC/POS ou parâmetro desligado | Tipo ESCPOS e *Abrir a gaveta* = SIM |
+
+Use **Imprimir página de teste** em *Configurações > Impressoras*.
+
+### Reforma tributária
+- **IBS/CBS zerados**: reforma desligada, alíquotas zeradas ou produto com CST de isenção/imunidade.
+- **"reforma tributária exige CST IBS/CBS (3 dígitos) e cClassTrib (6 dígitos)"**: preencher no produto (ou definir os padrões em *Configurações > Reforma tributária*).
+- Em 2026 os valores são **destacados, mas não somam ao total** (ano de teste). Confirme as alíquotas com o contador.
+
+### Dados de demonstração
+- Gere **somente em banco de teste**: o sistema faz backup antes, mas os dados fictícios se misturam aos reais.
+- Por linha de comando: `ErpLoja.exe --dados-demo C:\teste\demo.db`.
+
 ---
 
 ## 2. Registro de falhas no desenvolvimento
@@ -108,6 +165,17 @@ Use *Configurações > E-mail > Enviar e-mail de teste* para validar a configura
 | 19 | `ErpLoja.exe --criar-banco <caminho>` encerrava com erro (0xE0434352) quando a pasta não existia | A linha de comando chamava a migração direto, sem criar a pasta (a tela de abertura criava) | A pasta passa a ser criada; erros devolvem código de saída 2 em vez de derrubar o programa |
 | 20 | Não foi possível substituir `dist\ErpLoja.exe` ao publicar (`Access denied`) | O sistema estava aberto, e o Windows bloqueia o executável em uso | Publicar com o sistema fechado (ou em outra pasta e copiar depois) |
 | 21 | Funções duplicadas em várias telas (compra manual em duas telas, importação de XML em dois menus, notas a partir de três lugares, indicadores repetidos na tela inicial e no dashboard, relatórios repetindo telas) | Crescimento incremental do sistema | Revisão de redundância: um ponto de entrada por função (ver tabela abaixo) |
+| 22 | Logo gerada saiu laranja em vez de azul | Bytes de cor gravados na ordem R,G,B; o bitmap usa B,G,R | Ordem corrigida no script `ferramentas/gerar-logo.ps1` |
+| 23 | Nome `Ui.Sucesso` conflitava com a cor de mesmo nome | Método e campo com o mesmo identificador | Método renomeado para `Ui.Feito` |
+| 24 | Erro ao abrir o editor de nota: "A coluna DataGridView associada a um campo somente leitura deve ter ReadOnly definida como True" (relatado pelo usuário) | Colunas calculadas eram marcadas `ReadOnly = false` por regra genérica | O editor não força mais o `ReadOnly` das colunas; as calculadas seguem a fonte de dados |
+| 25 | Migração para `pessoas` poderia apagar itens de venda | Apagar a tabela-pai com chaves estrangeiras ligadas dispara `ON DELETE CASCADE` | Migrações de reconstrução rodam com FKs desligadas (`semChavesEstrangeiras`); `RepontarReferencias` recria as tabelas filhas e `foreign_key_check` valida antes do commit; teste com banco v4 com dados |
+| 26 | Risco de a interface quebrar no executável ofuscado (grades vazias, ajuda não encontrada, JSON do Resend vazio) | A ofuscação renomeia propriedades ligadas por nome, chaves de ajuda baseadas em nome de tipo e tipos anônimos | `[Obfuscation(Exclude = true)]` nas classes ligadas a grades e no P/Invoke; chaves de ajuda com `nameof`; JSON com `JsonObject`; teste de interface no exe ofuscado |
+| 27 | Obfuscar não encontrava as referências do WinForms | Caminhos de busca de assemblies ausentes | O alvo de publicação gera `obfuscar.xml` com os diretórios de todas as DLLs resolvidas |
+| 28 | Teste de interface travava ao clicar em botão que abre janela modal | `InvokePattern.Invoke` (UI Automation) só retorna quando o modal fecha | Clique enviado com `PostMessage(BM_CLICK)` |
+| 29 | Teste de interface não achava as janelas filhas | Janelas com dono ficam aninhadas sob a janela dona na árvore de automação | Busca em largura pelas janelas filhas |
+| 30 | Script de teste com acentos falhava no PowerShell 5.1 | Arquivo UTF-8 sem BOM lido como ANSI | Script gravado em UTF-8 com BOM |
+| 31 | Tela inicial "poluída" com indicadores (relatado pelo usuário) | Painel gerencial embutido na tela inicial | Tela inicial limpa (logo, saudação, busca); indicadores na tela *Painel gerencial* (F5) |
+| 32 | Botão "?" abria a ajuda de todas as telas (relatado pelo usuário) | Janela de ajuda com índice de tópicos | A ajuda mostra apenas o tópico da tela de origem; teste verifica |
 
 ### Revisão de redundância (versão 1.0.0)
 
@@ -120,3 +188,12 @@ Use *Configurações > E-mail > Enviar e-mail de teste* para validar a configura
 | Dados da empresa, senha, backup | Itens soltos no menu Sistema | Tela única de Configurações |
 | Relatórios "estoque baixo", "inventário", "contas vencidas", "por forma de pagamento", "por categoria" | Repetiam a tela Estoque, o Financeiro e o painel | Removidos dos relatórios; ficam nas telas de origem |
 | Navegação | Menu superior + barra de botões com os mesmos itens | Menu lateral único |
+
+### Revisão de redundância (versão 1.1.0)
+
+| Função | Antes | Agora (único lugar) |
+|---|---|---|
+| Clientes e fornecedores | Duas telas e duas tabelas | *Cadastros > Pessoas* com papéis (cliente, fornecedor, transportador, motorista) |
+| Indicadores gerenciais | Tela inicial | *Painel gerencial* (F5) |
+| Ajuda | Janela com todos os tópicos | Um tópico por tela, no "?"/F1 da própria tela |
+| Menu, atalhos e localizador | Listas separadas | Registro único `Navegacao.Telas()` |

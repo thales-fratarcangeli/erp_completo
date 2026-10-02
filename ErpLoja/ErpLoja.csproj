@@ -10,7 +10,7 @@
     <AssemblyName>ErpLoja</AssemblyName>
     <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
     <Product>ERP Loja</Product>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <ApplicationIcon>Recursos\logo.ico</ApplicationIcon>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SatelliteResourceLanguages>pt-BR</SatelliteResourceLanguages>
@@ -37,5 +37,52 @@
   <ItemGroup>
     <InternalsVisibleTo Include="ErpLoja.Testes" />
   </ItemGroup>
+
+  <!--
+    Proteção contra engenharia reversa (somente na publicação em Release).
+    Antes de empacotar o executável único, a DLL do sistema passa pelo Obfuscar (ferramenta local, ver dotnet-tools.json):
+    renomeia tipos, métodos, propriedades e campos para nomes ilegíveis e cifra as strings (SQL, mensagens).
+    Classes usadas por nome (ligação de grades, P/Invoke) estão marcadas com [Obfuscation(Exclude = true)].
+    Para publicar sem ofuscar (diagnóstico): dotnet publish -c Release -p:Ofuscar=false
+  -->
+  <Target Name="OfuscarAssembly" AfterTargets="ComputeResolvedFilesToPublishList"
+          Condition="'$(Configuration)' == 'Release' AND '$(Ofuscar)' != 'false'">
+    <PropertyGroup>
+      <PastaOfuscacao>$(MSBuildProjectDirectory)\$(IntermediateOutputPath)ofuscacao\</PastaOfuscacao>
+      <ExecutavelDotnet>$(DOTNET_HOST_PATH)</ExecutavelDotnet>
+      <ExecutavelDotnet Condition="'$(ExecutavelDotnet)' == ''">dotnet</ExecutavelDotnet>
+    </PropertyGroup>
+    <ItemGroup>
+      <_AssemblyPrincipal Include="@(ResolvedFileToPublish)" Condition="'%(Filename)%(Extension)' == '$(TargetFileName)'" />
+      <_PastaReferencia Include="@(ResolvedFileToPublish->'%(RootDir)%(Directory)')" Condition="'%(Extension)' == '.dll'" />
+      <_PastaReferenciaUnica Include="@(_PastaReferencia->Distinct())" />
+      <_LinhaObfuscar Include="&lt;Obfuscator&gt;" />
+      <_LinhaObfuscar Include="&lt;Var name=&quot;InPath&quot; value=&quot;$(PastaOfuscacao)entrada&quot; /&gt;" />
+      <_LinhaObfuscar Include="&lt;Var name=&quot;OutPath&quot; value=&quot;$(PastaOfuscacao)saida&quot; /&gt;" />
+      <_LinhaObfuscar Include="&lt;Var name=&quot;KeepPublicApi&quot; value=&quot;false&quot; /&gt;" />
+      <_LinhaObfuscar Include="&lt;Var name=&quot;HidePrivateApi&quot; value=&quot;true&quot; /&gt;" />
+      <_LinhaObfuscar Include="&lt;Var name=&quot;RenameProperties&quot; value=&quot;true&quot; /&gt;" />
+      <_LinhaObfuscar Include="&lt;Var name=&quot;RenameEvents&quot; value=&quot;true&quot; /&gt;" />
+      <_LinhaObfuscar Include="&lt;Var name=&quot;RenameFields&quot; value=&quot;true&quot; /&gt;" />
+      <_LinhaObfuscar Include="&lt;Var name=&quot;HideStrings&quot; value=&quot;true&quot; /&gt;" />
+      <_LinhaObfuscar Include="&lt;Var name=&quot;UseUnicodeNames&quot; value=&quot;true&quot; /&gt;" />
+      <_LinhaObfuscar Include="&lt;Var name=&quot;OptimizeMethods&quot; value=&quot;true&quot; /&gt;" />
+      <_LinhaObfuscar Include="&lt;Var name=&quot;SuppressIldasm&quot; value=&quot;true&quot; /&gt;" />
+      <_LinhaObfuscar Include="@(_PastaReferenciaUnica->'&lt;AssemblySearchPath path=&quot;%(Identity)&quot; /&gt;')" />
+      <_LinhaObfuscar Include="&lt;Module file=&quot;$(PastaOfuscacao)entrada\$(TargetFileName)&quot; /&gt;" />
+      <_LinhaObfuscar Include="&lt;/Obfuscator&gt;" />
+    </ItemGroup>
+    <Error Condition="'@(_AssemblyPrincipal)' == ''" Text="Ofuscação: $(TargetFileName) não encontrado entre os arquivos publicados." />
+    <RemoveDir Directories="$(PastaOfuscacao)" />
+    <Copy SourceFiles="@(_AssemblyPrincipal)" DestinationFolder="$(PastaOfuscacao)entrada" />
+    <WriteLinesToFile File="$(PastaOfuscacao)obfuscar.xml" Lines="@(_LinhaObfuscar)" Overwrite="true" />
+    <Exec Command="&quot;$(ExecutavelDotnet)&quot; tool run obfuscar.console -- &quot;$(PastaOfuscacao)obfuscar.xml&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)\.." />
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(_AssemblyPrincipal)" />
+      <ResolvedFileToPublish Include="@(_AssemblyPrincipal->'$(PastaOfuscacao)saida\%(Filename)%(Extension)')" />
+    </ItemGroup>
+    <Message Importance="high" Text="Ofuscação aplicada: $(PastaOfuscacao)saida\$(TargetFileName)" />
+  </Target>
 
 </Project>

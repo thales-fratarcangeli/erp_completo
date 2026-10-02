@@ -2,9 +2,9 @@
 
 # ERP Loja
 
-ERP para loja de varejo, em **C# (.NET 10, Windows Forms)** com banco **SQLite**.
-Vendas (PDV, orçamentos, pedidos), compras (pedidos e importação de XML de NF-e), estoque com custo médio,
-financeiro, notas fiscais, relatórios e painel gerencial.
+ERP para loja de varejo, em **C# (.NET 10, Windows Forms)** com banco **SQLite**: PDV com TEF, orçamentos e pedidos,
+compras com importação de XML, produção, estoque com custo médio, financeiro com cobrança bancária (CNAB 240),
+fretes com CIOT, notas fiscais com a reforma tributária, painel gerencial e relatórios.
 
 ## Instalação
 
@@ -28,23 +28,28 @@ O executável pronto fica na página de [Releases](../../releases) do repositór
 
 | Área | O que faz |
 |---|---|
-| Vendas | PDV com leitor de código de barras, troco, a prazo parcelado e comprovante; orçamentos (aprovar vira pedido); pedidos de venda (faturar gera a venda) |
-| Compras | Pedidos de compra (receber dá entrada no estoque); importação do XML da NF-e do fornecedor com vínculo de produtos e fator de conversão |
-| Estoque | Saldo, situação, sugestão de compra, histórico de movimentações, ajuste/inventário, custo médio ponderado |
-| Financeiro | Contas a receber/pagar geradas automaticamente, lançamentos manuais, baixa, estorno, vencidas |
-| Fiscal | NF-e/NFC-e de saída e entrada com NCM, CFOP automático, CST/CSOSN, ICMS/IPI/PIS/COFINS, numeração, chave de acesso e DANFE (**sem transmissão à SEFAZ** — ver limitações) |
-| Gestão | Painel com indicadores comparados ao período anterior e gráficos; relatórios com exportação CSV |
-| Sistema | Tela única de configurações, usuários com recuperação de senha por e-mail (Resend), backups, ajuda em todas as telas (botão **?** / F1) |
+| Vendas | PDV de teclado com leitor de código de barras, TEF (cartão/PIX), troco, a prazo e comprovante; orçamentos → pedidos → faturamento |
+| Compras | Pedidos de compra; importação do XML da NF-e com vínculo de produtos e fator de conversão |
+| Produção | Fichas técnicas e ordens de produção com custo real |
+| Estoque | Saldo, situação, sugestão de compra, histórico, inventário, custo médio ponderado |
+| Financeiro | Contas a pagar/receber, baixa, estorno; **cobrança bancária** genérica (boleto Febraban, CNAB 240, homologação) |
+| Logística | Veículos, motoristas, fretes e **CIOT** (Pamcard) |
+| Fiscal | NF-e/NFC-e com CFOP automático, ICMS/IPI/PIS/COFINS e **IBS/CBS/IS** da reforma tributária; chave de acesso e DANFE (sem transmissão à SEFAZ) |
+| Gestão | Painel gerencial com comparação ao período anterior; relatórios exportáveis |
+| Sistema | Cadastro único de pessoas, configurações centralizadas, usuários com recuperação de senha (Resend), backups, migrations, impressoras (Windows/ESC/POS), localizador de telas (Ctrl+K), ajuda em cada tela (**?**/F1), dados de demonstração |
 
 ## Documentação
 
+Índice completo em [docs/](docs/README.md). Principais:
+
 | Documento | Para quem |
 |---|---|
-| [Manual do usuário](docs/manual-do-usuario.md) | Usuários da loja (é o mesmo conteúdo do botão **?** de cada tela) |
-| [Regras de negócio](docs/regras-de-negocio.md) | Todos: como o sistema calcula e decide cada coisa |
-| [Arquitetura e migrations](docs/arquitetura.md) | Desenvolvedores |
-| [Falhas e resoluções](docs/falhas-e-resolucoes.md) | Suporte e desenvolvedores: problemas conhecidos e como resolver |
-| [Histórico de versões](CHANGELOG.md) | Todos |
+| [Manual do usuário](docs/12-manual-do-usuario.md) | Usuários (mesmo conteúdo do botão **?**) |
+| [Regras de negócio](docs/04-regras-de-negocio.md) | Todos |
+| [Implantação e operação](docs/09-implantacao-e-operacao.md) | Implantação e suporte |
+| [Falhas e resoluções](docs/10-falhas-e-resolucoes.md) | Suporte e desenvolvimento |
+| [Arquitetura](docs/05-arquitetura.md) e [ADRs](docs/adr/) | Desenvolvimento |
+| [Como contribuir](CONTRIBUTING.md) · [Segurança](SECURITY.md) · [Histórico](CHANGELOG.md) | Desenvolvimento |
 
 ## Desenvolvimento
 
@@ -52,24 +57,26 @@ Requisitos: .NET SDK 10 (Windows).
 
 ```powershell
 dotnet build ErpLoja.sln
-dotnet run --project testes/ErpLoja.Testes        # bateria de testes (saída 0 = tudo certo)
-dotnet publish ErpLoja/ErpLoja.csproj -c Release -o dist   # gera dist/ErpLoja.exe (arquivo único)
+dotnet run --project testes/ErpLoja.Testes                 # bateria de testes (saída 0 = tudo certo; regenera docs 06, 08 e 12)
+dotnet tool restore                                        # Obfuscar (ferramenta local)
+dotnet publish ErpLoja/ErpLoja.csproj -c Release -o dist   # dist/ErpLoja.exe (arquivo único, ofuscado)
+powershell -File testes/interface/teste-interface.ps1 -Pasta dist   # teste de interface do executável
 ```
-
-A bateria de testes também regenera `docs/manual-do-usuario.md` a partir da ajuda do sistema.
 
 ```
 ErpLoja/              aplicação
-  Data/               acesso a dados, migrations, regras de negócio (vendas, compras, fiscal, pedidos, e-mail)
+  Data/               acesso a dados, migrations, parâmetros e regras de negócio
   Forms/              telas
-  UI/                 componentes visuais, gráficos, ajuda
-  Recursos/           logo (ícone)
-testes/ErpLoja.Testes bateria de testes de ponta a ponta
-docs/                 documentação
+  UI/                 componentes visuais, navegação, ajuda, animações
+  Recursos/           logo
+testes/ErpLoja.Testes bateria de testes de ponta a ponta (+ geração de documentação)
+testes/interface      teste de interface por UI Automation
+docs/                 documentação de engenharia
 ferramentas/          script que gera a logo
 ```
 
 ## Limitações conhecidas
 
+- **TEF real (SiTef/PayGo) e Pamcard em produção** dependem de credenciamento/homologação com cada parceiro; há simuladores para treino e testes.
 - **Notas fiscais não são transmitidas à SEFAZ.** A numeração, a chave de acesso e o DANFE são gerados, mas a assinatura com certificado digital A1 e a autorização ainda não foram implementadas, por isso o DANFE sai marcado "sem valor fiscal".
-- O SQLite é um banco de arquivo: ideal para um computador (ou poucos acessos simultâneos). Para vários caixas em rede, veja [Falhas e resoluções](docs/falhas-e-resolucoes.md#banco-em-pasta-de-rede).
+- O SQLite é um banco de arquivo: ideal para um computador (ou poucos acessos simultâneos). Para vários caixas em rede, veja [Falhas e resoluções](docs/10-falhas-e-resolucoes.md#banco-em-pasta-de-rede).

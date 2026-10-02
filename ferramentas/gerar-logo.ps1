@@ -1,64 +1,71 @@
-﻿# Gera a logo do ERP Loja (PNG 512px + ICO multi-tamanho) em ErpLoja\Recursos.
+﻿# Gera a logo do sistema (PNG 512px + ICO multi-tamanho) a partir da arte original.
+# Entrada: ErpLoja\Recursos\logo-original.png (arte "CE" fornecida pela empresa).
+# - recorta as margens brancas, torna o fundo branco transparente (com borda suavizada) e centraliza em quadrado;
+# - gera logo.png (512 px) e logo.ico (16, 24, 32, 48, 64, 128 e 256 px).
 # Uso: powershell -ExecutionPolicy Bypass -File ferramentas\gerar-logo.ps1
 Add-Type -AssemblyName System.Drawing
 $ErrorActionPreference = 'Stop'
-$destino = Join-Path $PSScriptRoot '..\ErpLoja\Recursos'
-New-Item -ItemType Directory -Force $destino | Out-Null
+$recursos = Join-Path $PSScriptRoot '..\ErpLoja\Recursos'
+$origem = Join-Path $recursos 'logo-original.png'
 
-function Desenhar([int]$s) {
-    $bmp = New-Object System.Drawing.Bitmap $s, $s
+$src = [System.Drawing.Bitmap]::FromFile((Resolve-Path $origem))
+$w = $src.Width; $h = $src.Height
+
+# 1) fundo branco -> transparente (alfa proporcional à "distância do branco", para bordas suaves)
+$transp = New-Object System.Drawing.Bitmap $w, $h, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+$rect = New-Object System.Drawing.Rectangle 0, 0, $w, $h
+$dSrc = $src.LockBits($rect, 'ReadOnly', ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb))
+$dDst = $transp.LockBits($rect, 'WriteOnly', ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb))
+$bytes = New-Object byte[] ($dSrc.Stride * $h)
+[System.Runtime.InteropServices.Marshal]::Copy($dSrc.Scan0, $bytes, 0, $bytes.Length)
+$minX = $w; $minY = $h; $maxX = 0; $maxY = 0
+for ($y = 0; $y -lt $h; $y++) {
+    $linha = $y * $dSrc.Stride
+    for ($x = 0; $x -lt $w; $x++) {
+        $i = $linha + $x * 4
+        $b = $bytes[$i]; $g = $bytes[$i + 1]; $r = $bytes[$i + 2]
+        $min = [Math]::Min($r, [Math]::Min($g, $b))
+        # quanto mais perto do branco, mais transparente
+        $alfa = [Math]::Min(255, [Math]::Max(0, (255 - $min) * 2))
+        if ($alfa -lt 12) { $alfa = 0 }
+        $bytes[$i + 3] = [byte]$alfa
+        if ($alfa -gt 0) {
+            # recupera a cor "sem o branco" para não deixar halo claro
+            $bytes[$i] = 0xB8; $bytes[$i + 1] = 0x65; $bytes[$i + 2] = 0x15   # B, G, R = azul #1565B8
+            if ($x -lt $minX) { $minX = $x }; if ($x -gt $maxX) { $maxX = $x }
+            if ($y -lt $minY) { $minY = $y }; if ($y -gt $maxY) { $maxY = $y }
+        }
+    }
+}
+[System.Runtime.InteropServices.Marshal]::Copy($bytes, 0, $dDst.Scan0, $bytes.Length)
+$src.UnlockBits($dSrc); $transp.UnlockBits($dDst); $src.Dispose()
+
+# 2) recorte + quadrado com margem de 6%
+$larg = $maxX - $minX + 1; $alt = $maxY - $minY + 1
+$lado = [int]([Math]::Max($larg, $alt) * 1.12)
+$quadrado = New-Object System.Drawing.Bitmap $lado, $lado, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+$gq = [System.Drawing.Graphics]::FromImage($quadrado)
+$gq.Clear([System.Drawing.Color]::Transparent)
+$gq.DrawImage($transp, (New-Object System.Drawing.Rectangle ([int](($lado - $larg) / 2)), ([int](($lado - $alt) / 2)), $larg, $alt),
+    (New-Object System.Drawing.Rectangle $minX, $minY, $larg, $alt), 'Pixel')
+$gq.Dispose(); $transp.Dispose()
+
+function Redimensionar([int]$t) {
+    $bmp = New-Object System.Drawing.Bitmap $t, $t, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
     $g = [System.Drawing.Graphics]::FromImage($bmp)
-    $g.SmoothingMode = 'AntiAlias'
+    $g.InterpolationMode = 'HighQualityBicubic'; $g.SmoothingMode = 'AntiAlias'; $g.PixelOffsetMode = 'HighQuality'
     $g.Clear([System.Drawing.Color]::Transparent)
-
-    # fundo: quadrado arredondado em degradê azul
-    $r = $s * 0.22; $d = $r * 2; $m = [Math]::Max(0.5, $s * 0.02); $w = $s - 2 * $m
-    $path = New-Object System.Drawing.Drawing2D.GraphicsPath
-    $path.AddArc($m, $m, $d, $d, 180, 90)
-    $path.AddArc($m + $w - $d, $m, $d, $d, 270, 90)
-    $path.AddArc($m + $w - $d, $m + $w - $d, $d, $d, 0, 90)
-    $path.AddArc($m, $m + $w - $d, $d, $d, 90, 90)
-    $path.CloseFigure()
-    $rect = New-Object System.Drawing.RectangleF 0, 0, $s, $s
-    $fundo = New-Object System.Drawing.Drawing2D.LinearGradientBrush $rect, ([System.Drawing.ColorTranslator]::FromHtml('#3987e5')), ([System.Drawing.ColorTranslator]::FromHtml('#184f95')), 90
-    $g.FillPath($fundo, $path)
-
-    $branco = [System.Drawing.Brushes]::White
-    # toldo da loja: faixa com 4 "ondas" embaixo
-    $x0 = $s * 0.17; $x1 = $s * 0.83; $yTopo = $s * 0.19; $yBase = $s * 0.33
-    $g.FillRectangle($branco, $x0, $yTopo, $x1 - $x0, $yBase - $yTopo + $s * 0.015)
-    $onda = ($x1 - $x0) / 4
-    for ($i = 0; $i -lt 4; $i++) {
-        $g.FillPie($branco, $x0 + $i * $onda, $yBase - $onda / 2, $onda, $onda, 0, 180)
-    }
-
-    # três barras crescentes (gestão / resultados)
-    $base = $s * 0.81; $larg = $s * 0.14
-    $alturas = @(0.15, 0.24, 0.33)
-    $xs = @(0.215, 0.43, 0.645)
-    for ($i = 0; $i -lt 3; $i++) {
-        $h = $s * $alturas[$i]; $x = $s * $xs[$i]; $rr = [Math]::Max(1, $larg * 0.3)
-        $b = New-Object System.Drawing.Drawing2D.GraphicsPath
-        $b.AddLine($x, $base, $x, $base - $h + $rr)
-        $b.AddArc($x, $base - $h, $rr * 2, $rr * 2, 180, 90)
-        $b.AddArc($x + $larg - $rr * 2, $base - $h, $rr * 2, $rr * 2, 270, 90)
-        $b.AddLine($x + $larg, $base - $h + $rr, $x + $larg, $base)
-        $b.CloseFigure()
-        $g.FillPath($branco, $b)
-    }
+    $g.DrawImage($quadrado, 0, 0, $t, $t)
     $g.Dispose()
     return $bmp
 }
 
-# PNG grande (usado na tela de login e no README)
-$png = Desenhar 512
-$png.Save((Join-Path $destino 'logo.png'), [System.Drawing.Imaging.ImageFormat]::Png)
+(Redimensionar 512).Save((Join-Path $recursos 'logo.png'), [System.Drawing.Imaging.ImageFormat]::Png)
 
-# ICO com várias resoluções (entradas em PNG)
 $tamanhos = 16, 24, 32, 48, 64, 128, 256
 $imagens = foreach ($t in $tamanhos) {
     $ms = New-Object System.IO.MemoryStream
-    (Desenhar $t).Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
+    (Redimensionar $t).Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
     , $ms.ToArray()
 }
 $saida = New-Object System.IO.MemoryStream
@@ -72,16 +79,20 @@ for ($i = 0; $i -lt $tamanhos.Count; $i++) {
     $offset += $dados.Length
 }
 foreach ($dados in $imagens) { $bw.Write($dados) }
-[System.IO.File]::WriteAllBytes((Join-Path $destino 'logo.ico'), $saida.ToArray())
+[System.IO.File]::WriteAllBytes((Join-Path $recursos 'logo.ico'), $saida.ToArray())
 
-# prévia ampliada dos tamanhos pequenos para conferência
-$previa = New-Object System.Drawing.Bitmap 760, 300
+# prévia: tamanhos pequenos ampliados, em fundo claro e escuro
+$previa = New-Object System.Drawing.Bitmap 900, 260
 $gp = [System.Drawing.Graphics]::FromImage($previa)
 $gp.Clear([System.Drawing.Color]::White)
+$gp.FillRectangle((New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(17, 24, 39))), 450, 0, 450, 260)
 $gp.InterpolationMode = 'NearestNeighbor'
-$x = 10
-foreach ($t in 16, 32, 48) { $gp.DrawImage((Desenhar $t), $x, 10, $t * 4, $t * 4); $x += $t * 4 + 20 }
-$gp.DrawImage($png, $x, 10, 200, 200)
+foreach ($base in 0, 450) {
+    $x = $base + 10
+    foreach ($t in 16, 32, 48) { $gp.DrawImage((Redimensionar $t), $x, 10, $t * 3, $t * 3); $x += $t * 3 + 14 }
+    $gp.DrawImage((Redimensionar 128), $x, 10, 128, 128)
+}
 $gp.Dispose()
 $previa.Save((Join-Path $env:TEMP 'erp_logo_previa.png'), [System.Drawing.Imaging.ImageFormat]::Png)
+$quadrado.Dispose()
 "ok"

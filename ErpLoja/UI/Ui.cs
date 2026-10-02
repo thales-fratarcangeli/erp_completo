@@ -45,7 +45,18 @@ public static class Ui
         f.Size = new Size(largura, altura);
         f.MinimumSize = new Size(Math.Min(largura, 800), Math.Min(altura, 500));
         f.KeyPreview = true;
-        Ajuda.Instalar(f, ajuda ?? f.GetType().Name);
+        var chave = ajuda ?? f.GetType().Name;
+        Ajuda.Instalar(f, chave);
+
+        // faixa superior na cor do módulo da tela + entrada suave
+        var cor = Navegacao.CorDaTela(chave);
+        f.Load += (_, _) =>
+        {
+            var faixa = new Panel { Dock = DockStyle.Top, Height = 4, BackColor = cor };
+            f.Controls.Add(faixa);
+            faixa.SendToBack();
+        };
+        Animacao.Surgir(f);
     }
 
     public static DataGridView Grid(bool somenteLeitura = true)
@@ -104,10 +115,11 @@ public static class Ui
                 return;
             e.CellStyle.ForeColor = Txt(e.Value) switch
             {
-                "VENCIDA" or "VENCIDO" or "SEM ESTOQUE" or "RECUSADO" => Perigo,
-                "BAIXO" or "DIGITADA" => Alerta,
-                "PAGA" or "OK" or "APROVADO" or "FATURADO" or "RECEBIDO" or "EMITIDA" => Sucesso,
-                "CANCELADA" or "CANCELADO" => Color.Gray,
+                "VENCIDA" or "VENCIDO" or "SEM ESTOQUE" or "RECUSADO" or "REJEITADO" or "PENDENTE" => Perigo,
+                "BAIXO" or "DIGITADA" or "EM PRODUÇÃO" or "EM TRÂNSITO" or "ENVIADO" or "DECLARADO" => Alerta,
+                "PAGA" or "PAGO" or "OK" or "APROVADO" or "FATURADO" or "RECEBIDO" or "EMITIDA" or "CONCLUÍDA" or "ENTREGUE"
+                    or "REGISTRADO" or "ENCERRADO" => Sucesso,
+                "CANCELADA" or "CANCELADO" or "BAIXADO" => Color.Gray,
                 _ => e.CellStyle.ForeColor,
             };
         };
@@ -129,6 +141,9 @@ public static class Ui
             UseVisualStyleBackColor = false,
         };
         b.FlatAppearance.BorderColor = primario ? Primaria : Color.FromArgb(209, 213, 219);
+        b.FlatAppearance.MouseOverBackColor = b.BackColor;
+        b.FlatAppearance.MouseDownBackColor = primario ? Animacao.Escurecer(Primaria, 0.3) : Color.FromArgb(229, 231, 235);
+        Animacao.Hover(b, b.BackColor, primario ? Animacao.Escurecer(Primaria, 0.18) : Color.FromArgb(239, 246, 255));
         if (clique != null)
             b.Click += clique;
         return b;
@@ -236,6 +251,11 @@ public static class Ui
 
     public static void Erro(string m) => MessageBox.Show(m, "Atenção", MessageBoxButtons.OK, MessageBoxIcon.Warning);
     public static void Info(string m) => MessageBox.Show(m, "ERP Loja", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+    /// <summary>Confirmação rápida e não bloqueante (aviso no canto da tela).</summary>
+    public static void Feito(string m) => Toast.Mostrar(m, TipoAviso.Sucesso);
+
+    public static void Aviso(string m) => Toast.Mostrar(m, TipoAviso.Atencao);
     public static bool Confirmar(string m) =>
         MessageBox.Show(m, "Confirmação", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes;
 

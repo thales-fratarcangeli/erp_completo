@@ -8,7 +8,7 @@ public class BancoForm : Form
 
     public BancoForm()
     {
-        Ui.Estilizar(this, "ERP Loja - banco de dados", 640, 420);
+        Ui.Estilizar(this, "ERP Loja - banco de dados", 640, 420, nameof(BancoForm));
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = MinimizeBox = false;
         BackColor = Color.White;

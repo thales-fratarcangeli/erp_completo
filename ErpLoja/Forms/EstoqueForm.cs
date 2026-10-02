@@ -11,7 +11,7 @@ public class EstoqueForm : Form
 
     public EstoqueForm()
     {
-        Ui.Estilizar(this, "Estoque", 1150, 720);
+        Ui.Estilizar(this, "Estoque", 1150, 720, nameof(EstoqueForm));
 
         var barra = Ui.Barra();
         barra.Controls.AddRange([

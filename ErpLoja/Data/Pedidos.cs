@@ -2,6 +2,7 @@ using System.Text;
 
 namespace ErpLoja.Data;
 
+[System.Reflection.Obfuscation(Exclude = true, ApplyToMembers = true)]
 public class PedidoItem
 {
     [Browsable(false)] public long ProdutoId { get; set; }
@@ -213,8 +214,8 @@ public static class Pedidos
         const int L = 80;
         var p = Carregar(id);
         var pessoa = p.Tipo == Compra
-            ? Db.Query("SELECT nome, cnpj AS doc, telefone, email, endereco, cidade FROM fornecedores WHERE id = @p0", p.FornecedorId)
-            : Db.Query("SELECT nome, cpf_cnpj AS doc, telefone, email, endereco, cidade FROM clientes WHERE id = @p0", p.ClienteId);
+            ? Db.Query("SELECT nome, cpf_cnpj AS doc, telefone, email, endereco, cidade FROM pessoas WHERE id = @p0", p.FornecedorId)
+            : Db.Query("SELECT nome, cpf_cnpj AS doc, telefone, email, endereco, cidade FROM pessoas WHERE id = @p0", p.ClienteId);
 
         var sb = new StringBuilder();
         var traco = new string('-', L);

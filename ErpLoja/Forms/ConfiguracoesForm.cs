@@ -11,7 +11,7 @@ public class ConfiguracoesForm : Form
 
     public ConfiguracoesForm()
     {
-        Ui.Estilizar(this, "Configurações", 900, 680);
+        Ui.Estilizar(this, "Configurações", 900, 680, nameof(ConfiguracoesForm));
         if (Sessao.Admin)
         {
             foreach (var grupo in Parametros.Definicoes.Select(d => d.Grupo).Distinct())
@@ -48,15 +48,15 @@ public class ConfiguracoesForm : Form
         {
             var valor = Db.Config(d.Chave);
             Control controle;
-            if (d.Opcoes is { } opcoes)
+            if ((d.Opcoes ?? d.OpcoesDinamicas?.Invoke()) is { } opcoes)
             {
                 var cb = Ui.Combo(320);
-                cb.Items.AddRange(opcoes);
-                cb.SelectedItem = opcoes.Contains(valor) ? valor : d.Padrao;
+                cb.Items.AddRange(opcoes.Contains(valor) || valor.Length == 0 ? opcoes : [.. opcoes, valor]);
+                cb.SelectedItem = cb.Items.Contains(valor) ? valor : d.Padrao;
                 controle = cb;
             }
             else
-                controle = new TextBox { Text = valor, UseSystemPasswordChar = d.Chave == "resend_api_key" };
+                controle = new TextBox { Text = valor, UseSystemPasswordChar = d.Secreto };
             painel.Adicionar(d.Rotulo + ":", controle, 320);
             if (d.Dica != null)
                 painel.Nota(d.Dica, 600);
@@ -67,6 +67,14 @@ public class ConfiguracoesForm : Form
         botoes.Controls.Add(Ui.Botao("Salvar", (_, _) => Salvar(definicoes), primario: true));
         if (grupo == Parametros.Email)
             botoes.Controls.Add(Ui.Botao("Enviar e-mail de teste", async (_, _) => await TestarEmail(definicoes)));
+        if (grupo == Parametros.Impressoras)
+            botoes.Controls.Add(Ui.Botao("Imprimir página de teste", (_, _) =>
+            {
+                if (!Salvar(definicoes, silencioso: true))
+                    return;
+                try { Impressao.ImprimirCupom(Impressao.PaginaDeTeste()); Ui.Feito("Página de teste enviada."); }
+                catch (Exception ex) { Ui.Erro("Falha na impressão:\n" + ex.Message); }
+            }));
         painel.Linha(botoes);
 
         if (grupo == Parametros.Banco)
@@ -74,7 +82,7 @@ public class ConfiguracoesForm : Form
         return aba;
     }
 
-    bool Salvar(List<Parametro> definicoes)
+    bool Salvar(List<Parametro> definicoes, bool silencioso = false)
     {
         foreach (var d in definicoes)
         {
@@ -100,7 +108,8 @@ public class ConfiguracoesForm : Form
         }
         foreach (var d in definicoes)
             Db.SalvarConfig(d.Chave, campos[d.Chave].Text.Trim());
-        Ui.Info("Configurações salvas.");
+        if (!silencioso)
+            Ui.Feito("Configurações salvas.");
         return true;
     }
 
@@ -158,6 +167,21 @@ public class ConfiguracoesForm : Form
                 Process.Start(new ProcessStartInfo("explorer.exe", Backups.Pasta) { UseShellExecute = true });
             }),
             Ui.Botao("Trocar de banco...", (_, _) => TrocarBanco()),
+            Ui.Botao("Gerar dados de demonstração", (_, _) =>
+            {
+                if (!Ui.Confirmar("Inserir dados fictícios de demonstração (clientes, produtos, vendas de 6 meses, compras, produção, fretes, boletos...)?\n\n" +
+                                  "Use apenas em banco de teste. Um backup é feito antes."))
+                    return;
+                try
+                {
+                    Cursor = Cursors.WaitCursor;
+                    var backup = Backups.Criar("antes_dados_demo");
+                    var resumo = DadosDemo.Gerar();
+                    Ui.Info(resumo + "\n\nBackup anterior: " + backup);
+                }
+                catch (Exception ex) { Ui.Erro(ex.Message); }
+                finally { Cursor = Cursors.Default; }
+            }),
         ]);
         painel.Linha(acoes);
         painel.Nota("Para restaurar um backup: feche o sistema, copie o arquivo de backup desejado por cima do banco (ou use \"Trocar de banco\" apontando para ele).", 600);
