@@ -93,8 +93,26 @@ public static class Pedidos
         return id;
     }
 
+    /// <summary>Confere os itens antes de gravar: quantidade positiva, preço não negativo e desconto até o valor do item.</summary>
+    static void ValidarItens(Pedido p)
+    {
+        foreach (var i in p.Itens)
+        {
+            var nome = i.Produto.Length > 0 ? i.Produto : i.Codigo;
+            if (i.Quantidade <= 0)
+                throw new InvalidOperationException($"Informe uma quantidade maior que zero para o item \"{nome}\".");
+            if (i.Unitario < 0 || i.Desconto < 0)
+                throw new InvalidOperationException($"O preço e o desconto do item \"{nome}\" não podem ser negativos.");
+            var bruto = Math.Round(i.Quantidade * i.Unitario, 2);
+            if (i.Desconto > bruto)
+                throw new InvalidOperationException(
+                    $"O desconto do item \"{nome}\" ({Ui.Moeda(i.Desconto)}) é maior que o valor do item ({Ui.Moeda(bruto)}). Corrija o desconto do item.");
+        }
+    }
+
     static long Salvar(DbSessao s, Pedido p)
     {
+        ValidarItens(p);
         object?[] valores =
         [
             p.Tipo, p.Data, p.ClienteId, p.FornecedorId, p.Validade is DateTime v ? Db.Dia(v) : null,
@@ -193,7 +211,8 @@ public static class Pedidos
         using var s = new DbSessao(transacao: true);
         ExigirStatus(s, id, "ABERTO");
         var itens = p.Itens.Select(i => new ItemDoc(i.ProdutoId, i.Quantidade, i.Total * fator / i.Quantidade, 0)).ToList();
-        var compra = Operacoes.RegistrarCompra(s, fornecedor, notaFiscal, itens, forma, parcelas, vencimento);
+        // o total do pedido (com frete e descontos) é o valor a pagar: evita diferença de centavos do rateio por item
+        var compra = Operacoes.RegistrarCompra(s, fornecedor, notaFiscal, itens, forma, parcelas, vencimento, totalDocumento: p.Total);
         s.Exec("UPDATE pedidos SET status = 'RECEBIDO', compra_id = @p0, forma_pagamento = @p1, parcelas = @p2 WHERE id = @p3",
             compra, forma, parcelas, id);
         s.Commit();

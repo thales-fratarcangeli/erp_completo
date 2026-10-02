@@ -152,12 +152,12 @@ public static class Ajuda
             - Cancelar: só para pedido em aberto. Se a compra gerada for cancelada depois, o pedido volta para ABERTO.
 
             ## Custo
-            Frete e descontos do pedido são distribuídos proporcionalmente no custo dos itens.
+            Frete e descontos do pedido são distribuídos proporcionalmente no custo dos itens. As contas a pagar somam exatamente o total do pedido.
             Para notas com XML, prefira Compras > Importar XML: cadastra produtos e lança tudo automaticamente.
             """),
 
         new("PedidoEditorForm", "Editar orçamento / pedido", """
-            - Adicione itens pelo código (Enter) ou pela busca (F3). Edite quantidade, preço e desconto do item direto na grade.
+            - Adicione itens pelo código (Enter) ou pela busca (F3). Edite quantidade, preço e desconto do item direto na grade. O desconto de um item não pode passar do valor dele.
             - Desconto geral e frete ficam no rodapé. O total é recalculado na hora.
             - Pagamento e parcelas são a condição combinada (pode ser alterada ao faturar/receber).
             - Salvar e faturar / Salvar e receber: atalho para concluir o pedido sem voltar à lista.
@@ -190,7 +190,7 @@ public static class Ajuda
             - Custo: valor dos produtos − desconto + frete + seguro + outras despesas + IPI + ICMS-ST, dividido pela quantidade; recalcula o custo médio.
             - Contas a pagar: uma conta por duplicata da nota (com os vencimentos dela), ou conforme a forma escolhida.
             - Os vínculos e fatores ficam memorizados para as próximas notas do mesmo fornecedor.
-            - A mesma nota (chave de acesso) não pode ser importada duas vezes.
+            - A mesma nota (chave de acesso) não pode ser importada duas vezes. Importou com vínculo ou fator errado? Cancele a compra em Compras > Compras realizadas e importe o XML de novo (a importação anterior fica no histórico como cancelada).
             - Produtos novos entram com preço de venda zero: ajuste em Cadastros > Produtos.
             """),
 

@@ -73,9 +73,18 @@ public static class ImportacaoXml
     public static NotaXml Ler(string caminho)
     {
         var texto = File.ReadAllText(caminho);
-        var doc = XDocument.Parse(texto);
+        XDocument doc;
+        try
+        {
+            doc = XDocument.Parse(texto);
+        }
+        catch (System.Xml.XmlException)
+        {
+            throw new InvalidDataException("O arquivo não é um XML válido de NF-e (está vazio, incompleto ou é de outro tipo). " +
+                                           "Baixe novamente o XML enviado pelo fornecedor e tente de novo.");
+        }
         var inf = doc.Descendants(Ns + "infNFe").FirstOrDefault()
-                  ?? throw new InvalidDataException("O arquivo não é um XML de NF-e (infNFe não encontrado).");
+                  ?? throw new InvalidDataException("O arquivo não é um XML de NF-e (infNFe não encontrado). Confira se escolheu o XML da nota, e não outro arquivo.");
         var ide = inf.Element(Ns + "ide");
         var emit = inf.Element(Ns + "emit");
         var ender = emit?.Element(Ns + "enderEmit");
@@ -173,8 +182,19 @@ public static class ImportacaoXml
         }
     }
 
+    /// <summary>
+    /// true se a chave já foi importada. Nota cuja compra foi cancelada (ex.: importada com vínculo/fator errado)
+    /// não conta: pode ser importada de novo.
+    /// </summary>
     public static bool JaImportada(string chave) =>
-        chave.Length > 0 && Db.Scalar("SELECT 1 FROM notas_fiscais WHERE chave = @p0", chave) != null;
+        chave.Length > 0 && Db.Scalar("""
+            SELECT 1 FROM notas_fiscais n LEFT JOIN compras c ON c.id = n.compra_id
+            WHERE n.chave = @p0 AND COALESCE(c.status, '') <> 'CANCELADA'
+            """, chave) != null;
+
+    public const string MensagemJaImportada =
+        "Esta nota já foi importada. Para importá-la de novo (ex.: para corrigir vínculo ou fator), " +
+        "cancele antes a compra gerada por ela em Compras > Compras realizadas.";
 
     /// <summary>
     /// Grava a nota de entrada. Cria fornecedor e produtos que não existirem, memoriza os vínculos
@@ -184,9 +204,16 @@ public static class ImportacaoXml
     public static (long NotaId, int ProdutosNovos) Importar(NotaXml n, bool lancarCompra, string forma)
     {
         if (JaImportada(n.Chave))
-            throw new InvalidOperationException("Esta nota já foi importada.");
+            throw new InvalidOperationException(MensagemJaImportada);
 
         using var s = new DbSessao(transacao: true);
+        // importação anterior cuja compra foi cancelada: fica no histórico como cancelada e libera a chave
+        if (n.Chave.Length > 0)
+            s.Exec("""
+                UPDATE notas_fiscais SET chave = NULL, status = 'CANCELADA',
+                       info_complementar = TRIM(COALESCE(info_complementar, '') || ' Compra cancelada; nota reimportada (chave ' || @p0 || ').')
+                WHERE chave = @p0
+                """, n.Chave);
         var fornecedor = n.FornecedorId ?? s.Inserir("""
             INSERT INTO pessoas(nome, cpf_cnpj, ie, telefone, endereco, cidade, uf, eh_fornecedor)
             VALUES(@p0, @p1, @p2, @p3, @p4, @p5, @p6, 1)

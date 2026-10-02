@@ -170,7 +170,7 @@ public class ImportarXmlForm : Form
         }
         if (ImportacaoXml.JaImportada(nota.Chave))
         {
-            Ui.Erro("Esta nota já foi importada.");
+            Ui.Erro(ImportacaoXml.MensagemJaImportada);
             return false;
         }
         ImportacaoXml.SugerirVinculos(nota);

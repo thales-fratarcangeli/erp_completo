@@ -94,12 +94,15 @@ public static class Operacoes
         return id;
     }
 
-    /// <summary>duplicatas: vencimentos/valores exatos (ex.: vindos do XML da NF-e); senão gera parcelas mensais.</summary>
+    /// <summary>
+    /// duplicatas: vencimentos/valores exatos (ex.: vindos do XML da NF-e); senão gera parcelas mensais.
+    /// totalDocumento: total do documento de origem (pedido com frete/desconto rateados); sem ele, soma dos itens.
+    /// </summary>
     public static long RegistrarCompra(DbSessao s, long fornecedorId, string? nota, IList<ItemDoc> itens, string forma,
-        int parcelas, DateTime vencimento, IList<(DateTime Vencimento, decimal Valor)>? duplicatas = null)
+        int parcelas, DateTime vencimento, IList<(DateTime Vencimento, decimal Valor)>? duplicatas = null, decimal? totalDocumento = null)
     {
         nota = string.IsNullOrWhiteSpace(nota) ? null : nota.Trim();
-        var total = itens.Sum(i => i.Total);
+        var total = totalDocumento ?? itens.Sum(i => i.Total);
 
         var id = s.Inserir("""
             INSERT INTO compras(data, fornecedor_id, usuario_id, numero_nota, total, forma_pagamento)
