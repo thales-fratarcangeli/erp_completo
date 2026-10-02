@@ -142,6 +142,7 @@ Compra de mercadoria do fornecedor. É também a forma de dar entrada manual de 
 - Novo → ABERTO. Para entrada imediata use "Salvar e receber" no próprio pedido.
 - Receber mercadoria: dá entrada no estoque, recalcula o custo médio e lança o contas a pagar; o pedido fica RECEBIDO.
 - Cancelar: só para pedido em aberto. Se a compra gerada for cancelada depois, o pedido volta para ABERTO.
+- Nº da nota fiscal já usado em outra compra do mesmo fornecedor: o sistema pede confirmação (evita entrada em dobro).
 
 ### Custo
 Frete e descontos do pedido são distribuídos proporcionalmente no custo dos itens. As contas a pagar somam exatamente o total do pedido.
@@ -186,6 +187,7 @@ Lê o arquivo XML da NF-e recebida do fornecedor e lança a compra.
 - Os vínculos e fatores ficam memorizados para as próximas notas do mesmo fornecedor.
 - A mesma nota (chave de acesso) não pode ser importada duas vezes. Importou com vínculo ou fator errado? Cancele a compra em Compras > Compras realizadas e importe o XML de novo (a importação anterior fica no histórico como cancelada).
 - Produtos novos entram com preço de venda zero: ajuste em Cadastros > Produtos.
+- Se a mesma NF (fornecedor + número) já entrou por um pedido de compra recebido, "Lançar compra" vem desmarcado para não dar entrada em dobro.
 
 ## Fichas técnicas
 

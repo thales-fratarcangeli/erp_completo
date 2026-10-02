@@ -181,6 +181,22 @@ public static class Operacoes
         return string.Join("\n\n", avisos);
     }
 
+    /// <summary>
+    /// Compra ativa (FINALIZADA) do mesmo fornecedor com o mesmo nº de nota (ignora zeros à esquerda), ou null.
+    /// Evita dar entrada duas vezes na mesma mercadoria (ex.: pedido recebido com a NF e depois o XML da mesma NF).
+    /// </summary>
+    public static long? CompraComMesmaNota(long fornecedorId, string? nota)
+    {
+        nota = nota?.Trim().TrimStart('0') ?? "";
+        if (nota.Length == 0)
+            return null;
+        return Db.Scalar("""
+            SELECT id FROM compras
+            WHERE fornecedor_id = @p0 AND status = 'FINALIZADA' AND ltrim(trim(COALESCE(numero_nota, '')), '0') = @p1
+            ORDER BY id LIMIT 1
+            """, fornecedorId, nota) as long?;
+    }
+
     public static void CancelarCompra(long id)
     {
         using var s = new DbSessao(transacao: true);

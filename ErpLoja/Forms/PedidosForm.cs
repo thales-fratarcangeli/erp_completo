@@ -305,6 +305,10 @@ public static class FluxoPedidos
         var p = Pedidos.Carregar(id);
         if (!PerguntarPagamento(dono, p, "Receber mercadoria", out var forma, out var parcelas, out var vencimento, out var nota))
             return false;
+        if (p.FornecedorId is long fornecedor && Operacoes.CompraComMesmaNota(fornecedor, nota) is long existente &&
+            !Ui.Confirmar($"Já existe a compra nº {existente} deste fornecedor com a nota fiscal {nota}.\n" +
+                          "Receber de novo dará entrada em dobro no estoque e nas contas a pagar.\n\nConfirma que é outra entrega?"))
+            return false;
         try
         {
             var compra = Pedidos.Receber(id, forma, parcelas, vencimento, nota);

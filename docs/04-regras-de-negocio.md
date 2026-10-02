@@ -99,7 +99,8 @@ Sumário: [Cadastros](#cadastros-rn-cad) · [Estoque](#estoque-rn-est) · [Custo
 |---|---|
 | RN-COM-01 | Toda entrada de mercadoria acontece por **pedido de compra recebido** ou **importação de XML** (um ponto de entrada por origem). |
 | RN-COM-02 | Entrada gera estoque, recálculo do custo médio e contas a pagar (à vista: paga; a prazo: parcelas ou duplicatas). |
-| RN-COM-03 | Cancelamento (só administrador): retira o estoque, cancela as contas a pagar e reabre o pedido de origem. |
+| RN-COM-03 | Cancelamento (só administrador): retira o estoque, cancela as contas a pagar e reabre o pedido de origem. Antes, avisa produtos que ficarão negativos e contas já pagas. |
+| RN-COM-04 | Mesma NF (fornecedor + número, sem zeros à esquerda) em compra ativa: receber pedido pede confirmação; na importação do XML "Lançar compra" vem desmarcado. |
 
 ## Importação de XML (RN-XML)
 
