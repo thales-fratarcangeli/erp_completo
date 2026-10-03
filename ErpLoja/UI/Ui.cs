@@ -1,5 +1,7 @@
 using System.ComponentModel;
+using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace ErpLoja.UI;
 
@@ -153,21 +155,95 @@ public static class Ui
         {
             if (g.SortedColumn is { } c && !string.IsNullOrEmpty(c.DataPropertyName))
                 escolhida = (c.DataPropertyName, g.SortOrder == SortOrder.Descending ? ListSortDirection.Descending : ListSortDirection.Ascending);
+            foreach (DataGridViewColumn d in g.Columns)
+                if (d.SortMode == DataGridViewColumnSortMode.Programmatic)
+                    d.HeaderCell.SortGlyphDirection = SortOrder.None;
         };
         g.DataBindingComplete += (_, e) =>
         {
-            if (e.ListChangedType != ListChangedType.Reset || escolhida is not { } o || g.SortedColumn != null
-                || g.DataSource is not (DataTable or DataView))
+            if (e.ListChangedType != ListChangedType.Reset || g.DataSource is not DataTable dt)
+                return;
+            // colunas de data que o banco devolve como texto "dd/mm/aaaa": ordenação própria, pela data de verdade
+            foreach (DataGridViewColumn c in g.Columns)
+            {
+                if (c.DataPropertyName.StartsWith(PrefixoOrdem))
+                    c.Visible = false;
+                else if (c.SortMode == DataGridViewColumnSortMode.Automatic && ColunaDeData(dt, c.DataPropertyName))
+                    c.SortMode = DataGridViewColumnSortMode.Programmatic;
+            }
+            if (escolhida is not { } o || g.SortedColumn != null || dt.DefaultView.Sort.Length > 0)
                 return;
             var col = g.Columns.Cast<DataGridViewColumn>().FirstOrDefault(c => c.DataPropertyName == o.Coluna);
             if (col is { SortMode: DataGridViewColumnSortMode.Automatic })
                 g.Sort(col, o.Direcao);
+            else if (col is { SortMode: DataGridViewColumnSortMode.Programmatic } && g.IsHandleCreated)
+                g.BeginInvoke(() => { if (!g.IsDisposed && g.DataSource == dt) OrdenarPorData(g, dt, col, o.Direcao); });
         };
         g.ColumnHeaderMouseClick += (_, e) =>
         {
-            if (e.Button == MouseButtons.Left && e.ColumnIndex >= 0)
-                OrdenarLista(g, g.Columns[e.ColumnIndex]);
+            if (e.Button != MouseButtons.Left || e.ColumnIndex < 0)
+                return;
+            var col = g.Columns[e.ColumnIndex];
+            if (col.SortMode == DataGridViewColumnSortMode.Programmatic && g.DataSource is DataTable dt && ColunaDeData(dt, col.DataPropertyName))
+            {
+                var direcao = col.HeaderCell.SortGlyphDirection == SortOrder.Ascending ? ListSortDirection.Descending : ListSortDirection.Ascending;
+                OrdenarPorData(g, dt, col, direcao);
+                escolhida = (col.DataPropertyName, direcao);
+                Log.Registrar(Log.Acao, "Ordenou a lista", $"{col.HeaderText} ({(direcao == ListSortDirection.Descending ? "decrescente" : "crescente")})");
+            }
+            else
+                OrdenarLista(g, col);
         };
+    }
+
+    const string PrefixoOrdem = "__ordem_";
+    static readonly Regex DataBr = new(@"^\d{2}/\d{2}/\d{4}( \d{2}:\d{2}(:\d{2})?)?$");
+    static readonly string[] FormatosDataBr = ["dd/MM/yyyy", "dd/MM/yyyy HH:mm", "dd/MM/yyyy HH:mm:ss"];
+
+    /// <summary>Coluna de texto cujos valores preenchidos são todos datas "dd/mm/aaaa" (com hora opcional).</summary>
+    static bool ColunaDeData(DataTable dt, string coluna)
+    {
+        if (string.IsNullOrEmpty(coluna) || dt.Columns[coluna] is not { } c || c.DataType != typeof(string))
+            return false;
+        var algum = false;
+        var conferidas = 0;
+        foreach (DataRow r in dt.Rows)
+        {
+            if (r[c] is not string s || s.Length == 0)
+                continue;
+            if (!DataBr.IsMatch(s))
+                return false;
+            algum = true;
+            if (++conferidas >= 300) // amostra basta (listas grandes, como o log)
+                break;
+        }
+        return algum;
+    }
+
+    /// <summary>
+    /// Ordena pela data real: cria (uma vez) uma coluna oculta com o valor DateTime e ordena a lista por ela. Assim
+    /// 15/03 vem antes de 01/12, o que a ordem do texto não faria.
+    /// </summary>
+    static void OrdenarPorData(DataGridView g, DataTable dt, DataGridViewColumn col, ListSortDirection direcao)
+    {
+        var auxiliar = PrefixoOrdem + col.DataPropertyName;
+        if (!dt.Columns.Contains(auxiliar))
+        {
+            var nova = dt.Columns.Add(auxiliar, typeof(DateTime));
+            foreach (DataRow r in dt.Rows)
+                r[nova] = r[col.DataPropertyName] is string s
+                          && DateTime.TryParseExact(s, FormatosDataBr, CultureInfo.InvariantCulture, DateTimeStyles.None, out var d)
+                    ? d : DBNull.Value;
+            dt.AcceptChanges();
+        }
+        dt.DefaultView.Sort = $"[{auxiliar}] {(direcao == ListSortDirection.Descending ? "DESC" : "ASC")}";
+        foreach (DataGridViewColumn c in g.Columns)
+        {
+            if (c.DataPropertyName.StartsWith(PrefixoOrdem))
+                c.Visible = false;
+            if (c.SortMode != DataGridViewColumnSortMode.NotSortable)
+                c.HeaderCell.SortGlyphDirection = c.DataPropertyName == col.DataPropertyName ? (direcao == ListSortDirection.Descending ? SortOrder.Descending : SortOrder.Ascending) : SortOrder.None;
+        }
     }
 
     /// <summary>Ordena uma BindingList (que não sabe se ordenar sozinha) pela coluna, mantendo o item selecionado.</summary>
@@ -500,7 +576,7 @@ public static class Ui
         if (dlg.ShowDialog() != DialogResult.OK)
             return;
 
-        var colunas = dt.Columns.Cast<DataColumn>().Where(c => c.ColumnName != "id").ToList();
+        var colunas = dt.Columns.Cast<DataColumn>().Where(c => c.ColumnName != "id" && !c.ColumnName.StartsWith(PrefixoOrdem)).ToList();
         var sb = new StringBuilder();
         sb.AppendLine(string.Join(";", colunas.Select(c => Csv(c.ColumnName))));
         foreach (DataRowView r in dt.DefaultView)

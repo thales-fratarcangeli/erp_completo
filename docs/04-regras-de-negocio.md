@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Documento** | Catálogo de regras de negócio (RN) |
-| **Sistema** | ERP Loja 1.5.0 (banco v16) |
+| **Sistema** | ERP Loja 1.5.1 (banco v16) |
 | **Status** | Vigente |
 | **Rastreabilidade** | Requisitos em [02](02-especificacao-de-requisitos.md); casos de uso em [03](03-casos-de-uso.md); verificação em [08](08-relatorio-de-testes.md) |
 
@@ -133,8 +133,8 @@ Sumário: [Cadastros](#cadastros-rn-cad) · [Estoque](#estoque-rn-est) · [Custo
 | RN-OS-02 | Etapas: Aberta → Aprovada → Em execução → Pronta → Entregue; Cancelada só pelo cancelamento. Avançar é livre; **voltar exige o motivo**. Entregar grava a data/hora da entrega; voltar de Entregue apaga essa data. OS cancelada não muda de etapa nem é alterada. |
 | RN-OS-03 | **Histórico**: abertura, cada mudança de etapa (com o motivo), alteração de prazo, faturamento e cancelamento ficam em `os_historico` com usuário e data/hora. |
 | RN-OS-04 | **Situação do prazo** (calculada): CANCELADA; ENTREGUE ou ENTREGUE COM ATRASO (entrega depois do prazo); para as em andamento, ATRASADA (prazo < hoje, com dias de atraso), VENCE HOJE ou NO PRAZO. Indicador: % das entregas dos últimos 90 dias feitas até o prazo. |
-| RN-OS-05 | **Faturar** (uma única vez, em qualquer etapa exceto cancelada, valor > 0): gera contas a receber do cliente da OS com `os_id`, parcelas mensais conforme RN-FIN-02 (1 a `max_parcelas`, 1º vencimento ≥ hoje). Depois de faturada, o valor da OS não muda. |
-| RN-OS-06 | **Cancelar** exige motivo. OS faturada só é cancelada depois que as contas a receber dela forem canceladas. |
+| RN-OS-05 | **Faturar** (em qualquer etapa exceto cancelada, valor > 0): gera contas a receber do cliente da OS com `os_id`, parcelas mensais conforme RN-FIN-02 (1 a `max_parcelas`, 1º vencimento ≥ hoje). Enquanto houver conta da OS não cancelada, a OS conta como faturada: não fatura de novo e o valor não muda. Cancelando todas as contas dela no Financeiro, o faturamento deixa de valer (pode corrigir o valor e faturar de novo). |
+| RN-OS-06 | **Cancelar** exige motivo. OS faturada só é cancelada depois que todas as contas a receber dela forem canceladas (conta já recebida: estornar e depois cancelar). |
 | RN-OS-07 | Alertas da tela inicial: OS atrasadas (grave), com entrega hoje, prontas aguardando entrega e entregues sem faturar; cada alerta abre a tela de OS já filtrada. |
 
 ## Transporte e CIOT (RN-TRA)
@@ -157,7 +157,7 @@ Sumário: [Cadastros](#cadastros-rn-cad) · [Estoque](#estoque-rn-est) · [Custo
 | RN-FIN-02 | **Parcelamento**: parcela = arredondar(total ÷ n, 2); a última recebe a diferença de centavos; vencimentos mensais a partir do 1º; descrição "… parcela k/n". |
 | RN-FIN-03 | Baixa: só conta aberta; registra data (não futura), valor pago > 0 (pode diferir: juros/desconto) e forma. Estorno: só paga → aberta (limpa data, valor e forma do pagamento). Cancelamento: só aberta. Baixa manual ou cancelamento de conta a receber com boleto ativo encerra o boleto (RN-COB-08); o cancelamento de venda também. |
 | RN-FIN-04 | Fluxo realizado e "entradas × saídas" usam **valor pago** na **data do pagamento**; previsto usa contas abertas por vencimento. |
-| RN-FIN-05 | **Baixa em lote**: duas ou mais contas abertas do mesmo tipo (só a receber ou só a pagar), cada uma pelo **próprio valor**, na mesma data (não futura) e forma. **Tudo ou nada**: se uma não estiver mais aberta, nenhuma é baixada e a mensagem diz qual. Boletos ativos são encerrados como em RN-FIN-03. Valor diferente (juros, desconto) exige a baixa individual. |
+| RN-FIN-05 | **Baixa em lote**: duas ou mais contas abertas (a tela exige ao menos duas) do mesmo tipo — só a receber ou só a pagar, conferido também na camada de dados — cada uma pelo **próprio valor**, na mesma data (não futura) e forma. **Tudo ou nada**: se uma não estiver mais aberta, nenhuma é baixada e a mensagem diz qual. Boletos ativos são encerrados como em RN-FIN-03. Valor diferente (juros, desconto) exige a baixa individual. |
 | RN-FIN-06 | **Acompanhamento de cobrança**: em conta a receber aberta registra-se o contato (meio: telefone, WhatsApp, e-mail, pessoalmente, carta, outro; o que foi conversado, obrigatório; promessa de pagamento opcional, ≥ hoje). A lista mostra o último contato e a promessa; "Promessa vencida" = última promessa < hoje com a conta ainda aberta, que vira alerta grave na tela inicial. |
 | RN-FIN-07 | Alertas da tela inicial: contas a receber vencidas (quantidade e total) e promessas não cumpridas abrem o Financeiro já filtrado. |
 
@@ -257,9 +257,9 @@ Base legal: EC 132/2023 e LC 214/2025 (IBS, CBS e Imposto Seletivo). Valores pad
 | RN-NAV-05 | O PDV tem fundo branco e é operado pelo teclado; as teclas de função do PDV têm prioridade sobre os atalhos gerais enquanto ele está em primeiro plano. |
 | RN-NAV-06 | Cada função existe em um único lugar do menu (ver [ADR-0007](adr/0007-navegacao-fonte-unica.md)); telas de administrador não aparecem para usuários comuns. |
 | RN-NAV-07 | A tela inicial mostra até 6 telas usadas por último pelo usuário ("Continuar de onde parou", lidas do log); o localizador vazio lista essas telas primeiro. O menu lateral destaca a tela em primeiro plano. |
-| RN-NAV-09 | **Tabelas**: em todas as telas, cada coluna tem largura mínima (pelo título e pelo tipo de dado); quando não cabem, aparece a **barra de rolagem horizontal** em vez de espremer o conteúdo. Clicar no título **ordena** (de novo inverte, com seta no título), inclusive listas de itens; números e datas ordenam pelo valor. A ordem escolhida continua depois de pesquisar ou recarregar. Exceção: itens do PDV ficam na ordem da venda. |
-| RN-NAV-10 | **Tela inicial com alertas** do que precisa de atenção hoje (OS atrasadas, contas vencidas, promessas não cumpridas, estoque baixo...), graves primeiro; cada alerta abre a tela que resolve, já filtrada. |
 | RN-NAV-08 | **Modo claro ou escuro** por usuário (rodapé da janela principal ou *Configurações > Minha conta > Aparência*): muda todas as telas abertas na hora, inclusive barra de título e barras de rolagem do Windows, e fica gravado para o usuário (migração 14). |
+| RN-NAV-09 | **Tabelas**: em todas as telas, cada coluna tem largura mínima (pelo título e pelo tipo de dado); quando não cabem, aparece a **barra de rolagem horizontal** em vez de espremer o conteúdo. Clicar no título **ordena** (de novo inverte, com seta no título), inclusive listas de itens; números ordenam pelo valor e datas pela data (não pelo texto "dd/mm/aaaa"). A ordem escolhida continua depois de pesquisar ou recarregar. Exceção: itens do PDV ficam na ordem da venda. |
+| RN-NAV-10 | **Tela inicial com alertas** do que precisa de atenção hoje (OS atrasadas, contas vencidas, promessas não cumpridas, estoque baixo...), graves primeiro; cada alerta abre a tela que resolve, já filtrada. |
 
 ## Instalação (RN-INS)
 

@@ -118,11 +118,12 @@ public sealed class AssistentePainel : Panel
         entrada.Enabled = enviar.Enabled = false;
         enviar.Text = "Pensando...";
         emAndamento = new CancellationTokenSource();
+        var token = emAndamento.Token;
         try
         {
-            var resposta = await Assistente.Perguntar(pergunta, historico, TelaAtual?.Invoke(), emAndamento.Token);
-            if (IsDisposed)
-                return;
+            var resposta = await Assistente.Perguntar(pergunta, historico, TelaAtual?.Invoke(), token);
+            if (IsDisposed || token.IsCancellationRequested)
+                return; // "Nova conversa" durante a espera: a resposta da conversa anterior é descartada
             Escrever("Assistente", resposta.Texto, resposta.Ok ? Ui.Primaria : Ui.Perigo);
             if (resposta.Ok)
             {

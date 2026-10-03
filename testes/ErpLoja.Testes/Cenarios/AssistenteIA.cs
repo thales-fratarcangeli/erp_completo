@@ -36,6 +36,25 @@ sealed class AnthropicFalsa : HttpMessageHandler
     }
 }
 
+/// <summary>Ollama falso: guarda o pedido e responde no formato de /api/chat (ou falha como servidor fechado).</summary>
+sealed class OllamaFalso : HttpMessageHandler
+{
+    public JsonObject? Corpo;
+    public string? Endereco;
+    public HttpStatusCode Status = HttpStatusCode.OK;
+    public bool Falhar;
+
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage req, CancellationToken ct)
+    {
+        if (Falhar)
+            throw new HttpRequestException("Nenhuma conexão pôde ser feita");
+        Endereco = req.RequestUri?.ToString();
+        Corpo = JsonNode.Parse(await req.Content!.ReadAsStringAsync(ct)) as JsonObject;
+        var resposta = new JsonObject { ["message"] = new JsonObject { ["role"] = "assistant", ["content"] = "Em Financeiro > Contas, filtro Vencidas." } };
+        return new HttpResponseMessage(Status) { Content = new StringContent(resposta.ToJsonString(), Encoding.UTF8, "application/json") };
+    }
+}
+
 /// <summary>Assistente de dúvidas: só documentação, dados pessoais mascarados, limite por hora, log e painel ao lado da tela.</summary>
 public class AssistenteDeDuvidas : ICenario
 {
@@ -104,10 +123,35 @@ public class AssistenteDeDuvidas : ICenario
             u.Ok(!Alteracoes.Pendentes(principal.TelaAtiva), "conversar com o assistente não marca a tela como alterada");
             u.Ok(Navegacao.Buscar("dúvida", true).Any(x => x.Tela.Chave == "AssistentePainel"), "o assistente aparece no Buscar tela (Ctrl+K)");
             SistemaUtil.Fechar(principal, u);
+
+            // ---------- cancelar a pergunta ("Nova conversa" durante a espera)
+            using (var cancelado = new CancellationTokenSource())
+            {
+                cancelado.Cancel();
+                var r2 = Assistente.Perguntar("Como emito boleto?", [], null, cancelado.Token).GetAwaiter().GetResult();
+                u.Ok(!r2.Ok && r2.Texto.Contains("cancelada"), "pergunta cancelada não vira mensagem de \"sem conexão\"");
+            }
+
+            // ---------- Ollama (modelo local): mesmo formato de conversa, sem internet
+            var ollama = new OllamaFalso();
+            ProvedorOllama.TransporteParaTestes = ollama;
+            Db.SalvarConfig("ia_provedor", "OLLAMA");
+            Db.SalvarConfig("ia_ollama_modelo", "llama3.1");
+            var r3 = Perguntar("Onde vejo as contas vencidas? CPF 529.982.247-25");
+            u.Ok(r3.Ok && r3.Texto.Contains("Financeiro") && ollama.Endereco == "http://localhost:11434/api/chat"
+                 && ollama.Corpo?["model"]?.GetValue<string>() == "llama3.1" && ollama.Corpo["stream"]?.GetValue<bool>() == false
+                 && ollama.Corpo["messages"]![0]!["role"]!.GetValue<string>() == "system"
+                 && !ollama.Corpo.ToJsonString().Contains("529.982"),
+                "Ollama: pergunta enviada ao endereço local, com as instruções, sem streaming e com o CPF mascarado");
+            ollama.Status = HttpStatusCode.NotFound;
+            u.Ok(Perguntar("teste").Texto.Contains("llama3.1"), "Ollama sem o modelo baixado: mensagem diz qual modelo conferir");
+            ollama.Falhar = true;
+            u.Ok(Perguntar("teste").Texto.Contains("instalado e aberto"), "Ollama fechado: mensagem clara");
         }
         finally
         {
             ProvedorClaude.TransporteParaTestes = null;
+            ProvedorOllama.TransporteParaTestes = null;
         }
     }
 }

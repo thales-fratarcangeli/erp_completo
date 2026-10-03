@@ -2,7 +2,7 @@ namespace ErpLoja.Data;
 
 /// <summary>
 /// Acompanhamento da cobrança: cada contato com o cliente sobre uma conta a receber (quando, como, o que foi dito e a
-/// promessa de pagamento). Mostra quem já foi cobrado, evita cobrar duas vezes no mesmo dia e lembra promessas vencidas.
+/// promessa de pagamento). Mostra quem já foi cobrado e quando (último contato na lista) e aponta promessas vencidas.
 /// </summary>
 public static class ContatosCobranca
 {

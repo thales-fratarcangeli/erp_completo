@@ -1,6 +1,6 @@
 # Documentação do ERP Loja
 
-Documentação de engenharia do ERP Loja 1.5.0. Os documentos marcados com ⚙ são **gerados automaticamente** pela bateria
+Documentação de engenharia do ERP Loja 1.5.1. Os documentos marcados com ⚙ são **gerados automaticamente** pela bateria
 de testes a partir do código (não edite à mão).
 
 | # | Documento | Conteúdo | Público |
@@ -18,11 +18,11 @@ de testes a partir do código (não edite à mão).
 | 11 | [Glossário](11-glossario.md) | Termos fiscais, bancários, logísticos e técnicos | Todos |
 | 12 ⚙ | [Manual do usuário](12-manual-do-usuario.md) | Mesmo conteúdo do botão "?" de cada tela | Usuários |
 | 13 | [Histórico de solicitações](13-historico-de-solicitacoes.md) | Todas as mensagens do product owner, literais, e o atendimento de cada uma | Todos |
-| 16 | [Análise do ERP da gráfica (outro ERP)](16-analise-erp-grafica.md) | O que outro ERP oferece e a gráfica usa, comparação e roteiro do que implementar | Produto, desenvolvimento |
+| 16 | [Análise do ERP de uma gráfica](16-analise-erp-grafica.md) | O que outro ERP oferece e a gráfica usa, comparação e roteiro do que implementar | Produto, desenvolvimento |
 | 17 | [App para celular (estudo)](17-app-celular.md) | Como seria o app: API local no exe, pareamento, segurança, funções, offline, etapas | Produto, desenvolvimento |
 | 15 | [Segurança — OWASP Top 10](15-seguranca-owasp.md) | Avaliação item a item, correções, validação de entrada e riscos remanescentes | Todos |
 | 14 | [Testes exploratórios](14-testes-exploratorios.md) | Falhas encontradas por agentes simulando usuários, correções, pendências e sugestões de usabilidade | Todos |
-| — | [Decisões de arquitetura (ADR)](adr/) | 22 decisões registradas | Desenvolvimento |
+| — | [Decisões de arquitetura (ADR)](adr/) | 25 decisões registradas | Desenvolvimento |
 
 Na raiz do repositório: [README](../README.md), [CHANGELOG](../CHANGELOG.md), [CONTRIBUTING](../CONTRIBUTING.md), [SECURITY](../SECURITY.md).
 

@@ -2,6 +2,18 @@
 
 O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e a numeração segue [SemVer](https://semver.org/lang/pt-BR/).
 
+## 1.5.1 — 2026-10-03
+
+### Corrigido
+- Colunas de data (Vencimento, Prazo, Abertura...) ordenam pela data, não pelo texto (01/12 deixa de vir antes de 15/03).
+- OS faturada cujas contas foram todas canceladas volta a aceitar correção de valor e novo faturamento.
+- Baixa em lote recusa contas a receber e a pagar misturadas também na camada de dados.
+- Assistente: "Nova conversa" durante a espera não mostra mais "sem conexão"; mensagens próprias para demora e para o Ollama fechado.
+- Textos de ajuda e dicas de parâmetros conferidos com o comportamento real.
+
+### Documentação
+- Documentação inteira revisada para a 1.5 por agentes em paralelo: visão, requisitos e casos de uso novos (UC-15 a UC-20), arquitetura e ADRs 0023–0025, plano de testes, implantação (configurar o assistente), problemas no uso, glossário, SECURITY, CONTRIBUTING e ajuda das telas.
+
 ## 1.5.0 — 2026-10-03
 
 ### Adicionado
@@ -10,7 +22,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e a 
 - **Baixa de contas em lote** no Financeiro (tudo ou nada).
 - **Acompanhamento de cobrança**: registro de contatos com o cliente e promessas de pagamento; filtro "Promessa vencida".
 - **Alertas na tela inicial**: OS atrasadas, com entrega hoje, prontas e sem faturar; contas a receber vencidas; promessas não cumpridas; estoque baixo. Cada alerta abre a tela já filtrada.
-- **Tabelas de todas as telas** com rolagem horizontal (colunas não ficam espremidas) e ordenação ao clicar no título, inclusive listas de itens; a ordem escolhida continua ao pesquisar ou recarregar.
+- **Tabelas de todas as telas** com rolagem horizontal (colunas não ficam espremidas) e ordenação ao clicar no título, inclusive listas de itens (exceto os itens do PDV, que ficam na ordem da venda) e colunas de data (pela data, não pelo texto); a ordem escolhida continua ao pesquisar ou recarregar.
 - Estudo do **app para celular** ([17](docs/17-app-celular.md)) — apenas proposta.
 
 ### Alterado

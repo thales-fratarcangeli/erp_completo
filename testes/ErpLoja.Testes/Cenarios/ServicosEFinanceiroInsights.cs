@@ -117,6 +117,15 @@ public class ServicosOrdemDeServicoDoPedidoAoFaturamento : ICenario
         }
         u.Ok(OrdensServico.Texto(id).Contains($"ORDEM DE SERVIÇO Nº {id}") && OrdensServico.Texto(id).Contains("20 pessoas"), "ficha da OS para imprimir");
 
+        // ---------- faturamento desfeito: cancelando todas as contas da OS, o valor pode mudar e a OS fatura de novo
+        foreach (DataRow conta in Db.Query("SELECT id FROM contas WHERE os_id = @p0", id).Rows)
+            Operacoes.CancelarConta(Convert.ToInt64(conta["id"]));
+        OrdensServico.Alterar(id, new(Convert.ToInt64(os["cliente_id"]), Ui.Txt(os["descricao"]), Db.LerData(os["prazo"]), 500m, null, ""));
+        OrdensServico.Faturar(id, 1, DateTime.Today.AddDays(5));
+        u.Ok(Convert.ToInt64(Db.Scalar("SELECT COUNT(*) FROM contas WHERE os_id = @p0 AND status = 'ABERTA' AND valor = 500", id)) == 1
+             && OrdensServico.FaturamentoAtivo(id),
+            "com todas as contas da OS canceladas, o valor pode ser corrigido e a OS faturada de novo");
+
         // ---------- cancelamento exige motivo; indicador de entregas no prazo
         var outra = OrdensServico.Criar(new(Convert.ToInt64(os["cliente_id"]), "Arranjo de mesa", DateTime.Today.AddDays(5), 0, null, ""));
         try
@@ -184,6 +193,18 @@ public class FinanceiroBaixaEmLoteEAcompanhamentoDeCobranca : ICenario
         {
             u.Ok(ex.Message.Contains($"nº {a}") && FinanceiroUtil.Status("contas", c) == "ABERTA",
                 "lote com uma conta já paga: nada é baixado (tudo ou nada) e a mensagem diz qual conta");
+        }
+        Operacoes.LancarConta("PAGAR", "Lote D (pagar)", 40m, 1, DateTime.Today, null, null);
+        var pagar = FinanceiroUtil.UltimoId("contas");
+        try
+        {
+            Operacoes.BaixarLote([c, pagar], DateTime.Today, "Dinheiro");
+            u.Ok(false, "lote misturando receber e pagar deveria ser recusado");
+        }
+        catch (InvalidOperationException ex)
+        {
+            u.Ok(ex.Message.Contains("não as duas") && FinanceiroUtil.Status("contas", c) == "ABERTA" && FinanceiroUtil.Status("contas", pagar) == "ABERTA",
+                "lote misturando contas a receber e a pagar é recusado também na camada de dados");
         }
 
         // ---------- contato de cobrança pela tela, com promessa

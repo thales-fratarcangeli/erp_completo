@@ -103,6 +103,31 @@ public class InterfaceTabelasRolamEOrdenam : ICenario
         produtos.Close();
         produtos.Dispose();
 
+        // ---------- datas que o banco devolve como texto "dd/mm/aaaa": ordenam pela data, não pelo dia
+        var financeiro = u.AbrirTela("FinanceiroForm");
+        var contas = Usuario.Achar<DataGridView>(financeiro);
+        Usuario.Achar<ComboBox>(financeiro, c => c.Items.Contains("Todas") && c.Items.Contains("Vencidas")).SelectedItem = "Todas";
+        Usuario.Esperar();
+        DataGridViewColumn Vencimento() => contas.Columns.Cast<DataGridViewColumn>().First(c => c.HeaderText == "Vencimento"); // recriada ao recarregar
+        List<DateTime> Datas() => contas.Rows.Cast<DataGridViewRow>()
+            .Select(r => DateTime.ParseExact(Ui.Txt(r.Cells[Vencimento().Index].Value), "dd/MM/yyyy", null)).ToList();
+        ClicarTitulo(contas, Vencimento());
+        var crescente = Datas();
+        ClicarTitulo(contas, Vencimento());
+        var decrescente = Datas();
+        u.Ok(crescente.Count > 3 && crescente.Select(d => d.Month).Distinct().Count() > 1
+             && crescente.SequenceEqual(crescente.Order()) && decrescente.SequenceEqual(decrescente.OrderDescending())
+             && Vencimento().HeaderCell.SortGlyphDirection == SortOrder.Descending,
+            "coluna de data ordena pela data de verdade (15/03 antes de 01/12), e de novo inverte");
+        u.Clicar(financeiro, "Pesquisar");
+        Usuario.Esperar(300);
+        var depoisDeRecarregar = Datas();
+        u.Ok(depoisDeRecarregar.SequenceEqual(depoisDeRecarregar.OrderDescending()) && contas.Columns.Cast<DataGridViewColumn>().All(c => !c.Visible || !c.DataPropertyName.StartsWith("__")),
+            "a ordem por data continua depois de recarregar, sem coluna auxiliar visível");
+        u.RespostaConfirmacao = true;
+        financeiro.Close();
+        financeiro.Dispose();
+
         // ---------- lista de itens (BindingList, que não se ordena sozinha)
         var lista = new BindingList<Linha> { new() { Descricao = "Caneta", Quantidade = 10 }, new() { Descricao = "Agenda", Quantidade = 2 }, new() { Descricao = "Borracha", Quantidade = 5 } };
         using var janela = new Form { Size = new Size(700, 400), StartPosition = FormStartPosition.Manual, Location = new Point(0, 0) };

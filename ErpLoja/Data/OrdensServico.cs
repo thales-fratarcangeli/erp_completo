@@ -72,8 +72,8 @@ public static class OrdensServico
         if (Ui.Txt(o["etapa"]) == Cancelada)
             throw new InvalidOperationException("OS cancelada não pode ser alterada.");
         Conferir(d, Db.LerData(o["data"]));
-        if (o["faturada_em"] is not DBNull && Ui.Dec(o["valor"]) != d.Valor)
-            throw new InvalidOperationException("A OS já foi faturada: o valor não pode mudar (as contas a receber já foram geradas). Cancele as contas no Financeiro antes, se for o caso.");
+        if (FaturamentoAtivo(id) && Ui.Dec(o["valor"]) != d.Valor)
+            throw new InvalidOperationException("A OS já foi faturada: o valor não pode mudar (as contas a receber já foram geradas). Para mudar, cancele as contas dela no Financeiro e fature de novo.");
         using var s = new DbSessao(transacao: true);
         s.Exec("""
             UPDATE ordens_servico SET cliente_id = @p0, descricao = @p1, prazo = @p2, valor = @p3, responsavel_id = @p4, observacoes = @p5
@@ -83,6 +83,13 @@ public static class OrdensServico
             Historico(s, id, Ui.Txt(o["etapa"]), $"Prazo alterado de {Db.LerData(o["prazo"]):dd/MM/yyyy} para {d.Prazo:dd/MM/yyyy}");
         s.Commit();
     }
+
+    /// <summary>
+    /// A OS tem contas a receber geradas e não canceladas. Se todas as contas da OS forem canceladas no Financeiro,
+    /// o faturamento deixa de valer: o valor pode mudar e a OS pode ser faturada de novo (RN-OS-05).
+    /// </summary>
+    public static bool FaturamentoAtivo(long id) =>
+        Convert.ToInt64(Db.Scalar("SELECT COUNT(*) FROM contas WHERE os_id = @p0 AND status <> 'CANCELADA'", id)) > 0;
 
     public static DataRow Ler(long id)
     {
@@ -130,22 +137,24 @@ public static class OrdensServico
             throw new InvalidOperationException("Esta OS já está cancelada.");
         if (string.IsNullOrWhiteSpace(motivo))
             throw new InvalidOperationException("Informe o motivo do cancelamento.");
-        if (o["faturada_em"] is not DBNull
-            && Convert.ToInt64(Db.Scalar("SELECT COUNT(*) FROM contas WHERE os_id = @p0 AND status <> 'CANCELADA'", id)) > 0)
-            throw new InvalidOperationException("A OS já foi faturada. Cancele (ou estorne) as contas a receber dela no Financeiro antes de cancelar a OS.");
+        if (FaturamentoAtivo(id))
+            throw new InvalidOperationException("A OS já foi faturada. Cancele as contas a receber dela no Financeiro antes de cancelar a OS (conta já recebida precisa ser estornada e depois cancelada).");
         using var s = new DbSessao(transacao: true);
         s.Exec("UPDATE ordens_servico SET etapa = 'CANCELADA' WHERE id = @p0", id);
         Historico(s, id, Cancelada, "Cancelada: " + motivo.Trim());
         s.Commit();
     }
 
-    /// <summary>Gera as contas a receber da OS (parcelas mensais a partir do 1º vencimento). Pode faturar uma única vez.</summary>
+    /// <summary>
+    /// Gera as contas a receber da OS (parcelas mensais a partir do 1º vencimento). Uma vez só enquanto o faturamento
+    /// valer; com todas as contas da OS canceladas, pode faturar de novo.
+    /// </summary>
     public static void Faturar(long id, int parcelas, DateTime primeiroVencimento)
     {
         var o = Ler(id);
         if (Ui.Txt(o["etapa"]) == Cancelada)
             throw new InvalidOperationException("OS cancelada não pode ser faturada.");
-        if (o["faturada_em"] is not DBNull)
+        if (FaturamentoAtivo(id))
             throw new InvalidOperationException("Esta OS já foi faturada (veja as contas no Financeiro).");
         var valor = Ui.Dec(o["valor"]);
         if (valor <= 0)
@@ -185,7 +194,8 @@ public static class OrdensServico
               COALESCE(SUM(CASE WHEN {SqlEmAndamento} AND o.prazo < date('now', 'localtime') THEN 1 END), 0) AS atrasadas,
               COALESCE(SUM(CASE WHEN {SqlEmAndamento} AND o.prazo = date('now', 'localtime') THEN 1 END), 0) AS hoje,
               COALESCE(SUM(CASE WHEN o.etapa = 'PRONTA' THEN 1 END), 0) AS prontas,
-              COALESCE(SUM(CASE WHEN o.etapa <> 'CANCELADA' AND o.faturada_em IS NULL AND o.valor > 0 AND o.etapa = 'ENTREGUE' THEN 1 END), 0) AS faturar,
+              COALESCE(SUM(CASE WHEN o.etapa = 'ENTREGUE' AND o.valor > 0
+                                AND NOT EXISTS (SELECT 1 FROM contas ct WHERE ct.os_id = o.id AND ct.status <> 'CANCELADA') THEN 1 END), 0) AS faturar,
               SUM(CASE WHEN o.etapa = 'ENTREGUE' AND o.entregue_em >= date('now', 'localtime', '-90 days') THEN 1 END) AS entregues,
               SUM(CASE WHEN o.etapa = 'ENTREGUE' AND o.entregue_em >= date('now', 'localtime', '-90 days') AND date(o.entregue_em) <= o.prazo THEN 1 END) AS no_prazo
             FROM ordens_servico o

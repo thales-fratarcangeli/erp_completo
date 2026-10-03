@@ -5,6 +5,7 @@
 | **Documento** | Relatório consolidado dos testes exploratórios que simularam usuários reais |
 | **Sistema** | ERP Loja 1.2.0 |
 | **Método** | [ADR-0018](adr/0018-cenarios-de-uso-automatizados.md): agentes paralelos, um por área, cada um numa cópia isolada do repositório, operando as telas por cenários automatizados (`testes/ErpLoja.Testes/Cenarios`), corrigindo as falhas e deixando o cenário como teste de regressão |
+| **Continuidade** | [Versão 1.5.0](#versão-150--continuidade): cenários automatizados das funções novas |
 
 Cada seção traz: falhas encontradas (sintoma → causa → correção), cenários criados, problemas conhecidos não corrigidos
 e sugestões de usabilidade. As regras de negócio afetadas foram atualizadas em [04](04-regras-de-negocio.md) e a ajuda
@@ -266,3 +267,25 @@ Personas: dono que abre muitas telas, funcionário novo que não sabe onde fica 
 | **Total** | **72** | **69** (+1 cenário de exemplo) |
 
 Bateria após a integração: **898 verificações, 898 aprovadas**; com a revisão de interface da versão 1.2.0: **905 verificações, 905 aprovadas** ([08](08-relatorio-de-testes.md)).
+
+---
+
+## Versão 1.5.0 — continuidade
+
+As funções novas da 1.5.0 ganharam cenários no mesmo formato (pessoa operando as telas, num banco próprio, sem travar
+em caixa de mensagem), que ficam na bateria como regressão. Detalhes do que cada um cobre no
+[plano de testes](07-plano-de-testes.md#cenários-novos-da-150).
+
+### Cenários criados
+- `AssistenteIA.cs`: `AssistenteDeDuvidas` — assistente desligado/sem chave, chave cifrada, mascaramento de CPF, e-mail e telefone, nenhum dado da loja na requisição, recusa, chave recusada, limite por hora, log, painel aberto com Ctrl+I ao lado da tela. A API da Anthropic é substituída por um transporte falso (`AnthropicFalsa`): nada vai à internet.
+- `InterfaceTabelas.cs`: `InterfaceTabelasRolamEOrdenam` — percorre todas as telas do menu conferindo rolagem horizontal, largura mínima e ordenação das colunas; ordenação pelo título em Produtos (A–Z, inversão, ordem mantida ao pesquisar, números como número), lista de itens e PDV sem reordenar.
+- `ServicosEFinanceiroInsights.cs`: `ServicosOrdemDeServicoDoPedidoAoFaturamento` (atendente abre a OS, etapas, atraso, alerta da tela inicial, entrega, faturamento e travas) e `FinanceiroBaixaEmLoteEAcompanhamentoDeCobranca` (baixa em lote tudo ou nada, contato de cobrança com promessa, promessa vencida no filtro e no alerta).
+
+### Falhas encontradas
+As falhas encontradas durante o desenvolvimento das funções novas e a escrita desses cenários estão em [10 — Falhas e resoluções](10-falhas-e-resolucoes.md), itens **50 a 55** — entre elas, o erro
+ao abrir telas depois da rolagem horizontal das tabelas (53), o clique no título que não ordenava porque mensagens de
+mouse do Windows exigem a janela em primeiro plano (54) e a falta de um filtro para rodar só um cenário, resolvida com
+`ERP_CENARIO` (55).
+
+### Totais
+Bateria da 1.5.0: **1.015 verificações, 1.015 aprovadas** ([08](08-relatorio-de-testes.md)), com 79 cenários.

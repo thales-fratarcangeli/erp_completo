@@ -1,9 +1,11 @@
 # 16 — Análise do banco de outro ERP (gráfica) e o que ainda podemos implementar
 
+> Dados de terceiros: o nome da empresa, do fornecedor do sistema e dos arquivos foram omitidos. Só aparecem estrutura e números agregados, sem nenhum dado de clientes, fornecedores ou usuários.
+
 | | |
 |---|---|
 | **Documento** | Análise comparativa e roteiro de evolução |
-| **Fonte** | `banco de dados de outro ERP` — banco Firebird do ERP **outro ERP** usado por uma gráfica (637 MB) |
+| **Fonte** | arquivo de banco — banco Firebird de um ERP comercial usado por uma gráfica (637 MB) |
 | **Data** | 02/10/2026 |
 | **Método** | Cópia do arquivo aberta em modo de leitura com o Firebird embarcado; leitura apenas de **estrutura e números agregados** (nenhum dado pessoal de clientes foi copiado para a documentação); comparação com a árvore de opções do outro ERP e com o ERP Loja 1.4 |
 

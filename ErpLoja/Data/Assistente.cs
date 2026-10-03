@@ -191,7 +191,15 @@ public sealed class ProvedorClaude(string chave, string modelo) : IProvedorIA
             Log.Registrar(Log.Erro, "Assistente: erro da API", ex.Message);
             return new(false, "O serviço de IA retornou um erro. Tente de novo; se continuar, veja o Log de atividades.");
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        catch (OperationCanceledException) when (cancelar.IsCancellationRequested)
+        {
+            return new(false, "Pergunta cancelada.");
+        }
+        catch (TaskCanceledException)
+        {
+            return new(false, "O serviço de IA demorou demais para responder. Tente de novo em instantes.");
+        }
+        catch (HttpRequestException)
         {
             return new(false, "Sem conexão com o serviço de IA. Verifique a internet e tente de novo.");
         }
@@ -203,6 +211,9 @@ public sealed class ProvedorOllama(string url, string modelo) : IProvedorIA
 {
     public string Nome => "Ollama (local)";
 
+    /// <summary>Para testes: transporte HTTP falso (nenhuma chamada real ao Ollama).</summary>
+    public static HttpMessageHandler? TransporteParaTestes { get; set; }
+
     public async Task<RespostaAssistente> Perguntar(string instrucoes, IReadOnlyList<(bool DoUsuario, string Texto)> conversa, CancellationToken cancelar)
     {
         if (string.IsNullOrWhiteSpace(modelo))
@@ -213,7 +224,8 @@ public sealed class ProvedorOllama(string url, string modelo) : IProvedorIA
         var corpo = new JsonObject { ["model"] = modelo.Trim(), ["stream"] = false, ["messages"] = mensagens };
         try
         {
-            using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(3) };
+            using var http = TransporteParaTestes is { } falso ? new HttpClient(falso, disposeHandler: false) : new HttpClient();
+            http.Timeout = TimeSpan.FromMinutes(3);
             var endereco = (string.IsNullOrWhiteSpace(url) ? "http://localhost:11434" : url.Trim()).TrimEnd('/') + "/api/chat";
             using var resp = await http.PostAsync(endereco, new StringContent(corpo.ToJsonString(), Encoding.UTF8, "application/json"), cancelar);
             if (!resp.IsSuccessStatusCode)
@@ -222,9 +234,17 @@ public sealed class ProvedorOllama(string url, string modelo) : IProvedorIA
             var texto = json?["message"]?["content"]?.GetValue<string>()?.Trim() ?? "";
             return texto.Length > 0 ? new(true, texto) : new(false, "O modelo local não retornou texto.");
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        catch (OperationCanceledException) when (cancelar.IsCancellationRequested)
         {
-            return new(false, "Não foi possível falar com o Ollama neste computador. Ele está instalado e aberto?");
+            return new(false, "Pergunta cancelada.");
+        }
+        catch (TaskCanceledException)
+        {
+            return new(false, "O modelo local demorou mais de 3 minutos para responder. Tente uma pergunta mais curta ou um modelo menor.");
+        }
+        catch (HttpRequestException)
+        {
+            return new(false, "Não foi possível falar com o Ollama. Ele está instalado e aberto no endereço configurado?");
         }
     }
 }

@@ -91,7 +91,7 @@ public static class Parametros
         new("ia_ativa", Nao, IA, "Assistente de dúvidas ligado", [Sim, Nao],
             Dica: "O assistente responde dúvidas sobre o USO do sistema, só com base na ajuda das telas. Ele não recebe dados da loja e não executa ações."),
         new("ia_provedor", "CLAUDE", IA, "Provedor de IA", ["CLAUDE", "OLLAMA"],
-            Dica: "CLAUDE: API da Anthropic (internet, cobrança por uso). OLLAMA: modelo instalado neste computador (nada sai da máquina)."),
+            Dica: "CLAUDE: API da Anthropic (internet, cobrança por uso). OLLAMA: modelo próprio (no endereço http://localhost nada sai da máquina; num servidor https, as perguntas vão até ele)."),
         new("ia_chave_api", "", IA, "Chave da API da Anthropic", Dica: "Crie em console.anthropic.com > API Keys. Fica cifrada no banco.", Secreto: true),
         new("ia_modelo", "claude-opus-5-5", IA, "Modelo do Claude", Dica: "Padrão: claude-opus-5-5. Para reduzir custo pode-se usar claude-haiku-4-5 ou claude-sonnet-5-5."),
         new("ia_limite_hora", "30", IA, "Perguntas por hora por usuário", Dica: "Limita o uso (e o custo) do assistente."),
@@ -141,7 +141,7 @@ public static class Parametros
         ["resend_api_key"] = new("Chave de API", "não aceita espaços.", c => !char.IsControl(c) && !char.IsWhiteSpace(c), 200),
         ["resend_remetente"] = Formatos.Remetente,
         ["ia_chave_api"] = new("Chave de API", "não aceita espaços.", c => !char.IsControl(c) && !char.IsWhiteSpace(c), 300),
-        ["ia_modelo"] = new("Modelo", "aceita letras minúsculas, números, ponto e hífen (ex.: claude-opus-5-5).", c => char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c) || c is '-' or '.' or ':', 60),
+        ["ia_modelo"] = new("Modelo", "aceita letras minúsculas, números, ponto, hífen e dois-pontos (ex.: claude-opus-5-5).", c => char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c) || c is '-' or '.' or ':', 60),
         ["ia_ollama_url"] = new("Endereço do Ollama", "não aceita espaços.", c => !char.IsControl(c) && !char.IsWhiteSpace(c), 200,
             v => Uri.TryCreate(v, UriKind.Absolute, out var u) && (u.Scheme == Uri.UriSchemeHttps || (u.Scheme == Uri.UriSchemeHttp && u.IsLoopback))
                 ? null : "deve ser https:// ou http://localhost (o Ollama roda neste computador)."),

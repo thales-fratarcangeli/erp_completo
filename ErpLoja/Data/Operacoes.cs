@@ -307,9 +307,14 @@ public static class Operacoes
             throw new InvalidOperationException("Selecione as contas a baixar.");
         if (data.Date > DateTime.Today)
             throw new InvalidOperationException("A data do pagamento não pode ser futura. Baixe as contas no dia em que o dinheiro entrar ou sair.");
+        var lista = ids.Distinct().ToList();
+        var tipos = Db.Query($"SELECT DISTINCT tipo FROM contas WHERE id IN ({string.Join(", ", lista.Select((_, i) => "@p" + i))})",
+            lista.Cast<object?>().ToArray());
+        if (tipos.Rows.Count > 1)
+            throw new InvalidOperationException("Selecione só contas a receber ou só contas a pagar (não as duas juntas).");
         var avisos = new List<string>();
         using var s = new DbSessao(transacao: true);
-        foreach (var id in ids.Distinct())
+        foreach (var id in lista)
         {
             if (s.Exec("""
                     UPDATE contas SET status = 'PAGA', data_pagamento = @p0, valor_pago = valor, forma_pagamento = @p1

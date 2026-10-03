@@ -39,6 +39,8 @@ var t = new Thread(() =>
         if (!string.IsNullOrEmpty(soCenario))
         {
             RodarCenarios(soCenario);
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+            try { Directory.Delete(Temp, recursive: true); } catch { }
             return;
         }
 
@@ -789,7 +791,10 @@ void RelatorioDeTestes()
     sb.AppendLine("|---:|:---:|---|");
     for (int i = 0; i < resultados.Count; i++)
         sb.AppendLine($"| {i + 1} | {(resultados[i].Ok ? "✅" : "❌")} | {resultados[i].Texto.Replace("|", "\\|")} |");
-    File.WriteAllText(Path.Combine(Raiz, "docs", "08-relatorio-de-testes.md"), sb.ToString());
+    // relatório público: sem caminhos da máquina de quem rodou a bateria
+    var SemCaminhoLocal = sb.ToString().Replace(Path.GetTempPath().TrimEnd('\\'), "%TEMP%")
+        .Replace(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "%USERPROFILE%");
+    File.WriteAllText(Path.Combine(Raiz, "docs", "08-relatorio-de-testes.md"), SemCaminhoLocal);
 }
 
 static string ModeloDeDados()

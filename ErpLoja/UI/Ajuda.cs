@@ -42,12 +42,29 @@ public static class Ajuda
             Na tela inicial aparecem as telas que você usou por último, cada uma com o ponto da cor da sua área: um clique abre. No Buscar tela (Ctrl+K), com a busca vazia, elas também vêm primeiro.
             No menu lateral, a tela que está em primeiro plano fica destacada (em negrito, com a marca de cor cheia).
 
-            ## Tela inicial
-            Aparece quando nenhuma tela está aberta. Fica limpa de propósito: use o menu ou a busca. Indicadores e gráficos ficam em Gestão > Painel gerencial (F5).
+            ## Tela inicial e alertas do dia
+            Aparece quando nenhuma tela está aberta: a busca, os alertas do dia e as telas usadas por último. Indicadores e gráficos ficam em Gestão > Painel gerencial (F5).
+            Os alertas mostram só o que precisa de atenção hoje (sem nada pendente, não aparecem). Clique no alerta e a tela certa já abre filtrada:
+            - Ordens de serviço atrasadas, com entrega para hoje, prontas aguardando entrega e entregues sem faturar → Ordens de serviço;
+            - Contas a receber vencidas (com o valor total) e promessas de pagamento não cumpridas → Contas a pagar e receber;
+            - Produtos com estoque baixo (saldo no mínimo ou abaixo, para quem tem mínimo definido) → Estoque, com "Somente estoque baixo" marcado.
+            Alertas com ponto vermelho são os mais urgentes (atrasos e dinheiro vencido) e vêm primeiro; os de ponto laranja são lembretes. A lista é atualizada sempre que você volta à tela inicial.
+
+            ## Listas (tabelas)
+            - Clique no título de uma coluna para ordenar a lista por ela; clique de novo para inverter (do maior para o menor, de Z para A). Números e valores ordenam como número.
+            - A ordem escolhida continua depois de pesquisar, mudar um filtro ou atualizar a lista.
+            - Quando as colunas não cabem na tela, aparece uma barra de rolagem embaixo da lista: role para o lado para ver as demais. Também dá para arrastar a divisa entre os títulos para alargar uma coluna.
+            - Exceção: os itens da venda no PDV ficam sempre na ordem em que foram lançados.
+
+            ## Assistente de dúvidas (Ctrl+I)
+            Clique em "✦ Assistente" no topo da janela (ou tecle Ctrl+I) para perguntar como fazer algo no sistema, do seu jeito (ex.: "como cancelo uma venda?"). Ele abre ao lado da tela em que você está, sem fechá-la; Ctrl+I de novo (ou o ×) fecha. Precisa ser ligado por um administrador em Configurações > Assistente (IA). Mais detalhes na ajuda do próprio assistente.
+
+            ## Datas
+            Os campos de data aceitam de 01/01/2000 até 10 anos à frente de hoje. Isso evita erros de digitação (como 2099 no lugar de 2019) que bagunçariam prazos, vencimentos e relatórios.
 
             ## Atalhos
             - F2 PDV · F4 Pedidos de compra · F5 Painel gerencial · F6 Estoque · F7 Financeiro · F8 Relatórios
-            - Ctrl+O Orçamentos · Ctrl+P Pedidos de venda · Ctrl+N Notas fiscais · Ctrl+K Buscar tela
+            - Ctrl+O Orçamentos · Ctrl+P Pedidos de venda · Ctrl+N Notas fiscais · Ctrl+K Buscar tela · Ctrl+I Assistente · Ctrl+W fecha a tela aberta
             - F1 em qualquer tela abre a ajuda dela.
             """),
 
@@ -101,6 +118,7 @@ public static class Ajuda
             - Leia o código de barras ou digite o código e tecle Enter.
             - Para vender várias unidades: digite 3*código (ou 3xcódigo), ou tecle F4 antes para definir a quantidade.
             - F3 abre a busca por nome. O cartão "Último item" confirma o que entrou; o total aparece em destaque.
+            - Os itens ficam sempre na ordem em que foram lançados (clicar no título da coluna não reordena). Se a janela for estreita, role a lista para o lado.
 
             ## Teclas
             - F2 cliente · F3 buscar · F4 quantidade · F5 desconto (em R$ ou %) · F6 remover item · F7 cancelar venda · F10 pagamento · Esc sair.
@@ -194,6 +212,7 @@ public static class Ajuda
             - Comprovante: reimprime o comprovante não fiscal.
             - Cancelar venda (somente administrador): devolve os produtos ao estoque, cancela as contas a receber da venda e reabre o pedido de origem, se houver. A nota fiscal emitida para a venda deve ser cancelada em Fiscal > Notas fiscais.
             - Pagamentos de cartão/PIX feitos pelo TEF são estornados junto. Se a venda era a prazo e alguma parcela já foi recebida, a confirmação avisa o valor: ele também é cancelado no financeiro e deve ser acertado com o cliente.
+            - Clique no título de uma coluna para ordenar (ex.: por Total ou Cliente).
             """),
 
         new("compras", "Compras realizadas", """
@@ -255,6 +274,8 @@ public static class Ajuda
             - SEM ESTOQUE (saldo ≤ 0), BAIXO (saldo ≤ mínimo), OK.
             - Sugestão de compra = mínimo − saldo, quando positivo.
             - Gerar pedido de compra: monta um pedido com a sugestão dos produtos listados (respeita a pesquisa e "Somente estoque baixo"), pelo custo médio atual. Escolha o fornecedor, ajuste quantidades/preços e salve.
+            - O alerta "produto(s) com estoque baixo" da tela inicial abre esta tela já com "Somente estoque baixo" marcado. O alerta só conta produtos com estoque mínimo definido, por isso a lista pode trazer alguns a mais: os que estão sem estoque e não têm mínimo.
+            - Clique no título de uma coluna para ordenar (ex.: por Situação ou Valor em estoque).
 
             ## Ajustar estoque
             - Entrada ou Saída (perda, quebra, uso interno) somam/subtraem do saldo.
@@ -282,18 +303,19 @@ public static class Ajuda
             A ordem de serviço (OS) acompanha um trabalho feito para um cliente, do pedido à entrega e ao faturamento.
 
             ## Abrir e acompanhar
-            - Nova OS: cliente, o que será feito, prazo de entrega (obrigatório; a sugestão vem de Configurações > Vendas e compras), valor e responsável.
+            - Nova OS: cliente, o que será feito, prazo de entrega (obrigatório; a sugestão vem de Configurações > Vendas e compras > Prazo padrão da ordem de serviço), valor, responsável e observações. O prazo não pode ser antes da abertura. "Editar" (ou duplo clique) altera a OS.
             - Etapas: Aberta → Aprovada → Em execução → Pronta → Entregue. "Avançar etapa" passa para a próxima; "Mudar etapa" escolhe qualquer uma (voltar exige o motivo).
-            - Toda mudança de etapa, de prazo e o faturamento ficam no histórico (grade de baixo), com quem fez e quando.
+            - Toda mudança de etapa, de prazo, o faturamento e o cancelamento ficam no histórico (grade de baixo), com quem fez e quando.
             - Situação do prazo: NO PRAZO, VENCE HOJE (laranja), ATRASADA (vermelho, com os dias de atraso), ENTREGUE ou ENTREGUE COM ATRASO.
-            - O filtro "Mostrar" separa em andamento, atrasadas, entrega hoje, prontas para entregar, entregues sem faturar, entregues e canceladas. A pesquisa aceita o número, o cliente ou o serviço.
-            - O resumo mostra quantas estão em andamento, atrasadas, com entrega hoje e o percentual entregue no prazo nos últimos 90 dias.
+            - O filtro "Mostrar" separa em andamento, atrasadas, entrega hoje, prontas para entregar, entregues sem faturar, entregues, canceladas e todas. A pesquisa (Enter ou botão Pesquisar) aceita o número, o cliente ou o serviço.
+            - O resumo mostra quantas OS estão na lista, em andamento, atrasadas, com entrega hoje e o percentual entregue no prazo nos últimos 90 dias.
+            - Clique no título de uma coluna para ordenar (ex.: por Prazo ou Cliente).
 
             ## Faturar, cancelar e imprimir
-            - Faturar: gera as contas a receber da OS no Financeiro (parcelas mensais). Pode ser antes ou depois da entrega, uma única vez. Depois de faturada, o valor da OS não muda.
-            - Cancelar: exige o motivo. OS faturada só é cancelada depois de cancelar as contas a receber dela.
-            - Imprimir: ficha da OS com o serviço, prazo e espaço para assinatura de quem recebeu.
-            - OS atrasadas, com entrega hoje, prontas e entregues sem faturar aparecem como alerta na tela inicial.
+            - Faturar: informe as parcelas e o 1º vencimento (hoje ou depois); as contas a receber da OS são geradas no Financeiro, uma por mês. Pode ser antes ou depois da entrega, uma única vez, e a OS precisa ter valor. Depois de faturada, o valor da OS não muda.
+            - Cancelar OS: exige o motivo. OS faturada só é cancelada depois de cancelar as contas a receber dela no Financeiro. A OS cancelada continua consultável no filtro "Canceladas".
+            - Imprimir: ficha da OS com cliente, serviço, prazo, valor e espaço para assinatura e data de quem recebeu.
+            - OS atrasadas, com entrega hoje, prontas e entregues sem faturar aparecem como alerta na tela inicial; clicar no alerta abre esta tela já no filtro correspondente.
             """),
 
         new("FinanceiroForm", "Financeiro - contas a receber e a pagar", """
@@ -307,14 +329,19 @@ public static class Ajuda
             - Conta com boleto em aberto: ao baixar ou cancelar, o boleto é cancelado (se ainda não foi ao banco) ou tem a baixa pedida na próxima remessa, para o cliente não pagar duas vezes.
             - O rodapé mostra o total em aberto a receber (com quanto já está vencido) e a pagar, o saldo previsto e o realizado no mês.
             - Com "Vencimento de" marcado, mudar as datas já atualiza a lista.
+            - Clique no título de uma coluna para ordenar (ex.: por Valor ou Dias de atraso).
+            - Os alertas da tela inicial "contas a receber vencidas" e "promessas não cumpridas" abrem esta tela já filtrada (A receber + Vencidas ou Promessa vencida, sem período).
 
             ## Baixa em lote
-            Selecione várias contas (Ctrl+clique ou Shift+clique) e use "Baixar selecionadas": todas são baixadas pelo valor de cada uma, na mesma data e forma. Se alguma não puder ser baixada (já paga, cancelada), nenhuma é baixada e a mensagem diz qual.
+            Selecione duas ou mais contas (Ctrl+clique ou Shift+clique) e use "Baixar selecionadas": todas são baixadas pelo valor de cada uma, na mesma data (nunca futura) e forma.
+            - Só contas em aberto, e só a receber ou só a pagar (não as duas juntas). Se houver paga ou cancelada na seleção, o sistema pede para tirá-la.
+            - É tudo ou nada: se alguma conta deixou de estar em aberto nesse meio-tempo, nenhuma é baixada e a mensagem diz o número dela.
+            - Com juros, desconto ou valor diferente, baixe a conta sozinha pelo botão "Baixar".
 
             ## Acompanhamento de cobrança
-            - Registrar contato: numa conta a receber em aberto, anote como foi o contato (telefone, WhatsApp...), o que foi conversado e, se houver, a promessa de pagamento.
+            - Registrar contato: numa conta a receber em aberto, anote como foi o contato (telefone, WhatsApp, e-mail, pessoalmente, carta...), o que foi conversado e, se houver, a data da promessa de pagamento (hoje em diante).
             - As colunas "Último contato" e "Promessa" mostram o andamento; "Ver contatos" lista todo o histórico da conta.
-            - O filtro "Promessa vencida" mostra quem prometeu e não pagou; elas também aparecem como alerta na tela inicial.
+            - O filtro de situação "Promessa vencida" mostra quem prometeu e não pagou; elas também aparecem como alerta na tela inicial.
             """),
 
         new("CobrancaForm", "Cobrança bancária (boletos)", """
@@ -377,8 +404,9 @@ public static class Ajuda
             - Produtos sem venda no período (insumos de produção ficam de fora, pois não são vendidos) e compras por fornecedor.
 
             Escolha o relatório à esquerda e o período no topo: o relatório é atualizado na hora (o botão Gerar refaz a consulta). Se a data final for anterior à inicial, o sistema avisa em vez de mostrar um relatório vazio.
+            Clique no título de uma coluna para ordenar (ex.: produtos pelo Lucro bruto).
 
-            Visões que já existem em outras telas não se repetem aqui: gráficos no painel inicial, estoque baixo/inventário na tela Estoque, contas vencidas no Financeiro.
+            Visões que já existem em outras telas não se repetem aqui: gráficos no Painel gerencial, estoque baixo/inventário na tela Estoque, contas vencidas no Financeiro.
             """),
 
         new("ConfiguracoesForm", "Configurações", """
@@ -387,30 +415,37 @@ public static class Ajuda
             - Empresa: dados que saem no comprovante, pedidos, boletos e DANFE. CNPJ e UF são necessários para a chave de acesso.
             - Fiscal: regime tributário, séries e próximos números da NF-e/NFC-e, naturezas de operação, CST padrão.
             - Reforma tributária: liga o cálculo de IBS/CBS e define as alíquotas do ano (padrão 2026: CBS 0,9% e IBS 0,1%, em caráter de teste). Confirme as alíquotas com o contador a cada ano da transição.
-            - Vendas e compras: venda sem estoque, desconto máximo, validade do orçamento, prazos, parcelas, número do caixa e impressão do comprovante.
+            - Vendas e compras: venda sem estoque, desconto máximo, validade do orçamento, dias até o 1º vencimento a prazo, prazo padrão da ordem de serviço (sugestão de entrega ao abrir uma OS), máximo de parcelas, número do caixa e impressão do comprovante.
             - Produção: o que fazer quando falta insumo ao concluir uma OP.
             - Transporte e CIOT: administradora (Pamcard, simulador...), ambiente e credenciais.
             - TEF: liga o TEF no PDV e escolhe o provedor (SIMULADOR para testes).
             - Impressoras: impressora de cupom (Windows ou térmica ESC/POS com corte e gaveta), colunas, acentuação e impressora de documentos A4. Use "Imprimir página de teste".
             - E-mail: chave do Resend e remetente para a recuperação de senha. Use "Enviar e-mail de teste".
-            - Assistente (IA): liga o assistente de dúvidas, escolhe o provedor (Claude pela internet ou Ollama local), a chave da API (guardada cifrada), o modelo e o limite de perguntas por hora. Use "Testar assistente".
+            - Assistente (IA): liga o assistente de dúvidas (vem desligado), escolhe o provedor (CLAUDE pela internet, cobrado por uso na conta da Anthropic, ou OLLAMA, instalado neste computador), a chave da API (guardada cifrada), o modelo, o limite de perguntas por hora por usuário e, no Ollama, o endereço e o modelo local. Use "Testar assistente" (salva e faz uma pergunta de teste).
             - Banco de dados: arquivo em uso, migrações aplicadas, backups, dias de log mantidos, troca de banco e geração de dados de demonstração (apenas para testes).
             - Minha conta: seu e-mail de recuperação e troca de senha.
 
-            Ao salvar, valores inválidos são recusados com uma mensagem e o cursor vai para o campo: números inteiros (séries, prazos, parcelas, backups, dias de log) não aceitam letras, pontos nem vírgulas; próximo número da nota e máximo de parcelas começam em 1; percentuais vão de 0 a 100; o nome da loja é obrigatório.
+            Ao salvar, valores inválidos são recusados com uma mensagem e o cursor vai para o campo: números inteiros (séries, prazos, parcelas, backups, dias de log) não aceitam letras, pontos nem vírgulas; próximo número da nota, máximo de parcelas e perguntas por hora começam em 1; percentuais vão de 0 a 100; o nome da loja é obrigatório.
             """),
 
         new("AssistentePainel", "Assistente de dúvidas (IA)", """
-            Tire dúvidas sobre como usar o sistema conversando: "como cancelo uma venda?", "onde configuro a impressora?", "o que é o CIOT?". Abra pelo botão "✦ Assistente" no topo da janela, por Ctrl+I ou pelo Buscar tela (Ctrl+K). O painel abre ao lado da tela em que você está.
+            Tire dúvidas sobre como usar o sistema conversando: "como cancelo uma venda?", "onde configuro a impressora?", "o que é o CIOT?". Abra pelo botão "✦ Assistente" no topo da janela, por Ctrl+I, pelo menu Sistema > Assistente de dúvidas (IA) ou pelo Buscar tela (Ctrl+K). O painel abre ao lado da tela em que você está, sem fechá-la; Ctrl+I de novo ou o × fecha o painel.
 
             ## Como funciona
-            - Digite a pergunta e tecle Enter (Shift+Enter quebra a linha). "Nova conversa" começa do zero.
-            - As respostas vêm só da ajuda das telas do sistema. O assistente não vê os dados da loja (clientes, vendas, valores) e não faz nada sozinho: ele explica onde e como você faz.
+            - Digite a pergunta e tecle Enter ou clique em Perguntar (Shift+Enter quebra a linha; até 1.000 caracteres). Enquanto ele responde, o botão mostra "Pensando...". "Nova conversa" começa do zero.
+            - O assistente lembra o que já foi conversado (dá para pedir "explique melhor") e sabe em qual tela você está.
+            - As respostas vêm só da ajuda das telas do sistema. O assistente não vê os dados da loja (clientes, vendas, valores) e não faz nada sozinho: ele explica onde e como você faz. Se a resposta não estiver na ajuda, ele diz que não sabe.
             - Documentos (CPF/CNPJ), e-mails, telefones e números de cartão digitados na pergunta são trocados por marcadores antes de sair do computador. Mesmo assim, não digite senhas nem dados de clientes.
-            - Perguntas e respostas ficam no Log de atividades. Há um limite de perguntas por hora por usuário.
+            - Perguntas e respostas ficam no Log de atividades. Há um limite de perguntas por hora por usuário; ao atingir, o assistente avisa e libera de novo mais tarde.
+
+            ## Quando não responde
+            - "O assistente está desligado": peça a um administrador para ligá-lo.
+            - "Sem conexão com o serviço de IA": o provedor CLAUDE precisa de internet. Confira a conexão e tente de novo.
+            - "A chave da API ... foi recusada" ou "não está configurada": o administrador deve conferir a chave em Configurações > Assistente (IA).
+            - "Não foi possível falar com o Ollama": o programa Ollama precisa estar instalado e aberto neste computador, com o modelo baixado.
 
             ## Configuração (administrador)
-            Configurações > Assistente (IA): ligar/desligar, provedor (CLAUDE pela internet, com chave da API da Anthropic, ou OLLAMA, um modelo instalado neste computador), modelo e limite por hora. Use "Testar assistente" para conferir.
+            Configurações > Assistente (IA): ligar/desligar (vem desligado), provedor (CLAUDE pela internet, com chave paga da API da Anthropic e cobrança por uso, ou OLLAMA, um modelo instalado neste computador, em que nada sai da máquina), modelo e limite por hora. Use "Testar assistente" para conferir.
             """),
 
         new("LogForm", "Log de atividades", """
@@ -454,6 +489,7 @@ public static class Ajuda
             - Dados fiscais (NCM, CST/CSOSN, alíquotas) preenchem as notas automaticamente. NCM, se informado, tem 8 dígitos; CST tem 2 dígitos (regime normal) ou CSOSN 3 (Simples).
             - Reforma tributária: CST IBS/CBS, classificação tributária (cClassTrib), reduções de alíquota (regimes diferenciados) e Imposto Seletivo.
             - Produto com movimentação não pode ser excluído: o sistema oferece inativar.
+            - Na lista, clique no título de uma coluna para ordenar (ex.: por Margem % ou Estoque).
             """),
 
         new("cadastro_veiculos", "Cadastro de veículos", """

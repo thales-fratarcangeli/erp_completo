@@ -17,7 +17,7 @@ Não há instalador: **copie o `ErpLoja.exe` para a máquina e execute.**
 - Se não encontrar, ele pergunta se você quer **criar um banco novo (zerado)** ao lado do executável ou **indicar o arquivo** manualmente.
 - Bancos de versões anteriores são atualizados sozinhos (**migrations**), com backup automático antes.
 
-Primeiro acesso em banco novo: usuário **admin**, senha **admin**. Troque em *Configurações > Minha conta*.
+Primeiro acesso em banco novo: usuário **admin**, senha **admin**. O sistema pede uma senha nova antes de entrar (depois, troque em *Configurações > Minha conta*).
 
 > Como o executável não é assinado digitalmente, o Windows pode exibir "O Windows protegeu o computador".
 > Clique em **Mais informações > Executar assim mesmo**.
@@ -31,12 +31,12 @@ O executável pronto fica na página de [Releases](../../releases) do repositór
 | Vendas | PDV de teclado com leitor de código de barras, TEF (cartão/PIX), troco, a prazo e comprovante; orçamentos → pedidos → faturamento; **ordens de serviço** com etapas, prazos, alertas de atraso e faturamento |
 | Compras | Pedidos de compra; importação do XML da NF-e com vínculo de produtos e fator de conversão |
 | Produção | Fichas técnicas e ordens de produção com custo real |
-| Estoque | Saldo, situação, sugestão de compra, histórico, inventário, custo médio ponderado |
+| Estoque | Saldo, situação, sugestão de compra (gera pedido de compra), histórico, inventário, custo médio ponderado |
 | Financeiro | Contas a pagar/receber, baixa individual e **em lote**, estorno, **acompanhamento de cobrança** com promessas de pagamento; **cobrança bancária** genérica (boleto Febraban, CNAB 240, homologação) |
 | Logística | Veículos, motoristas, fretes e **CIOT** (Pamcard) |
 | Fiscal | NF-e/NFC-e com CFOP automático, ICMS/IPI/PIS/COFINS e **IBS/CBS/IS** da reforma tributária; chave de acesso e DANFE (sem transmissão à SEFAZ) |
 | Gestão | Painel gerencial com comparação ao período anterior; relatórios exportáveis |
-| Sistema | **Assistente de dúvidas por IA** (Ctrl+I), tela inicial com alertas do dia, tabelas com rolagem e ordenação por coluna, uma tela por vez à direita do menu (listagem ao meio, opções à direita), aviso de dados não salvos, modo claro/escuro, "continuar de onde parou", localizador de telas (Ctrl+K), ajuda em cada tela (**?**/F1), log de atividades em banco separado, cadastro único de pessoas, configurações centralizadas, usuários com recuperação de senha (Resend), backups, migrations, impressoras (Windows/ESC/POS), atalho na área de trabalho, dados de demonstração |
+| Sistema | **Assistente de dúvidas por IA** (Ctrl+I; Claude ou Ollama local, só com base na ajuda), tela inicial com **alertas do dia** que abrem a tela já filtrada (OS, contas vencidas, promessas, estoque baixo), tabelas com rolagem horizontal e ordenação por coluna, datas validadas (2000 a hoje + 10 anos), uma tela por vez à direita do menu (listagem ao meio, opções à direita), aviso de dados não salvos, modo claro/escuro, "continuar de onde parou", localizador de telas (Ctrl+K), ajuda em cada tela (**?**/F1), log de atividades em banco separado, cadastro único de pessoas, configurações centralizadas, usuários com recuperação de senha (Resend), backups, migrations, impressoras (Windows/ESC/POS), atalho na área de trabalho, dados de demonstração |
 
 ## Documentação
 
@@ -82,4 +82,6 @@ ferramentas/          script que gera a logo
 
 - **TEF real (SiTef/PayGo) e Pamcard em produção** dependem de credenciamento/homologação com cada parceiro; há simuladores para treino e testes.
 - **Notas fiscais não são transmitidas à SEFAZ.** A numeração, a chave de acesso e o DANFE são gerados, mas a assinatura com certificado digital A1 e a autorização ainda não foram implementadas, por isso o DANFE sai marcado "sem valor fiscal".
+- **Assistente de IA** vem desligado. Com o provedor Claude ele precisa de internet e de uma chave paga da API da Anthropic (cobrança por uso, limitada pelo número de perguntas por hora); com o Ollama roda no próprio computador, mas exige instalar o Ollama e baixar um modelo. Ele só explica o uso do sistema: não consulta dados da loja nem executa ações.
+- **App para celular** ainda não existe: há apenas o [estudo](docs/17-app-celular.md) com a proposta.
 - O SQLite é um banco de arquivo: ideal para um computador (ou poucos acessos simultâneos). Para vários caixas em rede, veja [Falhas e resoluções](docs/10-falhas-e-resolucoes.md#banco-em-pasta-de-rede).

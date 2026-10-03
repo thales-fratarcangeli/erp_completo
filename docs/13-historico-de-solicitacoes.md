@@ -20,7 +20,7 @@ As mensagens estão transcritas **exatamente como foram escritas** (inclusive ab
 | 8 | 01/10/2026 22:59 | cade? ja fechei o exe[ |
 | 9 | 01/10/2026 23:00 | eu abri o exe e nao t com as alterações |
 | 10 | 01/10/2026 23:01 | ja fechei |
-| 11 | 01/10/2026 23:02 | a logo sera "[arquivo local]" adicione ordens de produção, cadatro… |
+| 11 | 01/10/2026 23:02 | a logo sera "[arquivo local]" adicione ordens de produção, cadatro de veiculos e frete, CI… |
 | 12 | 01/10/2026 23:04 | Respostas às perguntas de esclarecimento (TEF, banco, CIOT, proteção) |
 | 13 | 01/10/2026 23:44 | na tela inicial tira essas informações, fica poluido quero um botao de ? por tela, nao um … |
 | 14 | 02/10/2026 00:21 | terminei isso que esta fazendo, depois: nao quero que abra uma nova tela flutuante cada op… |
@@ -41,6 +41,10 @@ As mensagens estão transcritas **exatamente como foram escritas** (inclusive ab
 | 29 | 02/10/2026 19:40 | manda pro github entao crl e sim eu aprovo a ia documente tudo as tabelas tem que ter opçã… |
 | 30 | 02/10/2026 23:01 | continua |
 | 31 | 02/10/2026 23:38 | nao acaba nunca? status |
+| 32 | 03/10/2026 00:06 | para um pouco, compila oq ja tem e dps continua |
+| 33 | 03/10/2026 13:00 | continua |
+| 34 | 03/10/2026 13:09 | fala em portugues |
+| 35 | 03/10/2026 13:10 | lance agentes paralelos pra docuemntar tudo |
 
 ## 1. 01/10/2026 20:55
 
@@ -245,7 +249,7 @@ Respostas às perguntas feitas pelo assistente:
 
 ## 27. 02/10/2026 19:20
 
-> continue fazendo o que esta fazendo, apenas depois de finalizar, analise o segunte banco de ddados (que é de outro erp) e veja o que ainda podemos implementar [arquivo local]
+> continue fazendo o que esta fazendo, apenas depois de finalizar, analise o segunte banco de ddados (que é de outro erp) e veja o que ainda podemos implementar [banco de dados de outro ERP]
 
 **Atendimento:** Análise do banco de dados do outro ERP (gráfica) e levantamento do que ainda pode ser implementado: documento 16.
 
@@ -280,3 +284,27 @@ Respostas às perguntas feitas pelo assistente:
 > nao acaba nunca? status
 
 **Atendimento:** Status informado (assistente pronto e testado; tabelas concluídas; faltavam o estudo do app, as funcionalidades e a documentação) e trabalho concluído na sequência.
+
+## 32. 03/10/2026 00:06
+
+> para um pouco, compila oq ja tem e dps continua
+
+**Atendimento:** Publicado o que já estava pronto: exe 1.5.0 ofuscado, aprovado no teste de interface e copiado para `dist\ErpLoja.exe` (com o sistema fechado); o banco migra sozinho com backup.
+
+## 33. 03/10/2026 13:00
+
+> continua
+
+**Atendimento:** Trabalho retomado: bateria completa aprovada (1.015 verificações), commit e push, release v1.5.0 com o exe e o SHA-256 no GitHub.
+
+## 34. 03/10/2026 13:09
+
+> fala em portugues
+
+**Atendimento:** Respostas passaram a ser sempre em português (preferência registrada na memória do assistente).
+
+## 35. 03/10/2026 13:10
+
+> lance agentes paralelos pra docuemntar tudo
+
+**Atendimento:** Cinco agentes em paralelo atualizaram a documentação da 1.5.0: visão, requisitos e casos de uso (01–03); arquitetura e ADRs 0023–0025 (05); plano de testes, testes exploratórios e CONTRIBUTING (07, 14); implantação, problemas no uso, glossário e SECURITY (09, 10, 11); ajuda de cada tela e README. As inconsistências que eles acharam no código foram corrigidas: colunas de data ordenam pela data (não pelo texto), OS com contas canceladas pode ser corrigida e faturada de novo, baixa em lote confere o tipo também na camada de dados, "Nova conversa" durante a espera não mostra erro, mensagens do Ollama para demora e para servidor fechado, textos de parâmetros fiéis; testes novos para cada correção (falhas 56–58 em [10](10-falhas-e-resolucoes.md)).

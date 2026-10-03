@@ -85,7 +85,7 @@ public class OrdensServicoForm : Form, IFiltroInicial
             1 => $"{OrdensServico.SqlEmAndamento} AND o.prazo < date('now', 'localtime')",
             2 => $"{OrdensServico.SqlEmAndamento} AND o.prazo = date('now', 'localtime')",
             3 => "o.etapa = 'PRONTA'",
-            4 => "o.etapa = 'ENTREGUE' AND o.faturada_em IS NULL AND o.valor > 0",
+            4 => "o.etapa = 'ENTREGUE' AND o.valor > 0 AND NOT EXISTS (SELECT 1 FROM contas ct WHERE ct.os_id = o.id AND ct.status <> 'CANCELADA')",
             5 => "o.etapa = 'ENTREGUE'",
             6 => "o.etapa = 'CANCELADA'",
             _ => "1 = 1",
@@ -104,7 +104,7 @@ public class OrdensServicoForm : Form, IFiltroInicial
                    CASE WHEN {OrdensServico.SqlEmAndamento} AND o.prazo < date('now', 'localtime')
                         THEN CAST(julianday(date('now', 'localtime')) - julianday(o.prazo) AS INTEGER) END AS "Dias de atraso",
                    u.nome AS "Responsável", o.valor AS "Valor",
-                   CASE WHEN o.faturada_em IS NOT NULL THEN 'Sim' ELSE 'Não' END AS "Faturada"
+                   CASE WHEN EXISTS (SELECT 1 FROM contas ct WHERE ct.os_id = o.id AND ct.status <> 'CANCELADA') THEN 'Sim' ELSE 'Não' END AS "Faturada"
             FROM ordens_servico o JOIN pessoas p ON p.id = o.cliente_id LEFT JOIN usuarios u ON u.id = o.responsavel_id
             WHERE {condicao}
             ORDER BY CASE WHEN {OrdensServico.SqlEmAndamento} THEN 0 ELSE 1 END, o.prazo, o.id
@@ -202,7 +202,7 @@ public class OrdensServicoForm : Form, IFiltroInicial
     void Faturar() => Executar(id =>
     {
         var o = OrdensServico.Ler(id);
-        if (o["faturada_em"] is not DBNull)
+        if (OrdensServico.FaturamentoAtivo(id))
             throw new InvalidOperationException("Esta OS já foi faturada (veja as contas no Financeiro).");
         using var d = new Dialogo($"Faturar OS nº {id}", nameof(OrdensServicoForm), "Faturar");
         d.Nota($"Gera as contas a receber da OS no Financeiro. Valor: {Ui.Moeda(Ui.Dec(o["valor"]))}.");
