@@ -1,7 +1,7 @@
 namespace ErpLoja.Forms;
 
 /// <summary>Posição de estoque, histórico de movimentações e ajuste manual (inventário).</summary>
-public class EstoqueForm : Form
+public class EstoqueForm : Form, IFiltroInicial
 {
     readonly DataGridView produtos = Ui.Grid(), movimentos = Ui.Grid();
     readonly SplitContainer split = new() { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal };
@@ -45,6 +45,13 @@ public class EstoqueForm : Form
             split.SplitterDistance = split.Height * 60 / 100;
             Carregar();
         };
+    }
+
+    /// <summary>Abre já filtrada (alerta de estoque baixo da tela inicial).</summary>
+    public void AplicarFiltro(string filtro)
+    {
+        somenteBaixo.Checked = filtro == Alertas.EstoqueBaixo;
+        Carregar();
     }
 
     void Carregar()

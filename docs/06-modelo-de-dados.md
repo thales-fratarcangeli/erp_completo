@@ -1,6 +1,6 @@
 # Modelo de dados
 
-> Gerado automaticamente a partir do esquema real do banco (versão 14) pela bateria de testes. Não edite à mão.
+> Gerado automaticamente a partir do esquema real do banco (versão 16) pela bateria de testes. Não edite à mão.
 > Para alterar o banco, crie uma migração (ver [arquitetura](05-arquitetura.md#migrations)).
 
 Convenções: datas com hora em texto `yyyy-MM-dd HH:mm:ss`; datas sem hora `yyyy-MM-dd`; valores monetários em REAL com 2 casas;
@@ -32,6 +32,15 @@ erDiagram
     categorias {
         INTEGER id PK
         TEXT nome
+    }
+    cobranca_contatos {
+        INTEGER id PK
+        INTEGER conta_id FK
+        TEXT data
+        TEXT meio
+        TEXT resumo
+        TEXT promessa
+        INTEGER usuario_id FK
     }
     compra_itens {
         INTEGER id PK
@@ -68,6 +77,7 @@ erDiagram
         INTEGER compra_id FK
         TEXT criado_em
         INTEGER frete_id FK
+        INTEGER os_id FK
     }
     contas_bancarias {
         INTEGER id PK
@@ -244,6 +254,28 @@ erDiagram
         REAL custo_unitario
         INTEGER pedido_id FK
         TEXT observacoes
+        INTEGER usuario_id FK
+    }
+    ordens_servico {
+        INTEGER id PK
+        TEXT data
+        INTEGER cliente_id FK
+        TEXT descricao
+        TEXT prazo
+        REAL valor
+        INTEGER responsavel_id FK
+        TEXT observacoes
+        TEXT etapa
+        TEXT entregue_em
+        TEXT faturada_em
+        INTEGER usuario_id FK
+    }
+    os_historico {
+        INTEGER id PK
+        INTEGER os_id FK
+        TEXT data
+        TEXT etapa
+        TEXT observacao
         INTEGER usuario_id FK
     }
     pedido_itens {
@@ -436,10 +468,13 @@ erDiagram
     pessoas ||--o{ boletos : "pagador_id"
     contas ||--o{ boletos : "conta_id"
     contas_bancarias ||--o{ boletos : "conta_bancaria_id"
+    usuarios ||--o{ cobranca_contatos : "usuario_id"
+    contas ||--o{ cobranca_contatos : "conta_id"
     produtos ||--o{ compra_itens : "produto_id"
     compras ||--o{ compra_itens : "compra_id"
     usuarios ||--o{ compras : "usuario_id"
     pessoas ||--o{ compras : "fornecedor_id"
+    ordens_servico ||--o{ contas : "os_id"
     fretes ||--o{ contas : "frete_id"
     compras ||--o{ contas : "compra_id"
     vendas ||--o{ contas : "venda_id"
@@ -468,6 +503,11 @@ erDiagram
     usuarios ||--o{ ordens_producao : "usuario_id"
     pedidos ||--o{ ordens_producao : "pedido_id"
     produtos ||--o{ ordens_producao : "produto_id"
+    usuarios ||--o{ ordens_servico : "usuario_id"
+    usuarios ||--o{ ordens_servico : "responsavel_id"
+    pessoas ||--o{ ordens_servico : "cliente_id"
+    usuarios ||--o{ os_historico : "usuario_id"
+    ordens_servico ||--o{ os_historico : "os_id"
     produtos ||--o{ pedido_itens : "produto_id"
     pedidos ||--o{ pedido_itens : "pedido_id"
     compras ||--o{ pedidos : "compra_id"
@@ -501,7 +541,7 @@ Controle de versão do banco: migrações aplicadas.
 | `nome` | TEXT | sim |  |  |
 | `aplicada_em` | TEXT | sim |  |  |
 
-Registros no banco de demonstração: 14.
+Registros no banco de demonstração: 16.
 
 ### boletos
 
@@ -541,6 +581,22 @@ Agrupamento de produtos para relatórios e painel.
 | `nome` | TEXT | sim |  |  |
 
 Registros no banco de demonstração: 9.
+
+### cobranca_contatos
+
+| Coluna | Tipo | Obrigatória | Padrão | Chave |
+|---|---|:---:|---|---|
+| `id` | INTEGER | sim |  | PK |
+| `conta_id` | INTEGER | sim |  | FK → contas.id |
+| `data` | TEXT | sim | datetime('now', 'localtime') |  |
+| `meio` | TEXT | sim |  |  |
+| `resumo` | TEXT | sim |  |  |
+| `promessa` | TEXT |  |  |  |
+| `usuario_id` | INTEGER |  |  | FK → usuarios.id |
+
+Índices: `ix_cobranca_contatos`
+
+Registros no banco de demonstração: 2.
 
 ### compra_itens
 
@@ -586,7 +642,7 @@ Parâmetros do sistema (chave/valor), editados na tela Configurações.
 | `chave` | TEXT | sim |  | PK |
 | `valor` | TEXT |  |  |  |
 
-Registros no banco de demonstração: 52.
+Registros no banco de demonstração: 60.
 
 ### contas
 
@@ -609,10 +665,11 @@ Contas a receber e a pagar (parcelas), geradas por vendas, compras, fretes ou la
 | `compra_id` | INTEGER |  |  | FK → compras.id |
 | `criado_em` | TEXT | sim | datetime('now', 'localtime') |  |
 | `frete_id` | INTEGER |  |  | FK → fretes.id |
+| `os_id` | INTEGER |  |  | FK → ordens_servico.id |
 
 Índices: `ix_contas_status`
 
-Registros no banco de demonstração: 1.693.
+Registros no banco de demonstração: 1.651.
 
 ### contas_bancarias
 
@@ -733,7 +790,7 @@ Histórico de toda alteração de saldo de estoque, com o saldo resultante.
 
 Índices: `ix_mov_produto`
 
-Registros no banco de demonstração: 5.651.
+Registros no banco de demonstração: 5.525.
 
 ### nota_itens
 
@@ -776,7 +833,7 @@ Itens das notas fiscais com tributos (ICMS, IPI, PIS, COFINS, IBS, CBS, IS).
 
 Índices: `ix_nota_itens`
 
-Registros no banco de demonstração: 16.
+Registros no banco de demonstração: 15.
 
 ### notas_fiscais
 
@@ -864,6 +921,42 @@ Ordens de produção e seu custo real apurado.
 
 Registros no banco de demonstração: 77.
 
+### ordens_servico
+
+| Coluna | Tipo | Obrigatória | Padrão | Chave |
+|---|---|:---:|---|---|
+| `id` | INTEGER | sim |  | PK |
+| `data` | TEXT | sim | datetime('now', 'localtime') |  |
+| `cliente_id` | INTEGER | sim |  | FK → pessoas.id |
+| `descricao` | TEXT | sim |  |  |
+| `prazo` | TEXT | sim |  |  |
+| `valor` | REAL | sim | 0 |  |
+| `responsavel_id` | INTEGER |  |  | FK → usuarios.id |
+| `observacoes` | TEXT |  |  |  |
+| `etapa` | TEXT | sim | 'ABERTA' |  |
+| `entregue_em` | TEXT |  |  |  |
+| `faturada_em` | TEXT |  |  |  |
+| `usuario_id` | INTEGER |  |  | FK → usuarios.id |
+
+Índices: `ix_os_etapa`; `ix_os_cliente`
+
+Registros no banco de demonstração: 6.
+
+### os_historico
+
+| Coluna | Tipo | Obrigatória | Padrão | Chave |
+|---|---|:---:|---|---|
+| `id` | INTEGER | sim |  | PK |
+| `os_id` | INTEGER | sim |  | FK → ordens_servico.id |
+| `data` | TEXT | sim | datetime('now', 'localtime') |  |
+| `etapa` | TEXT | sim |  |  |
+| `observacao` | TEXT |  |  |  |
+| `usuario_id` | INTEGER |  |  | FK → usuarios.id |
+
+Índices: `ix_os_historico`
+
+Registros no banco de demonstração: 12.
+
 ### pedido_itens
 
 Itens de orçamentos e pedidos.
@@ -880,7 +973,7 @@ Itens de orçamentos e pedidos.
 
 Índices: `ix_pedido_itens`
 
-Registros no banco de demonstração: 29.
+Registros no banco de demonstração: 36.
 
 ### pedidos
 
@@ -1070,7 +1163,7 @@ Transações de cartão/PIX pelo TEF (duas fases: pendente → confirmada/desfei
 
 Índices: `ix_tef_venda`
 
-Registros no banco de demonstração: 1.081.
+Registros no banco de demonstração: 1.034.
 
 ### usuarios
 
@@ -1133,7 +1226,7 @@ Itens de cada venda, com o custo médio do momento (lucro bruto).
 
 Índices: `ix_venda_itens_venda`
 
-Registros no banco de demonstração: 4.867.
+Registros no banco de demonstração: 4.741.
 
 ### vendas
 
@@ -1155,4 +1248,4 @@ Vendas (PDV e pedidos faturados).
 
 Índices: `ix_vendas_data`
 
-Registros no banco de demonstração: 1.408.
+Registros no banco de demonstração: 1.368.

@@ -389,11 +389,59 @@ public static class DadosDemo
             notas++;
         }
 
+        // ---------------- ordens de serviço: atrasada, entrega hoje, entregue no prazo (faturada), entregue com atraso, em andamento
+        var servicos = new (string Descricao, decimal Valor)[]
+        {
+            ("Cestas de café da manhã para evento corporativo (40 unidades)", 1800),
+            ("Arranjo de frutas para buffet de casamento", 950),
+            ("Fornecimento programado de hortifrúti para restaurante (semana)", 1250),
+            ("Kit de frutas para escritório (mensal)", 620),
+            ("Salada de frutas para festa infantil (120 potes)", 840),
+            ("Cestas natalinas personalizadas (15 unidades)", 2250),
+        };
+        var ordensServico = 0;
+        for (int i = 0; i < servicos.Length; i++)
+        {
+            var os = OrdensServico.Criar(new(clientes[r.Next(clientes.Count)], servicos[i].Descricao, hoje.AddDays(4), servicos[i].Valor, 1, ""));
+            ordensServico++;
+            void DefinirDatas(int abertura, int prazo) =>
+                Db.Exec("UPDATE ordens_servico SET data = @p0, prazo = @p1 WHERE id = @p2", Db.Dia(hoje.AddDays(abertura)) + " 09:00:00", Db.Dia(hoje.AddDays(prazo)), os);
+            switch (i)
+            {
+                case 0: DefinirDatas(-10, -3); OrdensServico.MudarEtapa(os, OrdensServico.EmExecucao); break;
+                case 1: DefinirDatas(-5, 0); OrdensServico.MudarEtapa(os, OrdensServico.Pronta); break;
+                case 2:
+                    DefinirDatas(-20, -12);
+                    OrdensServico.MudarEtapa(os, OrdensServico.Entregue);
+                    Db.Exec("UPDATE ordens_servico SET entregue_em = @p0 WHERE id = @p1", Db.Dia(hoje.AddDays(-13)) + " 16:00:00", os);
+                    OrdensServico.Faturar(os, 2, hoje.AddDays(15));
+                    break;
+                case 3:
+                    DefinirDatas(-15, -9);
+                    OrdensServico.MudarEtapa(os, OrdensServico.Entregue);
+                    Db.Exec("UPDATE ordens_servico SET entregue_em = @p0 WHERE id = @p1", Db.Dia(hoje.AddDays(-7)) + " 11:00:00", os);
+                    break;
+                case 4: OrdensServico.MudarEtapa(os, OrdensServico.Aprovada); break;
+            }
+        }
+
+        // ---------------- acompanhamento de cobrança: um contato com promessa futura e uma promessa já vencida
+        var vencidas = Db.Query("SELECT id FROM contas WHERE tipo = 'RECEBER' AND status = 'ABERTA' AND vencimento < date('now', 'localtime') ORDER BY vencimento LIMIT 2");
+        for (int i = 0; i < vencidas.Rows.Count; i++)
+        {
+            var conta = (long)vencidas.Rows[i]["id"];
+            var contato = ContatosCobranca.Registrar(conta, i == 0 ? "Telefone" : "WhatsApp",
+                i == 0 ? "Cliente pediu alguns dias, recebe na sexta." : "Cliente disse que paga amanhã.", hoje.AddDays(i == 0 ? 3 : 1));
+            if (i == 1) // promessa que não foi cumprida
+                Db.Exec("UPDATE cobranca_contatos SET data = @p0, promessa = @p1 WHERE id = @p2",
+                    Db.Dia(hoje.AddDays(-4)) + " 10:30:00", Db.Dia(hoje.AddDays(-3)), contato);
+        }
+
         // ---------------- ajustes de estoque (inventário)
         Operacoes.AjustarEstoque(produtos["Tomate"], "SAIDA", -3.5m, "Perda por avaria (demonstração)");
         Operacoes.AjustarEstoque(produtos["Banana Prata"], "SAIDA", -2.2m, "Produto maduro descartado (demonstração)");
 
         return $"Dados de demonstração gerados: {clientes.Count} clientes, {fornecedores.Count} fornecedores, {Catalogo.Length} produtos, " +
-               $"{compras} compras, {ops} ordens de produção, {vendas} vendas, 7 orçamentos/pedidos, 3 fretes, {paraBoleto.Rows.Count} boletos, {notas} notas fiscais.";
+               $"{compras} compras, {ops} ordens de produção, {ordensServico} ordens de serviço, {vendas} vendas, 7 orçamentos/pedidos, 3 fretes, {paraBoleto.Rows.Count} boletos, {notas} notas fiscais.";
     }
 }

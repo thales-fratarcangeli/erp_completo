@@ -2,6 +2,21 @@
 
 O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e a numeração segue [SemVer](https://semver.org/lang/pt-BR/).
 
+## 1.5.0 — 2026-10-03
+
+### Adicionado
+- **Assistente de dúvidas por IA** (Ctrl+I ou "✦ Assistente"): painel ao lado da tela que responde como usar o sistema, só com base na ajuda das telas. Não recebe dados da loja, mascara CPF/CNPJ/cartão/e-mail/telefone, limita perguntas por hora e registra no log. Provedor Claude (API da Anthropic, modelo `claude-opus-5-5` com modelos reserva automáticos) ou Ollama local. Desligado por padrão (Configurações > Assistente (IA), com botão "Testar assistente") — migração 15.
+- **Ordens de serviço** (Vendas > Ordens de serviço): etapas Aberta → Aprovada → Em execução → Pronta → Entregue, prazo obrigatório, situação do prazo (no prazo, vence hoje, atrasada, entregue com atraso), histórico de cada mudança, faturamento em contas a receber, cancelamento com motivo, ficha para imprimir e indicador de entregas no prazo — migração 16.
+- **Baixa de contas em lote** no Financeiro (tudo ou nada).
+- **Acompanhamento de cobrança**: registro de contatos com o cliente e promessas de pagamento; filtro "Promessa vencida".
+- **Alertas na tela inicial**: OS atrasadas, com entrega hoje, prontas e sem faturar; contas a receber vencidas; promessas não cumpridas; estoque baixo. Cada alerta abre a tela já filtrada.
+- **Tabelas de todas as telas** com rolagem horizontal (colunas não ficam espremidas) e ordenação ao clicar no título, inclusive listas de itens; a ordem escolhida continua ao pesquisar ou recarregar.
+- Estudo do **app para celular** ([17](docs/17-app-celular.md)) — apenas proposta.
+
+### Alterado
+- Campos de data só aceitam datas plausíveis (01/01/2000 a hoje + 10 anos).
+- Bateria de testes: `ERP_CENARIO=<nome>` roda só os cenários escolhidos.
+
 ## 1.4.0 — 2026-10-02
 
 ### Alterado

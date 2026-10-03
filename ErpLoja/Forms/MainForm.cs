@@ -30,6 +30,7 @@ public class MainForm : Form
     };
     readonly Panel cabecalho = new() { Dock = DockStyle.Top, Height = 46, BackColor = Color.White };
     readonly Panel palco = new() { Dock = DockStyle.Fill, BackColor = Ui.Fundo };
+    readonly AssistentePainel assistente = new() { Visible = false };
     readonly Control inicio;
     Form? ativa;
     Tela? telaAtiva;
@@ -44,6 +45,8 @@ public class MainForm : Form
         Margin = new Padding(0, 28, 0, 6),
     };
     readonly FlowLayoutPanel recentes = new() { AutoSize = true, WrapContents = true, MaximumSize = new Size(780, 0), Anchor = AnchorStyles.None, BackColor = Color.White };
+    // tela inicial: o que precisa de atenção hoje (OS atrasadas, contas vencidas...), cada um abre a tela já filtrada
+    readonly FlowLayoutPanel alertas = new() { AutoSize = true, WrapContents = true, MaximumSize = new Size(780, 0), Anchor = AnchorStyles.None, BackColor = Color.White, Margin = new Padding(0, 22, 0, 0) };
     // menu lateral: item de cada tela, para destacar a que está aberta
     readonly Dictionary<string, Button> itensMenu = new();
     string? chaveAtiva;
@@ -111,8 +114,25 @@ public class MainForm : Form
         fechar.MouseEnter += (_, _) => fechar.ForeColor = Ui.Perigo;
         fechar.MouseLeave += (_, _) => fechar.ForeColor = Tema.Texto(Color.FromArgb(107, 114, 128));
         new ToolTip().SetToolTip(fechar, "Fechar esta tela (Ctrl+W)");
+        var perguntar = new Button
+        {
+            Text = "✦ Assistente",
+            Dock = DockStyle.Right,
+            Width = 118,
+            FlatStyle = FlatStyle.Flat,
+            ForeColor = Ui.Primaria,
+            BackColor = Color.White,
+            Cursor = Cursors.Hand,
+            TabStop = false,
+            UseVisualStyleBackColor = false,
+        };
+        perguntar.FlatAppearance.BorderSize = 0;
+        perguntar.Click += (_, _) => AlternarAssistente();
+        new ToolTip().SetToolTip(perguntar, "Tire dúvidas sobre como usar o sistema (Ctrl+I)");
+        assistente.TelaAtual = () => ativa?.Text;
         cabecalho.Controls.Add(caminho);
         cabecalho.Controls.Add(loja);
+        cabecalho.Controls.Add(perguntar);
         cabecalho.Controls.Add(fechar);
         cabecalho.Paint += (_, e) =>
         {
@@ -141,6 +161,7 @@ public class MainForm : Form
         palco.Controls.Add(inicio);
         var direita = new Panel { Dock = DockStyle.Fill };
         direita.Controls.Add(palco);
+        direita.Controls.Add(assistente);
         direita.Controls.Add(cabecalho);
         Controls.Add(direita);
         Controls.Add(menu);
@@ -151,6 +172,7 @@ public class MainForm : Form
             AtualizarCabecalho();
             AtualizarAjuda();
             AtualizarRecentes();
+            AtualizarAlertas();
         };
         ConfiguracoesForm.ParametrosSalvos += AtualizarCabecalho;
         Tema.Mudou += Redesenhar;
@@ -203,7 +225,7 @@ public class MainForm : Form
         buscar.Font = new Font("Segoe UI", 12F);
         buscar.ForeColor = Color.FromArgb(107, 114, 128);
         buscar.Anchor = AnchorStyles.None;
-        centro.Controls.AddRange([logo, saudacao, dica, buscar, tituloRecentes, recentes]);
+        centro.Controls.AddRange([logo, saudacao, dica, buscar, alertas, tituloRecentes, recentes]);
         area.Controls.Add(centro, 0, 1);
         return area;
     }
@@ -298,6 +320,11 @@ public class MainForm : Form
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
     {
+        if (keyData == (Keys.Control | Keys.I))
+        {
+            AlternarAssistente();
+            return true;
+        }
         if (keyData == (Keys.Control | Keys.W) && ativa != null)
         {
             FecharTela();
@@ -423,6 +450,7 @@ public class MainForm : Form
         Log.TelaAtual = "";
         MarcarMenu(null);
         AtualizarRecentes();
+        AtualizarAlertas();
         AtualizarCabecalho();
         AtualizarAjuda();
     }
@@ -438,6 +466,56 @@ public class MainForm : Form
             b.ForeColor = ativo ? Color.White : Color.FromArgb(229, 231, 235);
             b.Invalidate();
         }
+    }
+
+    /// <summary>Botões dos alertas mostrados na tela inicial (para testes).</summary>
+    public IReadOnlyList<Button> BotoesAlerta => alertas.Controls.OfType<Button>().ToList();
+
+    /// <summary>Alertas da tela inicial: cada um abre a tela que resolve, já filtrada.</summary>
+    void AtualizarAlertas()
+    {
+        alertas.SuspendLayout();
+        foreach (Control c in alertas.Controls.Cast<Control>().ToList())
+            c.Dispose();
+        List<Alerta> lista;
+        try
+        {
+            lista = Alertas.Listar();
+        }
+        catch (Exception ex) when (ex is Microsoft.Data.Sqlite.SqliteException or InvalidOperationException)
+        {
+            lista = []; // alerta nunca impede de abrir o sistema
+        }
+        foreach (var a in lista)
+        {
+            var tela = Navegacao.Telas().FirstOrDefault(t => t.Chave == a.Tela);
+            if (tela is null)
+                continue;
+            var cor = a.Grave ? Ui.Perigo : Ui.Alerta;
+            var b = Ui.Botao("     " + a.Texto + "  →", (_, _) => AbrirAlerta(tela, a));
+            b.Margin = new Padding(4);
+            b.MinimumSize = new Size(250, 38);
+            b.TextAlign = ContentAlignment.MiddleLeft;
+            b.Tag = a;
+            b.Paint += (_, e) =>
+            {
+                e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                using var ponto = new SolidBrush(Tema.Texto(cor));
+                e.Graphics.FillEllipse(ponto, 12, b.Height / 2 - 5, 10, 10);
+            };
+            new ToolTip().SetToolTip(b, $"Abrir {tela.Titulo} já filtrada");
+            alertas.Controls.Add(b);
+        }
+        alertas.Visible = alertas.Controls.Count > 0;
+        alertas.ResumeLayout();
+    }
+
+    void AbrirAlerta(Tela tela, Alerta a)
+    {
+        Log.Registrar(Log.Tela, "Abriu pelo alerta da tela inicial", a.Texto, tela: tela.Titulo);
+        Abrir(tela);
+        if (telaAtiva?.Chave == tela.Chave && ativa is IFiltroInicial filtravel)
+            filtravel.AplicarFiltro(a.Filtro);
     }
 
     /// <summary>Atalhos para as telas usadas por último (vêm do log de atividades), com a cor da área de cada uma.</summary>
@@ -465,6 +543,16 @@ public class MainForm : Form
         tituloRecentes.Visible = recentes.Visible = recentes.Controls.Count > 0;
         recentes.ResumeLayout();
     }
+
+    /// <summary>Mostra ou esconde o painel do assistente de dúvidas ao lado da tela atual.</summary>
+    public void AlternarAssistente()
+    {
+        assistente.Visible = !assistente.Visible;
+        Log.Registrar(Log.Tela, assistente.Visible ? "Abriu o assistente" : "Fechou o assistente", tela: ativa?.Text ?? "Início");
+    }
+
+    /// <summary>Painel do assistente (para testes).</summary>
+    public AssistentePainel PainelAssistente => assistente;
 
     /// <summary>Telas mostradas em "Continuar de onde parou" (para testes).</summary>
     public IReadOnlyList<string> AtalhosRecentes => recentes.Controls.OfType<Button>().Select(b => b.Text.Trim()).ToList();

@@ -32,6 +32,8 @@ public static class Migracoes
         new(12, "Log de atividades: parâmetro de retenção", M012),
         new(13, "Segurança: credenciais cifradas e bloqueio após senhas erradas", M013),
         new(14, "Preferência de tema (claro/escuro) por usuário", M014),
+        new(15, "Assistente de dúvidas (IA): parâmetros", M015),
+        new(16, "Ordens de serviço (etapas, prazos, faturamento) e contatos de cobrança", M016),
     ];
 
     public static int VersaoDoSistema => Todas.Max(m => m.Versao);
@@ -816,4 +818,58 @@ public static class Migracoes
 
     // ------------------------------------------------------------------ 014
     static void M014(DbSessao s) => AdicionarColuna(s, "usuarios", "tema", "TEXT NOT NULL DEFAULT 'CLARO'");
+
+    // ------------------------------------------------------------------ 015
+    static void M015(DbSessao s)
+    {
+        foreach (var p in Parametros.Definicoes.Where(p => p.Grupo == Parametros.IA))
+            Config(s, p.Chave, p.Padrao);
+    }
+
+    // ------------------------------------------------------------------ 016
+    static void M016(DbSessao s)
+    {
+        s.Exec("""
+            CREATE TABLE IF NOT EXISTS ordens_servico (
+                id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                data           TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+                cliente_id     INTEGER NOT NULL REFERENCES pessoas(id),
+                descricao      TEXT NOT NULL,
+                prazo          TEXT NOT NULL,
+                valor          REAL NOT NULL DEFAULT 0 CHECK (valor >= 0),
+                responsavel_id INTEGER REFERENCES usuarios(id),
+                observacoes    TEXT,
+                etapa          TEXT NOT NULL DEFAULT 'ABERTA'
+                               CHECK (etapa IN ('ABERTA', 'APROVADA', 'EM_EXECUCAO', 'PRONTA', 'ENTREGUE', 'CANCELADA')),
+                entregue_em    TEXT,
+                faturada_em    TEXT,
+                usuario_id     INTEGER REFERENCES usuarios(id)
+            );
+            CREATE INDEX IF NOT EXISTS ix_os_etapa ON ordens_servico(etapa, prazo);
+            CREATE INDEX IF NOT EXISTS ix_os_cliente ON ordens_servico(cliente_id);
+
+            CREATE TABLE IF NOT EXISTS os_historico (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                os_id      INTEGER NOT NULL REFERENCES ordens_servico(id),
+                data       TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+                etapa      TEXT NOT NULL,
+                observacao TEXT,
+                usuario_id INTEGER REFERENCES usuarios(id)
+            );
+            CREATE INDEX IF NOT EXISTS ix_os_historico ON os_historico(os_id, data);
+
+            CREATE TABLE IF NOT EXISTS cobranca_contatos (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                conta_id   INTEGER NOT NULL REFERENCES contas(id),
+                data       TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+                meio       TEXT NOT NULL,
+                resumo     TEXT NOT NULL,
+                promessa   TEXT,
+                usuario_id INTEGER REFERENCES usuarios(id)
+            );
+            CREATE INDEX IF NOT EXISTS ix_cobranca_contatos ON cobranca_contatos(conta_id, data);
+            """);
+        AdicionarColuna(s, "contas", "os_id", "INTEGER REFERENCES ordens_servico(id)");
+        Config(s, "os_prazo_dias", "3");
+    }
 }

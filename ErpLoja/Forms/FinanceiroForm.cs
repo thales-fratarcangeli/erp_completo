@@ -1,7 +1,7 @@
 namespace ErpLoja.Forms;
 
-/// <summary>Contas a receber e a pagar: lançamento, baixa, estorno e cancelamento.</summary>
-public class FinanceiroForm : Form
+/// <summary>Contas a receber e a pagar: lançamento, baixa (também em lote), estorno, cancelamento e acompanhamento da cobrança.</summary>
+public class FinanceiroForm : Form, IFiltroInicial
 {
     static readonly string[] Formas = ["Dinheiro", "PIX", "Cartão de débito", "Cartão de crédito", "Transferência", "Boleto"];
 
@@ -19,7 +19,8 @@ public class FinanceiroForm : Form
         ate = Ui.Data(inicioMes.AddMonths(1).AddDays(-1));
 
         tipo.Items.AddRange(["Todas", "A receber", "A pagar"]);
-        situacao.Items.AddRange(["Em aberto", "Vencidas", "Pagas", "Canceladas", "Todas"]);
+        situacao.Items.AddRange(["Em aberto", "Vencidas", "Pagas", "Canceladas", "Todas", "Promessa vencida"]);
+        grid.MultiSelect = true; // baixa em lote: Ctrl+clique / Shift+clique
         tipo.SelectedIndex = situacao.SelectedIndex = 0;
 
         var filtros = Ui.Barra();
@@ -31,6 +32,9 @@ public class FinanceiroForm : Form
         acoes.Controls.AddRange([
             Ui.Botao("Nova conta", (_, _) => NovaConta()),
             Ui.Botao("Baixar (receber/pagar)", (_, _) => Baixar(), primario: true),
+            Ui.Botao("Baixar selecionadas", (_, _) => BaixarLote()),
+            Ui.Botao("Registrar contato", (_, _) => RegistrarContato()),
+            Ui.Botao("Ver contatos", (_, _) => VerContatos()),
             Ui.Botao("Estornar baixa", (_, _) => Estornar()),
             Ui.Botao("Cancelar conta", (_, _) => CancelarConta()),
             Ui.Botao("Exportar CSV", (_, _) => Ui.ExportarCsv(grid, "contas")),
@@ -66,6 +70,7 @@ public class FinanceiroForm : Form
             1 => "c.status = 'ABERTA' AND c.vencimento < date('now', 'localtime')",
             2 => "c.status = 'PAGA'",
             3 => "c.status = 'CANCELADA'",
+            5 => $"c.tipo = 'RECEBER' AND c.status = 'ABERTA' AND {ContatosCobranca.SqlPromessaVencida}",
             _ => "1 = 1",
         });
         if (usarPeriodo.Checked)
@@ -78,7 +83,11 @@ public class FinanceiroForm : Form
                    CASE WHEN c.status = 'ABERTA' AND c.vencimento < date('now', 'localtime') THEN 'VENCIDA' ELSE c.status END AS "Situação",
                    CASE WHEN c.status = 'ABERTA' AND c.vencimento < date('now', 'localtime')
                         THEN CAST(julianday(date('now', 'localtime')) - julianday(c.vencimento) AS INTEGER) END AS "Dias de atraso",
-                   strftime('%d/%m/%Y', c.data_pagamento) AS "Pago em", c.valor_pago AS "Valor pago", c.forma_pagamento AS "Forma"
+                   strftime('%d/%m/%Y', c.data_pagamento) AS "Pago em", c.valor_pago AS "Valor pago", c.forma_pagamento AS "Forma",
+                   (SELECT strftime('%d/%m/%Y', cc.data) || ' · ' || cc.meio FROM cobranca_contatos cc WHERE cc.conta_id = c.id
+                     ORDER BY cc.data DESC, cc.id DESC LIMIT 1) AS "Último contato",
+                   (SELECT strftime('%d/%m/%Y', cc.promessa) FROM cobranca_contatos cc WHERE cc.conta_id = c.id
+                     ORDER BY cc.data DESC, cc.id DESC LIMIT 1) AS "Promessa"
             FROM contas c
             LEFT JOIN pessoas cl ON cl.id = c.cliente_id
             LEFT JOIN pessoas f ON f.id = c.fornecedor_id
@@ -105,6 +114,126 @@ public class FinanceiroForm : Form
         var (aReceber, aPagar) = (Ui.Dec(t["receber"]), Ui.Dec(t["pagar"]));
         resumo.Text = $"Em aberto — a receber: {Ui.Moeda(aReceber)} (vencido: {Ui.Moeda(Ui.Dec(t["vencido"]))})   a pagar: {Ui.Moeda(aPagar)}   saldo previsto: {Ui.Moeda(aReceber - aPagar)}"
                     + $"        No mês — recebido: {Ui.Moeda(Ui.Dec(t["recebido"]))}   pago: {Ui.Moeda(Ui.Dec(t["pago"]))}";
+    }
+
+    /// <summary>Abre já filtrada (alertas da tela inicial).</summary>
+    public void AplicarFiltro(string filtro)
+    {
+        tipo.SelectedIndex = filtro is Alertas.ContasVencidas or Alertas.PromessasVencidas ? 1 : 0;
+        usarPeriodo.Checked = false;
+        situacao.SelectedIndex = filtro switch
+        {
+            Alertas.ContasVencidas => 1,
+            Alertas.PromessasVencidas => 5,
+            _ => 0,
+        };
+        Carregar();
+    }
+
+    /// <summary>Filtros escolhidos (para testes).</summary>
+    public string FiltroAtual => $"{tipo.Text} / {situacao.Text}";
+
+    void BaixarLote()
+    {
+        var linhas = grid.SelectedRows.Cast<DataGridViewRow>().Select(r => r.DataBoundItem).OfType<DataRowView>().ToList();
+        if (linhas.Count < 2)
+        {
+            Ui.Erro("Selecione duas ou mais contas (Ctrl+clique ou Shift+clique). Para uma conta só, use \"Baixar\".");
+            return;
+        }
+        if (linhas.Any(l => Ui.Txt(l["Situação"]) is not ("ABERTA" or "VENCIDA")))
+        {
+            Ui.Erro("Só contas em aberto podem ser baixadas. Tire da seleção as pagas e canceladas.");
+            return;
+        }
+        if (linhas.Select(l => Ui.Txt(l["Tipo"])).Distinct().Count() > 1)
+        {
+            Ui.Erro("Selecione só contas a receber ou só contas a pagar (não as duas juntas).");
+            return;
+        }
+        var receber = Ui.Txt(linhas[0]["Tipo"]) == "A receber";
+        var total = linhas.Sum(l => Ui.Dec(l["Valor"]));
+        using var d = new Dialogo(receber ? "Receber contas em lote" : "Pagar contas em lote", "conta_baixa", "Confirmar");
+        d.Nota($"{linhas.Count} conta(s) — total {Ui.Moeda(total)}. Cada conta é baixada pelo próprio valor.");
+        var data = d.Adicionar(receber ? "Recebido em:" : "Pago em:", Ui.Data());
+        var forma = d.Adicionar("Forma:", Ui.Combo());
+        forma.Items.AddRange(Formas);
+        forma.SelectedIndex = 0;
+        d.Nota("Com juros, desconto ou valor diferente, baixe a conta sozinha pelo botão \"Baixar\".");
+        if (d.ShowDialog(this) != DialogResult.OK)
+            return;
+        try
+        {
+            var avisos = Operacoes.BaixarLote(linhas.Select(l => Convert.ToInt64(l["id"])).ToList(), data.Value.Date, forma.Text);
+            Ui.Feito($"{linhas.Count} conta(s) baixada(s): {Ui.Moeda(total)}.");
+            if (avisos.Count > 0)
+                Ui.Info(string.Join("\n\n", avisos));
+        }
+        catch (InvalidOperationException ex)
+        {
+            Ui.Erro(ex.Message);
+        }
+        Carregar();
+    }
+
+    void RegistrarContato()
+    {
+        if (Selecionada() is not { } sel)
+            return;
+        var (id, linha) = sel;
+        if (Ui.Txt(linha["Tipo"]) != "A receber" || Ui.Txt(linha["Situação"]) is not ("ABERTA" or "VENCIDA"))
+        {
+            Ui.Erro("Contatos de cobrança só valem para contas a receber em aberto.");
+            return;
+        }
+        using var d = new Dialogo("Registrar contato de cobrança", "FinanceiroForm", "Salvar");
+        d.Nota($"{linha["Cliente/Fornecedor"]} — {linha["Descrição"]} — {Ui.Moeda(Ui.Dec(linha["Valor"]))}, vencimento {linha["Vencimento"]}");
+        var meio = d.Adicionar("Como foi o contato:", Ui.Combo());
+        meio.Items.AddRange(ContatosCobranca.Meios);
+        meio.SelectedIndex = 0;
+        var resumo = d.Adicionar("O que foi conversado:", Validacao.Caixa(Formatos.Texto(500), "Conversa", obrigatorio: true, largura: 380));
+        var prometeu = d.Adicionar("Promessa:", new CheckBox { Text = "Cliente prometeu pagar na data abaixo", AutoSize = true });
+        var promessa = d.Adicionar("Data da promessa:", Ui.Data(DateTime.Today.AddDays(1)));
+        promessa.Enabled = false;
+        prometeu.CheckedChanged += (_, _) => promessa.Enabled = prometeu.Checked;
+        d.Validar = () =>
+        {
+            try
+            {
+                ContatosCobranca.Registrar(id, meio.Text, resumo.Text, prometeu.Checked ? promessa.Value.Date : null);
+                return true;
+            }
+            catch (InvalidOperationException ex)
+            {
+                Ui.Erro(ex.Message);
+                return false;
+            }
+        };
+        if (d.ShowDialog(this) == DialogResult.OK)
+        {
+            Ui.Feito("Contato registrado.");
+            Carregar();
+        }
+    }
+
+    void VerContatos()
+    {
+        if (Selecionada() is not { } sel)
+            return;
+        var (id, linha) = sel;
+        var contatos = ContatosCobranca.Listar(id);
+        if (contatos.Rows.Count == 0)
+        {
+            Ui.Info("Nenhum contato de cobrança registrado para esta conta. Use \"Registrar contato\".");
+            return;
+        }
+        using var d = new Dialogo($"Contatos de cobrança — {linha["Descrição"]}", "FinanceiroForm", "Fechar") { ConfirmarAoSair = false };
+        var lista = Ui.Grid();
+        lista.Dock = DockStyle.None;
+        lista.Size = new Size(720, 260);
+        d.Adicionar("Histórico:", lista);
+        lista.DataSource = contatos;
+        d.ShowDialog(this);
     }
 
     (long Id, DataRowView Linha)? Selecionada()

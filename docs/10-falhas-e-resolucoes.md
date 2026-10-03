@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Documento** | Base de conhecimento de suporte e registro de falhas de desenvolvimento |
-| **Sistema** | ERP Loja 1.2.0 |
+| **Sistema** | ERP Loja 1.5.0 |
 
 Duas partes: **(1) problemas que podem acontecer no uso** e como resolver; **(2) falhas encontradas durante o desenvolvimento**
 e como foram resolvidas (registro técnico, para não repetir).
@@ -213,6 +213,12 @@ Use **Imprimir página de teste** em *Configurações > Impressoras*.
 | 47 | No modo escuro, o fundo do menu ficaria claro ao passar o mouse | A conversão de cor misturava as tabelas de fundo e de texto (a cor do menu também é cor de texto) | Conversões separadas: `Tema.Fundo` e `Tema.Texto` |
 | 48 | Barra de status continuava clara no modo escuro | O desenho padrão do `StatusStrip` ignora a cor de fundo | No escuro, desenho do sistema (`ToolStripRenderMode.System`) |
 | 49 | Arquivos `loja_log.db-wal` e `-shm` na pasta (pergunta do usuário) | O banco de log usava o modo WAL do SQLite, que cria arquivos auxiliares enquanto o sistema está aberto | Log no modo padrão (DELETE): só o `loja_log.db` |
+| 50 | SDK da API do Claude: `Fallbacks = [...]` não compilava | No SDK em C#, `Fallbacks` é um tipo união (lista de modelos ou o valor "default"), sem conversão de coleção | `Fallbacks = new Default()` (modelos reserva escolhidos pelo servidor) |
+| 51 | `WFO1000` no painel do assistente | Propriedade pública `TelaAtual` (delegate) num controle | `[DesignerSerializationVisibility(Hidden)]` (mesma causa da falha 4) |
+| 52 | Teste do assistente não achava o texto das instruções no corpo da requisição | O JSON escapa acentos (`ã`) e o teste procurava o texto cru; depois, procurava a palavra "cache_control" no valor do campo (que é só `{"type":"ephemeral"}`) | Ler o texto com `GetValue<string>()` e conferir o campo `cache_control.type` diretamente |
+| 53 | Erro "Object reference not set" ao abrir telas depois da rolagem horizontal das tabelas | Mudar a largura mínima da coluna durante `ColumnAdded`, no meio de uma ordenação ou com a grade ainda sem janela (aba não aberta) quebra o `DataGridView` | Ajuste feito depois do evento (`BeginInvoke`), só quando a largura muda e só com a grade já criada (`HandleCreated`) |
+| 54 | Teste de clique no título da coluna não ordenava | Clique simulado por mensagens do Windows só vale com a janela da bateria em primeiro plano (o Windows confere a janela sob o ponteiro) | O teste aciona o mesmo tratador do clique da grade (`OnColumnHeaderMouseClick`), independente da janela em foco |
+| 55 | Rodar um cenário só exigia a bateria inteira (≈ 10 min) e regravava os relatórios | Sem filtro de execução | Variável `ERP_CENARIO=<parte do nome>` roda só os cenários correspondentes, sem gerar documentos |
 
 ### Revisão de redundância (versão 1.0.0)
 

@@ -297,6 +297,32 @@ public static class Operacoes
         return aviso;
     }
 
+    /// <summary>
+    /// Baixa em lote (RN-FIN-05): várias contas, cada uma pelo próprio valor, na mesma data e forma. Tudo ou nada: se uma
+    /// não estiver mais em aberto, nenhuma é baixada. Devolve os avisos sobre boletos encerrados.
+    /// </summary>
+    public static List<string> BaixarLote(IReadOnlyCollection<long> ids, DateTime data, string forma)
+    {
+        if (ids.Count == 0)
+            throw new InvalidOperationException("Selecione as contas a baixar.");
+        if (data.Date > DateTime.Today)
+            throw new InvalidOperationException("A data do pagamento não pode ser futura. Baixe as contas no dia em que o dinheiro entrar ou sair.");
+        var avisos = new List<string>();
+        using var s = new DbSessao(transacao: true);
+        foreach (var id in ids.Distinct())
+        {
+            if (s.Exec("""
+                    UPDATE contas SET status = 'PAGA', data_pagamento = @p0, valor_pago = valor, forma_pagamento = @p1
+                    WHERE id = @p2 AND status = 'ABERTA'
+                    """, Db.Dia(data), forma, id) == 0)
+                throw new InvalidOperationException($"A conta nº {id} não está mais em aberto (pode ter sido baixada ou cancelada). Nenhuma conta foi baixada; clique em Pesquisar para atualizar.");
+            if (Cobranca.EncerrarBoletosDaConta(s, id) is string aviso)
+                avisos.Add(aviso);
+        }
+        s.Commit();
+        return avisos;
+    }
+
     public static void EstornarConta(long id) =>
         Db.Exec("""
             UPDATE contas SET status = 'ABERTA', data_pagamento = NULL, valor_pago = NULL, forma_pagamento = NULL

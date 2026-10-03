@@ -107,6 +107,13 @@ R$ 3,2 milhões.
 
 ## 5. Roteiro recomendado
 
+> **Atualização (1.5.0):** a partir destes insights — sem adaptar o ERP Loja ao outro ERP — foram implementados:
+> ordens de serviço genéricas com etapas obrigatórias, prazo, alerta de atraso, histórico, faturamento e ficha impressa
+> (itens 1 a 3, sem os cadastros específicos de gráfica); baixa em lote e acompanhamento de cobrança (item 6); datas
+> plausíveis em todos os campos (problema das datas inválidas); alertas na tela inicial. Continuam pendentes: permissões
+> por tela e ação (7), NF-e com transmissão (5), NFS-e (8), vendedores e comissões (9), condições de pagamento (10) e os
+> demais da prioridade 3, além do importador de dados.
+
 ### Prioridade 1 — o que a gráfica usa todo dia
 | # | Entrega | Por quê | Esforço |
 |---|---|---|---|

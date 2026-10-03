@@ -16,7 +16,7 @@ public record Parametro(string Chave, string Padrao, string Grupo, string Rotulo
 public static class Parametros
 {
     public const string Empresa = "Empresa", Fiscal = "Fiscal", Reforma = "Reforma tributária", Comercial = "Vendas e compras",
-        Producao = "Produção", Transporte = "Transporte e CIOT", Tef = "TEF", Impressoras = "Impressoras", Email = "E-mail", Banco = "Banco de dados";
+        Producao = "Produção", Transporte = "Transporte e CIOT", Tef = "TEF", Impressoras = "Impressoras", Email = "E-mail", IA = "Assistente (IA)", Banco = "Banco de dados";
     public const string Sim = "SIM", Nao = "NAO";
     public const string Permitir = "PERMITIR", Perguntar = "PERGUNTAR", Bloquear = "BLOQUEAR";
 
@@ -53,6 +53,7 @@ public static class Parametros
         new("desconto_maximo_pct", "10", Comercial, "Desconto máximo sem administrador (%)"),
         new("validade_orcamento_dias", "15", Comercial, "Validade padrão do orçamento (dias)"),
         new("prazo_vencimento_dias", "30", Comercial, "1º vencimento a prazo (dias)"),
+        new("os_prazo_dias", "3", Comercial, "Prazo padrão da ordem de serviço (dias)", Dica: "Sugestão de prazo de entrega ao abrir uma OS (pode ser mudado em cada OS)."),
         new("max_parcelas", "12", Comercial, "Número máximo de parcelas"),
         new("caixa_numero", "01", Comercial, "Número deste caixa (PDV)"),
         new("imprimir_cupom", Perguntar, Comercial, "Imprimir comprovante ao finalizar venda", [Perguntar, "SEMPRE", "NUNCA"]),
@@ -87,6 +88,16 @@ public static class Parametros
         new("resend_api_key", "", Email, "Chave da API do Resend", Dica: "Crie em resend.com > API Keys. Usada para enviar o código de recuperação de senha.", Secreto: true),
         new("resend_remetente", "", Email, "Remetente (ex.: ERP Loja <nao-responda@sualoja.com.br>)", Dica: "O domínio precisa estar verificado no Resend."),
 
+        new("ia_ativa", Nao, IA, "Assistente de dúvidas ligado", [Sim, Nao],
+            Dica: "O assistente responde dúvidas sobre o USO do sistema, só com base na ajuda das telas. Ele não recebe dados da loja e não executa ações."),
+        new("ia_provedor", "CLAUDE", IA, "Provedor de IA", ["CLAUDE", "OLLAMA"],
+            Dica: "CLAUDE: API da Anthropic (internet, cobrança por uso). OLLAMA: modelo instalado neste computador (nada sai da máquina)."),
+        new("ia_chave_api", "", IA, "Chave da API da Anthropic", Dica: "Crie em console.anthropic.com > API Keys. Fica cifrada no banco.", Secreto: true),
+        new("ia_modelo", "claude-opus-5-5", IA, "Modelo do Claude", Dica: "Padrão: claude-opus-5-5. Para reduzir custo pode-se usar claude-haiku-4-5 ou claude-sonnet-5-5."),
+        new("ia_limite_hora", "30", IA, "Perguntas por hora por usuário", Dica: "Limita o uso (e o custo) do assistente."),
+        new("ia_ollama_url", "http://localhost:11434", IA, "Ollama: endereço", Dica: "Somente se o provedor for OLLAMA."),
+        new("ia_ollama_modelo", "", IA, "Ollama: modelo (ex.: llama3.1)"),
+
         new("backup_ao_iniciar", "SIM", Banco, "Backup automático diário ao abrir o sistema", ["SIM", "NAO"]),
         new("backups_manter", "15", Banco, "Quantidade de backups diários mantidos"),
         new("log_dias_manter", "365", Banco, "Dias de log de atividades mantidos", Dica: "O log fica em um banco separado (ex.: loja_log.db). 0 = manter tudo."),
@@ -94,11 +105,11 @@ public static class Parametros
 
     /// <summary>Chaves cujo valor precisa ser um número inteiro não negativo.</summary>
     public static readonly string[] Inteiros =
-        ["serie_55", "proximo_numero_55", "serie_65", "proximo_numero_65", "validade_orcamento_dias", "prazo_vencimento_dias", "max_parcelas", "backups_manter",
+        ["ia_limite_hora", "serie_55", "proximo_numero_55", "serie_65", "proximo_numero_65", "validade_orcamento_dias", "prazo_vencimento_dias", "os_prazo_dias", "max_parcelas", "backups_manter",
          "log_dias_manter"];
 
     /// <summary>Inteiros que precisam ser 1 ou mais (numeração de notas e parcelas).</summary>
-    public static readonly string[] Positivos = ["proximo_numero_55", "proximo_numero_65", "max_parcelas"];
+    public static readonly string[] Positivos = ["ia_limite_hora", "proximo_numero_55", "proximo_numero_65", "max_parcelas"];
 
     /// <summary>Chaves que não podem ficar em branco.</summary>
     public static readonly string[] Obrigatorios = ["nome_loja"];
@@ -129,6 +140,12 @@ public static class Parametros
         ["pamcard_cnpj_contratante"] = Formatos.Cnpj,
         ["resend_api_key"] = new("Chave de API", "não aceita espaços.", c => !char.IsControl(c) && !char.IsWhiteSpace(c), 200),
         ["resend_remetente"] = Formatos.Remetente,
+        ["ia_chave_api"] = new("Chave de API", "não aceita espaços.", c => !char.IsControl(c) && !char.IsWhiteSpace(c), 300),
+        ["ia_modelo"] = new("Modelo", "aceita letras minúsculas, números, ponto e hífen (ex.: claude-opus-5-5).", c => char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c) || c is '-' or '.' or ':', 60),
+        ["ia_ollama_url"] = new("Endereço do Ollama", "não aceita espaços.", c => !char.IsControl(c) && !char.IsWhiteSpace(c), 200,
+            v => Uri.TryCreate(v, UriKind.Absolute, out var u) && (u.Scheme == Uri.UriSchemeHttps || (u.Scheme == Uri.UriSchemeHttp && u.IsLoopback))
+                ? null : "deve ser https:// ou http://localhost (o Ollama roda neste computador)."),
+        ["ia_ollama_modelo"] = new("Modelo local", "aceita letras, números, ponto, hífen, dois-pontos e barra.", c => char.IsAsciiLetterOrDigit(c) || c is '-' or '.' or ':' or '/' or '_', 80),
     };
 
     /// <summary>Formato de entrada do parâmetro (inteiros e percentuais só aceitam números).</summary>
@@ -172,6 +189,7 @@ public static class Parametros
     public static decimal DescontoMaximoPct => Dec("desconto_maximo_pct");
     public static int ValidadeOrcamentoDias => Int("validade_orcamento_dias");
     public static int PrazoVencimentoDias => Int("prazo_vencimento_dias");
+    public static int PrazoOsDias => Math.Clamp(Int("os_prazo_dias"), 0, 365);
     public static int MaxParcelas => Math.Clamp(Int("max_parcelas"), 1, 60);
     public static string CstPadrao => Txt("cst_padrao");
     public static string NaturezaVenda => Txt("natureza_venda");

@@ -278,6 +278,24 @@ public static class Ajuda
             - Encerrar CIOT ao final da viagem (ao marcar Entregue com CIOT declarado, o sistema lembra); Cancelar CIOT (com motivo) se a viagem não acontecer — cancele o CIOT antes de cancelar o frete.
             - Configure a administradora e as credenciais em Configurações > Transporte e CIOT.
             """),
+        new("OrdensServicoForm", "Ordens de serviço", """
+            A ordem de serviço (OS) acompanha um trabalho feito para um cliente, do pedido à entrega e ao faturamento.
+
+            ## Abrir e acompanhar
+            - Nova OS: cliente, o que será feito, prazo de entrega (obrigatório; a sugestão vem de Configurações > Vendas e compras), valor e responsável.
+            - Etapas: Aberta → Aprovada → Em execução → Pronta → Entregue. "Avançar etapa" passa para a próxima; "Mudar etapa" escolhe qualquer uma (voltar exige o motivo).
+            - Toda mudança de etapa, de prazo e o faturamento ficam no histórico (grade de baixo), com quem fez e quando.
+            - Situação do prazo: NO PRAZO, VENCE HOJE (laranja), ATRASADA (vermelho, com os dias de atraso), ENTREGUE ou ENTREGUE COM ATRASO.
+            - O filtro "Mostrar" separa em andamento, atrasadas, entrega hoje, prontas para entregar, entregues sem faturar, entregues e canceladas. A pesquisa aceita o número, o cliente ou o serviço.
+            - O resumo mostra quantas estão em andamento, atrasadas, com entrega hoje e o percentual entregue no prazo nos últimos 90 dias.
+
+            ## Faturar, cancelar e imprimir
+            - Faturar: gera as contas a receber da OS no Financeiro (parcelas mensais). Pode ser antes ou depois da entrega, uma única vez. Depois de faturada, o valor da OS não muda.
+            - Cancelar: exige o motivo. OS faturada só é cancelada depois de cancelar as contas a receber dela.
+            - Imprimir: ficha da OS com o serviço, prazo e espaço para assinatura de quem recebeu.
+            - OS atrasadas, com entrega hoje, prontas e entregues sem faturar aparecem como alerta na tela inicial.
+            """),
+
         new("FinanceiroForm", "Financeiro - contas a receber e a pagar", """
             Todas as contas geradas por vendas, compras e lançamentos manuais.
 
@@ -289,6 +307,14 @@ public static class Ajuda
             - Conta com boleto em aberto: ao baixar ou cancelar, o boleto é cancelado (se ainda não foi ao banco) ou tem a baixa pedida na próxima remessa, para o cliente não pagar duas vezes.
             - O rodapé mostra o total em aberto a receber (com quanto já está vencido) e a pagar, o saldo previsto e o realizado no mês.
             - Com "Vencimento de" marcado, mudar as datas já atualiza a lista.
+
+            ## Baixa em lote
+            Selecione várias contas (Ctrl+clique ou Shift+clique) e use "Baixar selecionadas": todas são baixadas pelo valor de cada uma, na mesma data e forma. Se alguma não puder ser baixada (já paga, cancelada), nenhuma é baixada e a mensagem diz qual.
+
+            ## Acompanhamento de cobrança
+            - Registrar contato: numa conta a receber em aberto, anote como foi o contato (telefone, WhatsApp...), o que foi conversado e, se houver, a promessa de pagamento.
+            - As colunas "Último contato" e "Promessa" mostram o andamento; "Ver contatos" lista todo o histórico da conta.
+            - O filtro "Promessa vencida" mostra quem prometeu e não pagou; elas também aparecem como alerta na tela inicial.
             """),
 
         new("CobrancaForm", "Cobrança bancária (boletos)", """
@@ -367,10 +393,24 @@ public static class Ajuda
             - TEF: liga o TEF no PDV e escolhe o provedor (SIMULADOR para testes).
             - Impressoras: impressora de cupom (Windows ou térmica ESC/POS com corte e gaveta), colunas, acentuação e impressora de documentos A4. Use "Imprimir página de teste".
             - E-mail: chave do Resend e remetente para a recuperação de senha. Use "Enviar e-mail de teste".
+            - Assistente (IA): liga o assistente de dúvidas, escolhe o provedor (Claude pela internet ou Ollama local), a chave da API (guardada cifrada), o modelo e o limite de perguntas por hora. Use "Testar assistente".
             - Banco de dados: arquivo em uso, migrações aplicadas, backups, dias de log mantidos, troca de banco e geração de dados de demonstração (apenas para testes).
             - Minha conta: seu e-mail de recuperação e troca de senha.
 
             Ao salvar, valores inválidos são recusados com uma mensagem e o cursor vai para o campo: números inteiros (séries, prazos, parcelas, backups, dias de log) não aceitam letras, pontos nem vírgulas; próximo número da nota e máximo de parcelas começam em 1; percentuais vão de 0 a 100; o nome da loja é obrigatório.
+            """),
+
+        new("AssistentePainel", "Assistente de dúvidas (IA)", """
+            Tire dúvidas sobre como usar o sistema conversando: "como cancelo uma venda?", "onde configuro a impressora?", "o que é o CIOT?". Abra pelo botão "✦ Assistente" no topo da janela, por Ctrl+I ou pelo Buscar tela (Ctrl+K). O painel abre ao lado da tela em que você está.
+
+            ## Como funciona
+            - Digite a pergunta e tecle Enter (Shift+Enter quebra a linha). "Nova conversa" começa do zero.
+            - As respostas vêm só da ajuda das telas do sistema. O assistente não vê os dados da loja (clientes, vendas, valores) e não faz nada sozinho: ele explica onde e como você faz.
+            - Documentos (CPF/CNPJ), e-mails, telefones e números de cartão digitados na pergunta são trocados por marcadores antes de sair do computador. Mesmo assim, não digite senhas nem dados de clientes.
+            - Perguntas e respostas ficam no Log de atividades. Há um limite de perguntas por hora por usuário.
+
+            ## Configuração (administrador)
+            Configurações > Assistente (IA): ligar/desligar, provedor (CLAUDE pela internet, com chave da API da Anthropic, ou OLLAMA, um modelo instalado neste computador), modelo e limite por hora. Use "Testar assistente" para conferir.
             """),
 
         new("LogForm", "Log de atividades", """

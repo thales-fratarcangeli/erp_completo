@@ -79,6 +79,18 @@ public class ConfiguracoesForm : Form
             }));
         painel.Linha(botoes);
 
+        if (grupo == Parametros.IA)
+            painel.Linha(Ui.Botao("Testar assistente", async (_, _) =>
+            {
+                if (!Salvar(definicoes, silencioso: true))
+                    return;
+                Ui.Aviso("Perguntando ao assistente...");
+                var r = await Assistente.Perguntar("Onde eu cadastro um produto novo?", [], "Configurações");
+                if (r.Ok)
+                    Ui.Info("O assistente respondeu:\n\n" + r.Texto);
+                else
+                    Ui.Erro(r.Texto);
+            }));
         if (grupo == Parametros.Banco)
             MontarBanco(painel);
         return aba;

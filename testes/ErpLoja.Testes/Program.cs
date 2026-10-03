@@ -28,11 +28,19 @@ var camposConferidos = 0;
 static int Usuario_ContarCampos(Control raiz) =>
     raiz.Controls.Cast<Control>().Sum(c => (c is TextBox tb && !tb.ReadOnly && tb.Parent is not UpDownBase ? 1 : 0) + Usuario_ContarCampos(c));
 
+// desenvolvimento: ERP_CENARIO=<parte do nome> roda só os cenários correspondentes (sem gerar relatórios nem docs)
+var soCenario = Environment.GetEnvironmentVariable("ERP_CENARIO");
+
 var t = new Thread(() =>
 {
     try
     {
         CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = new CultureInfo("pt-BR");
+        if (!string.IsNullOrEmpty(soCenario))
+        {
+            RodarCenarios(soCenario);
+            return;
+        }
 
         // ---------- migrations: banco legado legado1 (sem __migracoes, user_version 0)
         var legado1 = Path.Combine(Temp, "legado_v1.db");
@@ -504,7 +512,7 @@ var t = new Thread(() =>
             ("Recuperar senha", () => new RecuperarSenhaForm("admin")),
             ("Ajuda", () => new AjudaForm("PdvForm")),
             ("Veículos", Cadastros.Veiculos), ("Contas bancárias", Cadastros.ContasBancarias),
-            ("Fichas técnicas", () => new FichasTecnicasForm()), ("Ordens de produção", () => new OrdensProducaoForm()),
+            ("Fichas técnicas", () => new FichasTecnicasForm()), ("Ordens de produção", () => new OrdensProducaoForm()), ("Ordens de serviço", () => new OrdensServicoForm()),
             ("Fretes", () => new FretesForm()), ("Cobrança", () => new CobrancaForm()), ("Boleto", () => Privado<BoletoForm>(boletoId)),
             ("Localizar tela", () => Privado<LocalizarTelaForm>()), ("Pagamento", () => new PagamentoForm(123.45m, true)),
             ("TEF simulador", () => new TefSimuladorForm(50m, ModalidadeTef.Credito, 3)), ("Painel gerencial", () => new DashboardForm()),
@@ -699,7 +707,7 @@ var t = new Thread(() =>
         File.WriteAllText(Path.Combine(Raiz, "docs", "06-modelo-de-dados.md"), ModeloDeDados());
         Ok(true, "modelo de dados (dicionário + diagrama ER) gerado em docs/06-modelo-de-dados.md");
         foreach (var (nome, criar) in new (string, Func<Form>)[] { ("Principal (demo)", () => new MainForm()), ("Painel gerencial (demo)", () => new DashboardForm()), ("PDV (demo)", () => new PdvForm()),
-                     ("Fretes (demo)", () => new FretesForm()), ("Ordens de produção (demo)", () => new OrdensProducaoForm()), ("Cobrança (demo)", () => new CobrancaForm()) })
+                     ("Fretes (demo)", () => new FretesForm()), ("Ordens de produção (demo)", () => new OrdensProducaoForm()), ("Ordens de serviço (demo)", () => new OrdensServicoForm()), ("Cobrança (demo)", () => new CobrancaForm()) })
         {
             var f = criar();
             f.WindowState = FormWindowState.Normal;
@@ -718,9 +726,19 @@ var t = new Thread(() =>
             f.Dispose();
         }
 
-        // ---------- cenários de uso (Cenarios/*.cs): cada um num banco próprio, operando as telas como um usuário
+        RodarCenarios(null);
+
+        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+        try { Directory.Delete(Temp, recursive: true); } catch { }
+    }
+    catch (Exception ex) { Ok(false, "exceção: " + ex); }
+
+    // ---------- cenários de uso (Cenarios/*.cs): cada um num banco próprio, operando as telas como um usuário
+    void RodarCenarios(string? filtro)
+    {
         foreach (var tipo in typeof(ErpLoja.Testes.Cenarios.ICenario).Assembly.GetTypes()
-                     .Where(x => typeof(ErpLoja.Testes.Cenarios.ICenario).IsAssignableFrom(x) && !x.IsAbstract && !x.IsInterface).OrderBy(x => x.Name))
+                     .Where(x => typeof(ErpLoja.Testes.Cenarios.ICenario).IsAssignableFrom(x) && !x.IsAbstract && !x.IsInterface)
+                     .Where(x => filtro == null || x.Name.Contains(filtro, StringComparison.OrdinalIgnoreCase)).OrderBy(x => x.Name))
         {
             var cenario = (ErpLoja.Testes.Cenarios.ICenario)Activator.CreateInstance(tipo)!;
             var bancoCenario = Path.Combine(Temp, "cenarios", tipo.Name, "loja.db");
@@ -738,17 +756,14 @@ var t = new Thread(() =>
             }
             catch (Exception ex) { Ok(false, $"[{cenario.Area}] cenário {tipo.Name} interrompido: {(ex is TargetInvocationException { InnerException: { } ie } ? ie : ex)}"); }
         }
-
-        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-        try { Directory.Delete(Temp, recursive: true); } catch { }
     }
-    catch (Exception ex) { Ok(false, "exceção: " + ex); }
 });
 t.SetApartmentState(ApartmentState.STA);
 t.Start();
 t.Join();
 Console.WriteLine(falhas == 0 ? "\nTODOS OS TESTES PASSARAM" : $"\n{falhas} FALHA(S)");
-RelatorioDeTestes();
+if (string.IsNullOrEmpty(soCenario))
+    RelatorioDeTestes();
 return falhas;
 
 void RelatorioDeTestes()

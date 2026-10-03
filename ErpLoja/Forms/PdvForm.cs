@@ -241,6 +241,7 @@ public class PdvForm : Form
         grid.DefaultCellStyle.SelectionForeColor = Texto;
         grid.AlternatingRowsDefaultCellStyle.BackColor = Barra;
         grid.RowTemplate.Height = 40;
+        Ui.RolarNaHorizontal(grid); // itens com colunas sempre legíveis (rola se a janela for estreita)
         grid.DataSource = itens;
         grid.DataBindingComplete += (_, _) =>
         {

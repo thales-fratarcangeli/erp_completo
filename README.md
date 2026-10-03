@@ -28,15 +28,15 @@ O executável pronto fica na página de [Releases](../../releases) do repositór
 
 | Área | O que faz |
 |---|---|
-| Vendas | PDV de teclado com leitor de código de barras, TEF (cartão/PIX), troco, a prazo e comprovante; orçamentos → pedidos → faturamento |
+| Vendas | PDV de teclado com leitor de código de barras, TEF (cartão/PIX), troco, a prazo e comprovante; orçamentos → pedidos → faturamento; **ordens de serviço** com etapas, prazos, alertas de atraso e faturamento |
 | Compras | Pedidos de compra; importação do XML da NF-e com vínculo de produtos e fator de conversão |
 | Produção | Fichas técnicas e ordens de produção com custo real |
 | Estoque | Saldo, situação, sugestão de compra, histórico, inventário, custo médio ponderado |
-| Financeiro | Contas a pagar/receber, baixa, estorno; **cobrança bancária** genérica (boleto Febraban, CNAB 240, homologação) |
+| Financeiro | Contas a pagar/receber, baixa individual e **em lote**, estorno, **acompanhamento de cobrança** com promessas de pagamento; **cobrança bancária** genérica (boleto Febraban, CNAB 240, homologação) |
 | Logística | Veículos, motoristas, fretes e **CIOT** (Pamcard) |
 | Fiscal | NF-e/NFC-e com CFOP automático, ICMS/IPI/PIS/COFINS e **IBS/CBS/IS** da reforma tributária; chave de acesso e DANFE (sem transmissão à SEFAZ) |
 | Gestão | Painel gerencial com comparação ao período anterior; relatórios exportáveis |
-| Sistema | Uma tela por vez à direita do menu (listagem ao meio, opções à direita), aviso de dados não salvos, modo claro/escuro, "continuar de onde parou", localizador de telas (Ctrl+K), ajuda em cada tela (**?**/F1), log de atividades em banco separado, cadastro único de pessoas, configurações centralizadas, usuários com recuperação de senha (Resend), backups, migrations, impressoras (Windows/ESC/POS), atalho na área de trabalho, dados de demonstração |
+| Sistema | **Assistente de dúvidas por IA** (Ctrl+I), tela inicial com alertas do dia, tabelas com rolagem e ordenação por coluna, uma tela por vez à direita do menu (listagem ao meio, opções à direita), aviso de dados não salvos, modo claro/escuro, "continuar de onde parou", localizador de telas (Ctrl+K), ajuda em cada tela (**?**/F1), log de atividades em banco separado, cadastro único de pessoas, configurações centralizadas, usuários com recuperação de senha (Resend), backups, migrations, impressoras (Windows/ESC/POS), atalho na área de trabalho, dados de demonstração |
 
 ## Documentação
 
@@ -50,6 +50,7 @@ O executável pronto fica na página de [Releases](../../releases) do repositór
 | [Falhas e resoluções](docs/10-falhas-e-resolucoes.md) | Suporte e desenvolvimento |
 | [Arquitetura](docs/05-arquitetura.md) e [ADRs](docs/adr/) | Desenvolvimento |
 | [Testes exploratórios](docs/14-testes-exploratorios.md) e [Histórico de solicitações](docs/13-historico-de-solicitacoes.md) | Todos |
+| [App para celular (estudo)](docs/17-app-celular.md) | Produto, desenvolvimento |
 | [Como contribuir](CONTRIBUTING.md) · [Segurança](SECURITY.md) · [Histórico](CHANGELOG.md) | Desenvolvimento |
 
 ## Desenvolvimento

@@ -46,6 +46,9 @@ Conforme o [documento de visão](01-documento-de-visao.md), seção 5. Itens for
 | RF-SIS-13 | Na primeira execução, deve criar um atalho na área de trabalho. | I | RN-INS |
 | RF-SIS-14 | O primeiro acesso com a senha padrão deve exigir a troca da senha. | E | RN-USU |
 | RF-SIS-15 | A tela inicial e o localizador devem oferecer as telas usadas por último. | D | RN-NAV |
+| RF-SIS-16 | Assistente de dúvidas por IA, restrito à ajuda do sistema, sem dados da loja e com máscara de dados pessoais. | D | RN-IA, ADR-0021 |
+| RF-SIS-17 | Tabelas de todas as telas com rolagem horizontal e ordenação por coluna. | E | RN-NAV-09 |
+| RF-SIS-18 | Tela inicial com alertas do que precisa de atenção, abrindo a tela já filtrada. | I | RN-NAV-10, RN-OS-07, RN-FIN-07 |
 
 ### 3.2 Cadastros
 
@@ -67,6 +70,7 @@ Conforme o [documento de visão](01-documento-de-visao.md), seção 5. Itens for
 | RF-VEN-05 | Imprimir comprovante não fiscal e comprovantes TEF; abrir gaveta. | I | RN-VEN-11, RN-IMP |
 | RF-VEN-06 | Manter orçamentos (aprovar, recusar, duplicar, imprimir) e pedidos de venda (faturar). | E | RN-PED, UC-04 |
 | RF-VEN-07 | Consultar vendas por período, reimprimir comprovante e cancelar venda (administrador). | E | RN-VEN-10 |
+| RF-VEN-08 | Manter ordens de serviço com etapas, prazo obrigatório, histórico, faturamento e impressão. | E | RN-OS |
 
 ### 3.4 Compras e estoque
 
@@ -100,6 +104,8 @@ Conforme o [documento de visão](01-documento-de-visao.md), seção 5. Itens for
 | RF-FIN-02 | Emitir boletos para qualquer banco (modelo de campo livre configurável), visualizar e imprimir com código de barras. | E | RN-COB-01..06, UC-08 |
 | RF-FIN-03 | Gerar remessa CNAB 240 e processar retorno, liquidando automaticamente as contas pagas. | E | RN-COB-07..09 |
 | RF-FIN-04 | Apoiar a homologação bancária: boletos de teste, validador CNAB 240 e simulador de retorno. | I | RN-COB-10, UC-08 |
+| RF-FIN-05 | Baixar várias contas de uma vez (tudo ou nada). | I | RN-FIN-05 |
+| RF-FIN-06 | Registrar contatos de cobrança e promessas de pagamento, com filtro e alerta de promessa vencida. | I | RN-FIN-06, RN-FIN-07 |
 
 ### 3.8 Fiscal
 

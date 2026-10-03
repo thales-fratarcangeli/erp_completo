@@ -47,6 +47,20 @@ CNPJ, onde é pra pôr número não pode pôr texto)"*.
 - **Garantia de cobertura**: a bateria abre todas as telas e **reprova** qualquer caixa de texto editável sem formato,
   e varre o código-fonte procurando caixas criadas sem formato (inclusive em diálogos).
 
+## Assistente de dúvidas por IA (1.5.0)
+
+Decisão em [ADR-0021](adr/0021-assistente-ia-somente-documentacao.md); regras em RN-IA.
+
+| Risco (OWASP Top 10 para aplicações com LLM) | Medida |
+|---|---|
+| Vazamento de dados sensíveis (LLM02) | O assistente **não recebe dados do banco**: o contexto é só a ajuda das telas. O que a pessoa digita passa por máscara de CPF, CNPJ, cartão, e-mail e telefone antes de sair do computador. Aviso permanente no painel: "não digite senhas nem dados de clientes". Opção OLLAMA: nada sai da máquina. |
+| Injeção de instruções (LLM01) | Sem ferramentas e sem acesso a dados, não há o que uma instrução maliciosa possa executar ou extrair. As instruções de sistema mandam ignorar pedidos para mudar as regras. |
+| Ação excessiva (LLM06) | O assistente só devolve texto; não grava, não navega e não chama nenhuma função do sistema. |
+| Consumo sem limite (LLM10) | Limite de perguntas por hora por usuário (`ia_limite_hora`), pergunta de até 1.000 caracteres, histórico de até 10 mensagens e resposta limitada. |
+| Credencial | Chave da API gravada cifrada (DPAPI), digitada só por administrador; nunca aparece no log. |
+| Rastreabilidade | Perguntas e respostas (já mascaradas) no log de atividades, na cadeia de integridade. |
+| Saída não confiável (LLM05) | A resposta é exibida como texto simples (sem HTML, links ou comandos); o modelo é instruído a dizer quando não sabe e a não inventar telas. |
+
 ## Riscos remanescentes e recomendações
 
 | Item | Recomendação |

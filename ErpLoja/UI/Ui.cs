@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Text;
 
 namespace ErpLoja.UI;
@@ -102,7 +103,106 @@ public static class Ui
         Validacao.Grade(g); // células numéricas só aceitam números; colunas com formato filtram a digitação
         DestacarLinhaSobMouse(g);
         MostrarEstadoVazio(g);
+        RolarNaHorizontal(g);
+        Ordenacao(g);
         return g;
+    }
+
+    /// <summary>
+    /// Colunas ocupam a largura da tela, mas nunca ficam espremidas: cada uma tem largura mínima (pelo título e pelo tipo
+    /// de dado). Quando não cabem, aparece a barra de rolagem horizontal em vez de cortar o conteúdo.
+    /// </summary>
+    public static void RolarNaHorizontal(DataGridView g)
+    {
+        g.ScrollBars = ScrollBars.Both;
+        g.AllowUserToResizeColumns = true;
+        void Ajustar()
+        {
+            foreach (DataGridViewColumn c in g.Columns)
+            {
+                var titulo = TextRenderer.MeasureText(c.HeaderText ?? "", g.ColumnHeadersDefaultCellStyle.Font ?? FonteNegrito).Width + 30; // + seta de ordenação
+                var tipo = c.ValueType;
+                var piso = tipo == typeof(string) ? 110 : tipo == typeof(DateTime) ? 95 : c is DataGridViewCheckBoxColumn ? 50 : 80;
+                var minimo = Math.Clamp(Math.Max(titulo, piso), 50, 240);
+                if (c.MinimumWidth != minimo)
+                    c.MinimumWidth = minimo;
+            }
+        }
+        // durante ColumnAdded e no meio de uma ordenação a grade ainda está se montando (mudar largura ali quebra a
+        // grade): ajusta logo depois, quando a fila de mensagens estiver livre
+        void Depois()
+        {
+            // grade ainda não exibida (ex.: aba não aberta): ajusta em HandleCreated, quando for mostrada
+            if (g.IsHandleCreated && !g.IsDisposed)
+                g.BeginInvoke(() => { if (!g.IsDisposed) Ajustar(); });
+        }
+        g.ColumnAdded += (_, _) => Depois();
+        g.DataBindingComplete += (_, _) => Depois();
+        g.HandleCreated += (_, _) => Depois();
+    }
+
+    /// <summary>
+    /// Clicar no título da coluna ordena (de novo inverte). Vale para listas de banco (DataTable) e para listas de itens
+    /// (BindingList, ordenadas aqui mesmo). A ordem escolhida é mantida quando a tela recarrega a lista.
+    /// Colunas marcadas como NotSortable (ex.: itens do PDV, cuja ordem é a da venda) não ordenam.
+    /// </summary>
+    static void Ordenacao(DataGridView g)
+    {
+        (string Coluna, ListSortDirection Direcao)? escolhida = null;
+        g.Sorted += (_, _) =>
+        {
+            if (g.SortedColumn is { } c && !string.IsNullOrEmpty(c.DataPropertyName))
+                escolhida = (c.DataPropertyName, g.SortOrder == SortOrder.Descending ? ListSortDirection.Descending : ListSortDirection.Ascending);
+        };
+        g.DataBindingComplete += (_, e) =>
+        {
+            if (e.ListChangedType != ListChangedType.Reset || escolhida is not { } o || g.SortedColumn != null
+                || g.DataSource is not (DataTable or DataView))
+                return;
+            var col = g.Columns.Cast<DataGridViewColumn>().FirstOrDefault(c => c.DataPropertyName == o.Coluna);
+            if (col is { SortMode: DataGridViewColumnSortMode.Automatic })
+                g.Sort(col, o.Direcao);
+        };
+        g.ColumnHeaderMouseClick += (_, e) =>
+        {
+            if (e.Button == MouseButtons.Left && e.ColumnIndex >= 0)
+                OrdenarLista(g, g.Columns[e.ColumnIndex]);
+        };
+    }
+
+    /// <summary>Ordena uma BindingList (que não sabe se ordenar sozinha) pela coluna, mantendo o item selecionado.</summary>
+    public static void OrdenarLista(DataGridView g, DataGridViewColumn col)
+    {
+        if (col.SortMode == DataGridViewColumnSortMode.NotSortable || string.IsNullOrEmpty(col.DataPropertyName)
+            || g.DataSource is not IBindingList { SupportsSorting: false } lista || lista.Count < 2 || lista[0] is not { } primeiro
+            || TypeDescriptor.GetProperties(primeiro)[col.DataPropertyName] is not { } prop)
+            return;
+        if (g.IsCurrentCellInEditMode && !g.EndEdit())
+            return;
+        var decrescente = col.HeaderCell.SortGlyphDirection == SortOrder.Ascending;
+        var itens = lista.Cast<object>().ToList();
+        List<object> ordenados;
+        try
+        {
+            ordenados = (decrescente ? itens.OrderByDescending(prop.GetValue, Comparer<object?>.Default) : itens.OrderBy(prop.GetValue, Comparer<object?>.Default)).ToList();
+        }
+        catch (InvalidOperationException)
+        {
+            return; // valores que não se comparam: deixa como está
+        }
+        var selecionado = g.CurrentRow?.DataBoundItem;
+        lista.Clear();
+        foreach (var i in ordenados)
+            lista.Add(i);
+        foreach (DataGridViewColumn c in g.Columns)
+            if (c.SortMode != DataGridViewColumnSortMode.NotSortable)
+                c.HeaderCell.SortGlyphDirection = c == col ? (decrescente ? SortOrder.Descending : SortOrder.Ascending) : SortOrder.None;
+        if (selecionado != null && lista.IndexOf(selecionado) is var pos and >= 0 && pos < g.Rows.Count)
+        {
+            g.ClearSelection();
+            g.CurrentCell = g.Rows[pos].Cells.Cast<DataGridViewCell>().FirstOrDefault(x => x.Visible);
+        }
+        Log.Registrar(Log.Acao, "Ordenou a lista", $"{col.HeaderText} ({(decrescente ? "decrescente" : "crescente")})");
     }
 
     /// <summary>Texto mostrado pela grade quando não há registros (Tag da grade pode trazer uma dica específica).</summary>
@@ -180,8 +280,8 @@ public static class Ui
                 return;
             e.CellStyle.ForeColor = Txt(e.Value) switch
             {
-                "VENCIDA" or "VENCIDO" or "SEM ESTOQUE" or "RECUSADO" or "REJEITADO" or "PENDENTE" => Perigo,
-                "BAIXO" or "DIGITADA" or "EM PRODUÇÃO" or "EM TRÂNSITO" or "ENVIADO" or "DECLARADO" => Alerta,
+                "VENCIDA" or "VENCIDO" or "ATRASADA" or "SEM ESTOQUE" or "RECUSADO" or "REJEITADO" or "PENDENTE" => Perigo,
+                "BAIXO" or "VENCE HOJE" or "ENTREGUE COM ATRASO" or "DIGITADA" or "EM PRODUÇÃO" or "EM TRÂNSITO" or "ENVIADO" or "DECLARADO" => Alerta,
                 "PAGA" or "PAGO" or "OK" or "APROVADO" or "FATURADO" or "RECEBIDO" or "EMITIDA" or "CONCLUÍDA" or "ENTREGUE"
                     or "REGISTRADO" or "ENCERRADO" => Sucesso,
                 "CANCELADA" or "CANCELADO" or "BAIXADO" => Color.Gray,
@@ -258,13 +358,23 @@ public static class Ui
         Margin = new Padding(4, 7, 4, 4),
     });
 
-    public static DateTimePicker Data(DateTime? valor = null) => new()
+    /// <summary>
+    /// Campo de data: só aceita datas plausíveis (Datas.Minima a Datas.Maxima), nada de 0201 ou 2099 por engano.
+    /// Um registro antigo com data fora da faixa ainda abre (a faixa se estende só até ela).
+    /// </summary>
+    public static DateTimePicker Data(DateTime? valor = null)
     {
-        Format = DateTimePickerFormat.Short,
-        Width = 120,
-        Value = valor ?? DateTime.Today,
-        Margin = new Padding(4, 7, 4, 4),
-    };
+        var v = valor ?? DateTime.Today;
+        return new()
+        {
+            Format = DateTimePickerFormat.Short,
+            Width = 120,
+            MinDate = v < Datas.Minima ? v : Datas.Minima,
+            MaxDate = v > Datas.Maxima ? v : Datas.Maxima,
+            Value = v,
+            Margin = new Padding(4, 7, 4, 4),
+        };
+    }
 
     public static ComboBox Combo(int largura = 220) => new()
     {

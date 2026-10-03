@@ -46,7 +46,8 @@ public class CadastrosAtendenteCadastraPessoa : ICenario
         u.Preencher(tela, "E-mail", "maria@exemplo.com.br");
         u.Clicar(tela, "Salvar");
         u.Ok(!u.Viu("ERRO", ""), "cadastro corrigido é salvo sem erro" + CadastrosApoio.Erros(u));
-        u.Ok(CadastrosApoio.Contar("pessoas", "nome = 'Maria Apressada' AND cpf_cnpj = @p0", cpfNovo) == 1, "pessoa nova gravada uma única vez");
+        u.Ok(CadastrosApoio.Contar("pessoas", "nome = 'Maria Apressada' AND cpf_cnpj = @p0", cpfNovo) == 1, "pessoa nova gravada uma única vez"
+            + $" [{string.Join("; ", Db.Query("SELECT id, nome, cpf_cnpj FROM pessoas WHERE nome LIKE 'Maria Apressada%' OR cpf_cnpj = @p0", cpfNovo).Rows.Cast<System.Data.DataRow>().Select(r => $"{r[0]}|{r[1]}|{r[2]}"))} esperado {cpfNovo}]");
 
         // editar a própria pessoa (mesmo CPF) não acusa duplicidade
         u.Mensagens.Clear();

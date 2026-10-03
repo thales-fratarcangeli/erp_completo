@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Documento** | Catálogo de regras de negócio (RN) |
-| **Sistema** | ERP Loja 1.4.0 (banco v14) |
+| **Sistema** | ERP Loja 1.5.0 (banco v16) |
 | **Status** | Vigente |
 | **Rastreabilidade** | Requisitos em [02](02-especificacao-de-requisitos.md); casos de uso em [03](03-casos-de-uso.md); verificação em [08](08-relatorio-de-testes.md) |
 
@@ -13,10 +13,10 @@ um dos dois está errado e deve ser corrigido. Valores entre crases (`assim`) s�
 
 Sumário: [Cadastros](#cadastros-rn-cad) · [Estoque](#estoque-rn-est) · [Custo](#custo-rn-cus) · [Vendas/PDV](#vendas-e-pdv-rn-ven) ·
 [TEF](#tef-rn-tef) · [Orçamentos e pedidos](#orçamentos-e-pedidos-rn-ped) · [Compras](#compras-rn-com) · [XML de NF-e](#importação-de-xml-rn-xml) ·
-[Produção](#produção-rn-pro) · [Transporte e CIOT](#transporte-e-ciot-rn-tra) · [Financeiro](#financeiro-rn-fin) ·
+[Produção](#produção-rn-pro) · [Ordens de serviço](#ordens-de-serviço-rn-os) · [Transporte e CIOT](#transporte-e-ciot-rn-tra) · [Financeiro](#financeiro-rn-fin) ·
 [Cobrança bancária](#cobrança-bancária-rn-cob) · [Fiscal](#fiscal-rn-fis) · [Reforma tributária](#reforma-tributária-rn-ref) ·
 [Impressão](#impressão-rn-imp) · [Usuários e acesso](#usuários-e-acesso-rn-usu) · [Banco de dados](#banco-de-dados-rn-bd) · [Log de atividades](#log-de-atividades-rn-log) ·
-[Navegação e interface](#navegação-e-interface-rn-nav) · [Instalação](#instalação-rn-ins) · [Parâmetros](#parâmetros-rn-par)
+[Navegação e interface](#navegação-e-interface-rn-nav) · [Instalação](#instalação-rn-ins) · [Assistente (IA)](#assistente-de-dúvidas-rn-ia) · [Parâmetros](#parâmetros-rn-par)
 
 ---
 
@@ -125,6 +125,18 @@ Sumário: [Cadastros](#cadastros-rn-cad) · [Estoque](#estoque-rn-est) · [Custo
 | RN-PRO-04 | Concluir: consumo real = previsto × (produzido ÷ planejado); baixa os insumos (SAIDA), entra o produto (ENTRADA), recalcula o custo médio com o custo real (RN-CUS-06) e grava custo total e unitário na OP. |
 | RN-PRO-05 | Insumo insuficiente ao concluir segue `producao_sem_estoque` (PERGUNTAR, PERMITIR, BLOQUEAR). A falta é calculada com o consumo real (previsto × produzido ÷ planejado), não só com o previsto; BLOQUEAR também vale na camada de dados. |
 
+## Ordens de serviço (RN-OS)
+
+| ID | Regra |
+|---|---|
+| RN-OS-01 | Toda OS tem cliente, descrição do serviço, **prazo de entrega** e **etapa** (nunca fica sem situação). O prazo sugerido é hoje + `os_prazo_dias`; não pode ser antes da abertura nem implausível (RN-SEG-09). Valor ≥ 0. |
+| RN-OS-02 | Etapas: Aberta → Aprovada → Em execução → Pronta → Entregue; Cancelada só pelo cancelamento. Avançar é livre; **voltar exige o motivo**. Entregar grava a data/hora da entrega; voltar de Entregue apaga essa data. OS cancelada não muda de etapa nem é alterada. |
+| RN-OS-03 | **Histórico**: abertura, cada mudança de etapa (com o motivo), alteração de prazo, faturamento e cancelamento ficam em `os_historico` com usuário e data/hora. |
+| RN-OS-04 | **Situação do prazo** (calculada): CANCELADA; ENTREGUE ou ENTREGUE COM ATRASO (entrega depois do prazo); para as em andamento, ATRASADA (prazo < hoje, com dias de atraso), VENCE HOJE ou NO PRAZO. Indicador: % das entregas dos últimos 90 dias feitas até o prazo. |
+| RN-OS-05 | **Faturar** (uma única vez, em qualquer etapa exceto cancelada, valor > 0): gera contas a receber do cliente da OS com `os_id`, parcelas mensais conforme RN-FIN-02 (1 a `max_parcelas`, 1º vencimento ≥ hoje). Depois de faturada, o valor da OS não muda. |
+| RN-OS-06 | **Cancelar** exige motivo. OS faturada só é cancelada depois que as contas a receber dela forem canceladas. |
+| RN-OS-07 | Alertas da tela inicial: OS atrasadas (grave), com entrega hoje, prontas aguardando entrega e entregues sem faturar; cada alerta abre a tela de OS já filtrada. |
+
 ## Transporte e CIOT (RN-TRA)
 
 | ID | Regra |
@@ -145,6 +157,9 @@ Sumário: [Cadastros](#cadastros-rn-cad) · [Estoque](#estoque-rn-est) · [Custo
 | RN-FIN-02 | **Parcelamento**: parcela = arredondar(total ÷ n, 2); a última recebe a diferença de centavos; vencimentos mensais a partir do 1º; descrição "… parcela k/n". |
 | RN-FIN-03 | Baixa: só conta aberta; registra data (não futura), valor pago > 0 (pode diferir: juros/desconto) e forma. Estorno: só paga → aberta (limpa data, valor e forma do pagamento). Cancelamento: só aberta. Baixa manual ou cancelamento de conta a receber com boleto ativo encerra o boleto (RN-COB-08); o cancelamento de venda também. |
 | RN-FIN-04 | Fluxo realizado e "entradas × saídas" usam **valor pago** na **data do pagamento**; previsto usa contas abertas por vencimento. |
+| RN-FIN-05 | **Baixa em lote**: duas ou mais contas abertas do mesmo tipo (só a receber ou só a pagar), cada uma pelo **próprio valor**, na mesma data (não futura) e forma. **Tudo ou nada**: se uma não estiver mais aberta, nenhuma é baixada e a mensagem diz qual. Boletos ativos são encerrados como em RN-FIN-03. Valor diferente (juros, desconto) exige a baixa individual. |
+| RN-FIN-06 | **Acompanhamento de cobrança**: em conta a receber aberta registra-se o contato (meio: telefone, WhatsApp, e-mail, pessoalmente, carta, outro; o que foi conversado, obrigatório; promessa de pagamento opcional, ≥ hoje). A lista mostra o último contato e a promessa; "Promessa vencida" = última promessa < hoje com a conta ainda aberta, que vira alerta grave na tela inicial. |
+| RN-FIN-07 | Alertas da tela inicial: contas a receber vencidas (quantidade e total) e promessas não cumpridas abrem o Financeiro já filtrado. |
 
 ## Cobrança bancária (RN-COB)
 
@@ -242,6 +257,8 @@ Base legal: EC 132/2023 e LC 214/2025 (IBS, CBS e Imposto Seletivo). Valores pad
 | RN-NAV-05 | O PDV tem fundo branco e é operado pelo teclado; as teclas de função do PDV têm prioridade sobre os atalhos gerais enquanto ele está em primeiro plano. |
 | RN-NAV-06 | Cada função existe em um único lugar do menu (ver [ADR-0007](adr/0007-navegacao-fonte-unica.md)); telas de administrador não aparecem para usuários comuns. |
 | RN-NAV-07 | A tela inicial mostra até 6 telas usadas por último pelo usuário ("Continuar de onde parou", lidas do log); o localizador vazio lista essas telas primeiro. O menu lateral destaca a tela em primeiro plano. |
+| RN-NAV-09 | **Tabelas**: em todas as telas, cada coluna tem largura mínima (pelo título e pelo tipo de dado); quando não cabem, aparece a **barra de rolagem horizontal** em vez de espremer o conteúdo. Clicar no título **ordena** (de novo inverte, com seta no título), inclusive listas de itens; números e datas ordenam pelo valor. A ordem escolhida continua depois de pesquisar ou recarregar. Exceção: itens do PDV ficam na ordem da venda. |
+| RN-NAV-10 | **Tela inicial com alertas** do que precisa de atenção hoje (OS atrasadas, contas vencidas, promessas não cumpridas, estoque baixo...), graves primeiro; cada alerta abre a tela que resolve, já filtrada. |
 | RN-NAV-08 | **Modo claro ou escuro** por usuário (rodapé da janela principal ou *Configurações > Minha conta > Aparência*): muda todas as telas abertas na hora, inclusive barra de título e barras de rolagem do Windows, e fica gravado para o usuário (migração 14). |
 
 ## Instalação (RN-INS)
@@ -263,6 +280,16 @@ Base legal: EC 132/2023 e LC 214/2025 (IBS, CBS e Imposto Seletivo). Valores pad
 | RN-SEG-06 | O log de atividades guarda, em cada registro, o hash do anterior (SHA-256); "Verificar integridade" aponta o primeiro registro alterado ou removido fora do sistema. |
 | RN-SEG-07 | O banco é verificado (`PRAGMA quick_check`) a cada abertura; problema de integridade é avisado e registrado. |
 | RN-SEG-08 | Exportação CSV: texto iniciado por = + - @ recebe apóstrofo (não vira fórmula). Importação de XML: sem DTD/entidades externas e com limite de tamanho. |
+| RN-SEG-09 | **Datas plausíveis**: campos de data aceitam de 01/01/2000 até hoje + 10 anos (evita anos como 0201 ou 2099 digitados por engano, que distorcem prazos e relatórios). Registro antigo fora da faixa continua abrindo. |
+
+## Assistente de dúvidas (RN-IA)
+
+| ID | Regra |
+|---|---|
+| RN-IA-01 | Desligado por padrão (`ia_ativa`); só administrador liga e informa a chave (cifrada, RN-SEG-05). Provedor `CLAUDE` (API da Anthropic) ou `OLLAMA` (modelo local). |
+| RN-IA-02 | Responde só sobre o **uso do sistema**, com base na ajuda das telas; **não recebe dados da loja** (nem nome da loja, clientes, valores) e **não executa ações**. |
+| RN-IA-03 | Antes de enviar, CPF, CNPJ, números de cartão, e-mails e telefones digitados são mascarados. Pergunta até 1.000 caracteres; conversa com até 10 mensagens anteriores; a tela em que a pessoa está vai junto. |
+| RN-IA-04 | Limite de `ia_limite_hora` perguntas por hora por usuário. Perguntas e respostas (mascaradas) vão ao log. Erros de rede, chave recusada, limite da API e recusa do modelo viram mensagens claras; nunca derrubam a tela. |
 
 ## Parâmetros (RN-PAR)
 
@@ -278,6 +305,8 @@ Todos na tela *Configurações* (somente administrador), tabela `configuracoes`.
 | Vendas e compras | `venda_sem_estoque` | PERGUNTAR | RN-VEN-03 |
 | Vendas e compras | `desconto_maximo_pct` | 10 | RN-VEN-02 |
 | Vendas e compras | `validade_orcamento_dias`, `prazo_vencimento_dias`, `max_parcelas` | 15 / 30 / 12 | Prazos e parcelas |
+| Vendas e compras | `os_prazo_dias` | 3 | Prazo sugerido da OS (RN-OS-01) |
+| Assistente (IA) | `ia_ativa`, `ia_provedor`, `ia_chave_api`, `ia_modelo`, `ia_limite_hora`, `ia_ollama_url`, `ia_ollama_modelo` | NAO / CLAUDE / — / claude-opus-5-5 / 30 / http://localhost:11434 / — | RN-IA |
 | Vendas e compras | `caixa_numero`, `imprimir_cupom` | 01 / PERGUNTAR | PDV |
 | Produção | `producao_sem_estoque` | PERGUNTAR | RN-PRO-05 |
 | Transporte e CIOT | `rntrc_empresa`, `ciot_administradora`, `ciot_ambiente`, `pamcard_url`, `pamcard_usuario`, `pamcard_senha`, `pamcard_cnpj_contratante` | — / PAMCARD / HOMOLOGACAO | RN-TRA |
